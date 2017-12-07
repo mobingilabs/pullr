@@ -2,4 +2,4 @@ sudo: required
 services:
 - docker
 script: 
-- echo "range: $TRAVIS_COMMIT_RANGE"
+- echo "range ${TRAVIS_COMMIT_RANGE}"
