@@ -3,7 +3,7 @@ services:
 - docker
 script: 
 - echo "range ${TRAVIS_COMMIT_RANGE}"
-- git diff --name-only c5184738f030...5a8412e3e5d8 | while read line; do
+- git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
     DIRNAME=`dirname ${line}`;
     echo "build ${DIRNAME}/Makefile";
   done
