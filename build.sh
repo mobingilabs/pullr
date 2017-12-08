@@ -35,6 +35,7 @@ echo "Range ${TRAVIS_COMMIT_RANGE}"
 # walk through each changed file within the range
 git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
     if [[ $line != vendor* ]]; then
+        echo "Process ${line}"
         build $line
         echo "-"
     fi
