@@ -18,9 +18,9 @@ $(BASE):
 authdd: __docker_authdd prune
 authdp: __checkenv __docker_authdp prune
 
-# use kops id and secret
 locald:
-	@docker build --rm -t authd --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
+	@docker build -f ../../dockerfile.apisvr --rm -t apisvr --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
+	rm vendor; \
 	make prune;
 
 __docker_authdd:

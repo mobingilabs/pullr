@@ -1,5 +1,5 @@
 bin
-authd
+apisvr
 Gopkg*
 README.md
 Dockerfile*

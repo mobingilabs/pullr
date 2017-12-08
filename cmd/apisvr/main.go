@@ -1,7 +1,7 @@
 package main
 
-import "github.com/mobingilabs/authd/cmd"
+import "github.com/mobingilabs/pullr/cmd/apisvr/app"
 
 func main() {
-	cmd.Execute()
+	app.Execute()
 }

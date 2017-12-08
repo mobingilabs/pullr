@@ -20,7 +20,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/guregu/dynamo"
 	"github.com/labstack/echo"
-	"github.com/mobingilabs/authd/pkg/token"
+	"github.com/mobingilabs/pullr/pkg/token"
 	"github.com/pkg/errors"
 )
 
