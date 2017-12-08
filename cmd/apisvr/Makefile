@@ -21,8 +21,7 @@ custom:
 
 local:
 	@docker build -f ../../dockerfile.apisvr --rm -t apisvr --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
-	rm vendor; \
-	make prune;
+	rm vendor
 
 __docker_authdd:
 	@docker build -t $(IMAGE) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(TAGVER)" .;
@@ -39,8 +38,8 @@ __checkenv:
 # docker run containers
 
 .PHONY: on __on off __off
-on: __on prune
-off: __off prune
+on: __on
+off: __off
 
 __on:
 	@docker run --rm -d -p 8080:8080 --name authd authd
@@ -50,10 +49,7 @@ __off:
 
 # misc
 
-.PHONY: prune clean version list
-prune:
-	@docker system prune -f
-
+.PHONY: clean version list
 clean:
 	@rm -rfv bin; \
 	docker rmi $(docker images --filter "dangling=true" -q --no-trunc); \
