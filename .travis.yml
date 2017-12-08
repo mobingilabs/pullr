@@ -13,7 +13,7 @@ script:
     if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
       if [[ $BUILT != *"${DIRNAME}"* ]]; then
         INCLUDE_MAKEFILE=`echo "${DIRNAME}/Makefile"`;
-        GOCOUNT=`find $DIRNAME -name "*.go"`;
+        GOCOUNT=`find $DIRNAME -name "*.go" | wc -l`;
         if [ $GOCOUNT -gt 0 ]; then
           echo "build ${MKFILE}";
           make release;
