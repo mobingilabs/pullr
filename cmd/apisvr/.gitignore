@@ -1,5 +1,5 @@
 bin
-authd
+apisvr
 
 # Binaries for programs and plugins
 *.exe

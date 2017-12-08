@@ -2,11 +2,10 @@ VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null 
 BLDVER = version:$(VERSION);build:$(shell date -Ins)
 BASE = $(CURDIR)
 
-.PHONY: all
-all: version authd
+.PHONY: all apisvr
+all: version apisvr
 
-.PHONY: authd
-authd:| $(BASE)
+apisvr:| $(BASE)
 	@go build -v -o $(BASE)/bin/$@
 
 $(BASE):
@@ -14,11 +13,13 @@ $(BASE):
 
 # docker builds
 
-.PHONY: locald authdd authdp __docker_authdd __docker_authdp
-authdd: __docker_authdd prune
-authdp: __checkenv __docker_authdp prune
+.PHONY: custom local
 
-locald:
+# This is the rule that is called by the root Makefile during CI build.
+custom:
+	@docker build -f dockerfile.apisvr --rm -t apisvr --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
+
+local:
 	@docker build -f ../../dockerfile.apisvr --rm -t apisvr --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
 	rm vendor; \
 	make prune;
