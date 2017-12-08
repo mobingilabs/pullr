@@ -11,6 +11,7 @@ import (
 	"github.com/mobingilabs/mobingi-sdk-go/pkg/debug"
 )
 
+// Local test only
 func TestValidatePerf(t *testing.T) {
 	return
 	u := os.Getenv("MOBINGI_USERNAME")
