@@ -12,10 +12,10 @@ script:
     DIRNAME=`dirname ${line}`;
     if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
       if [[ $BUILT != *"${DIRNAME}"* ]]; then
-        GOCOUNT=`find $DIRNAME -name "*.go" | wc -l`;
-        if [ $GOCOUNT -gt 0 ]; then
+        MKFILE=`echo "${DIRNAME}/Makefile"`;
+        if [ -f $MKFILE ]; then
           echo "build ${DIRNAME}";
-          INCLUDE_MAKEFILE=`echo "${DIRNAME}/Makefile"` make release;
+          INCLUDE_MAKEFILE=$MKFILE make release;
           BUILT=`echo "${BUILT};${DIRNAME}"`;
         fi;
       fi;
