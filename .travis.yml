@@ -6,27 +6,25 @@ env:
 services:
 - docker
 
-script: 
+script:
 - echo "range ${TRAVIS_COMMIT_RANGE}"
 - git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
     DIRNAME=`dirname ${line}`;
     if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
       echo "built = ${BUILT}";
-      if [[ $BUILT == *"${DIRNAME}"* ]]; then
-        echo "${DIRNAME} already built, skip";
-      else
+      if [[ $BUILT != *"${DIRNAME}"* ]]; then
         MKFILE=`echo "${DIRNAME}/Makefile"`;
         if [ -f $MKFILE ]; then
           echo "build ${MKFILE}";
           BUILT=`echo "${BUILT};${DIRNAME}"`;
         fi;
+      else
+        echo "${DIRNAME} already built, skip";
       fi;
-    else
-      echo "current same as old dir, skip (${DIRNAME} = ${DIRNAME_OLD})";
     fi;
     DIRNAME_OLD=$DIRNAME;
   done
 
 notifications:
   slack:
-    secure: OMdHmwlYTxFtCu5SQpxsvAaDODshF+iO8OxSXZUxIW5F2/r4UTM62ugNrzg12bMWklEVJF7SapAPVzhye/24aICboxifRe1Q7WaGyG3kvGUsGoZRopg02TaGQs/Mtq8sbtSpdCOVHWwFWWoSChr9nWVODJ6AN0eTtFeko5ZoK0XcdfXOn27cK6YaOjR3gBqMnkVMGwYCZNJQTPMp93zmbvAgo+ITJA5RZYBnjyNr2XqtHExoxbzvSp7LfkZqu+CQfp+FBrQ6a6PlEce+DiYzN0X+1sUuEBx/Xx9hsVvJLNMQZYPtvk0dKweR4O+GgZvDswFDaorovjco+yoOAZh6H1PlzlJZTL5M6ekoM/Mm0pGmFwQMp/HGzQsmVOswwtk8JMBy+pWIBikQKtT9F6ujxmWzz/s6fDscmzGEYygj8r6Qcn2HMHyULuq/orpmfd/HzHRHd3CHSy/sJAvK+6Sv8S0Ty8sbVD0b5WDbqOHiLE2OIfbN47I+w19bRx9YpwUYxJTDHGRS6qAKFc+QqqcKw+oW9ZSeFqNPAsVPpaGOXclYwz3rPxLUuaTb5SHCsMEw9erL+akzZOHfmVxVHFJ+ZFwzzRAVfl4Oqc/qCPXBU6CUIz6xXMenLhEtA1gbegAkYAlFZUdCKiwkdLsmyVMjRTX8ESfoWG4T6UTR4j5ioLg=
+    secure: AAy6GqYblDowy7UKNKbv10Qx1IXysnnwSQlEOpi9AmRxrI4KOIqXi50ZEmA+ja0BfkejHTBtaiPSqSE+Vo62wiTAHYx9xgmpzOuBYKUCYj6PsPLhqyISeh2kxfApU3wqivQS5EzUv1v5wIyI2z8whV5LwNYuHNDoSGaV3yahioEczthYwQtVMmeJFrtdNG7dQZXYbcCIWfLfZLboI+/9JXabsP63JSUQmMVx06Z45W50OhQXBCyRGf+dXDrfYyJ6bcfXya0Mg/zzJ+LoFOJSKE4lnMinK4Y2XCTPPQeiuEdKb0E4KK8ya81mZ6lGc5tGq6PrptTRnfPSmrrkHwOAyXUBxqYgnzcUx58DWZXDHB+JAAGUsaoCDmPZkUSBQHo7+TcnySGqllzr7aFwHDqi07cBeXrWNVIKnC7JKBu6fnwLxOQzWPwmkozHYw9nRZursW1cx0G7E41redc8GgywMwcTRx7GU195Fh3AK0P2ZveqrTZEDXLpU5gcPdMEYxNSAESxDVJ0Mjj3dLBv7znBaMe8qzbVGFO/V+ei74QPKGze0hB8V8p1s+9aB92waE+hAiXLrSi26eqs6i3/zM2palUC554gLUToEaJmeUv90IZOpv5yTdJp9DJAxJUGqRcXX4itL3khpxtK1n5tPqn2yi6Y9om2NpcFd6TxJR6tzwo=
