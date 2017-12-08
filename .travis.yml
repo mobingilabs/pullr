@@ -11,15 +11,12 @@ script:
 - git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
     DIRNAME=`dirname ${line}`;
     if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
-      echo "built = ${BUILT}";
       if [[ $BUILT != *"${DIRNAME}"* ]]; then
         MKFILE=`echo "${DIRNAME}/Makefile"`;
         if [ -f $MKFILE ]; then
           echo "build ${MKFILE}";
           BUILT=`echo "${BUILT};${DIRNAME}"`;
         fi;
-      else
-        echo "${DIRNAME} already built, skip";
       fi;
     fi;
     DIRNAME_OLD=$DIRNAME;
