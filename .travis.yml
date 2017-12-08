@@ -1,7 +1,6 @@
 sudo: required
 env:
-- DIRNAME_OLD=.
-- BUILT=.
+- DIRNAME_OLD=. BUILT=.
 services:
 - docker
 script: 
@@ -11,7 +10,7 @@ script:
     if [[ "$DIRNAME" == "$DIRNAME_OLD" ]]; then
       echo "current same as old dir, skip (${DIRNAME} = ${DIRNAME_OLD})";
     else
-      echo "built = ${BUILT}"
+      echo "built = ${BUILT}";
       if [[ $BUILT == *"${DIRNAME}"* ]]; then
         echo "${DIRNAME} already built, skip";
       else
