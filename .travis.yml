@@ -1,15 +1,16 @@
 sudo: required
+
 env:
 - DIRNAME_OLD=. BUILT=.
+
 services:
 - docker
+
 script: 
 - echo "range ${TRAVIS_COMMIT_RANGE}"
 - git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
     DIRNAME=`dirname ${line}`;
-    if [[ "$DIRNAME" == "$DIRNAME_OLD" ]]; then
-      echo "current same as old dir, skip (${DIRNAME} = ${DIRNAME_OLD})";
-    else
+    if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
       echo "built = ${BUILT}";
       if [[ $BUILT == *"${DIRNAME}"* ]]; then
         echo "${DIRNAME} already built, skip";
@@ -20,6 +21,12 @@ script:
           BUILT=`echo "${BUILT};${DIRNAME}"`;
         fi;
       fi;
+    else
+      echo "current same as old dir, skip (${DIRNAME} = ${DIRNAME_OLD})";
     fi;
     DIRNAME_OLD=$DIRNAME;
   done
+
+notifications:
+  slack:
+    secure: OMdHmwlYTxFtCu5SQpxsvAaDODshF+iO8OxSXZUxIW5F2/r4UTM62ugNrzg12bMWklEVJF7SapAPVzhye/24aICboxifRe1Q7WaGyG3kvGUsGoZRopg02TaGQs/Mtq8sbtSpdCOVHWwFWWoSChr9nWVODJ6AN0eTtFeko5ZoK0XcdfXOn27cK6YaOjR3gBqMnkVMGwYCZNJQTPMp93zmbvAgo+ITJA5RZYBnjyNr2XqtHExoxbzvSp7LfkZqu+CQfp+FBrQ6a6PlEce+DiYzN0X+1sUuEBx/Xx9hsVvJLNMQZYPtvk0dKweR4O+GgZvDswFDaorovjco+yoOAZh6H1PlzlJZTL5M6ekoM/Mm0pGmFwQMp/HGzQsmVOswwtk8JMBy+pWIBikQKtT9F6ujxmWzz/s6fDscmzGEYygj8r6Qcn2HMHyULuq/orpmfd/HzHRHd3CHSy/sJAvK+6Sv8S0Ty8sbVD0b5WDbqOHiLE2OIfbN47I+w19bRx9YpwUYxJTDHGRS6qAKFc+QqqcKw+oW9ZSeFqNPAsVPpaGOXclYwz3rPxLUuaTb5SHCsMEw9erL+akzZOHfmVxVHFJ+ZFwzzRAVfl4Oqc/qCPXBU6CUIz6xXMenLhEtA1gbegAkYAlFZUdCKiwkdLsmyVMjRTX8ESfoWG4T6UTR4j5ioLg=
