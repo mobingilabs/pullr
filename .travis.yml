@@ -6,22 +6,11 @@ env:
 services:
 - docker
 
+before_script:
+- chmod +x build.sh
+
 script:
-- echo "range ${TRAVIS_COMMIT_RANGE}"
-- git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
-    DIRNAME=`dirname ${line}`;
-    if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
-      if [[ $BUILT != *"${DIRNAME}"* ]]; then
-        MKFILE=`echo "${DIRNAME}/Makefile"`;
-        if [ -f $MKFILE ]; then
-          echo "build ${DIRNAME}";
-          INCLUDE_MAKEFILE=$MKFILE make release;
-          BUILT=`echo "${BUILT};${DIRNAME}"`;
-        fi;
-      fi;
-    fi;
-    DIRNAME_OLD=$DIRNAME;
-  done
+- ./build.sh
 
 notifications:
   slack:
