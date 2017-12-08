@@ -1,38 +1,49 @@
 #!/bin/bash
 
-upsearch () {
-  slashes=${PWD//[^\/]/}
-  directory="$PWD"
-  for (( n=${#slashes}; n>0; --n ))
-  do
-    # test -e "$directory/$1" && echo "$directory/$1" && return
-    echo "hello ${directory}, ${#slashes}"
-    directory="$directory/.."
-  done
-}
-
-# upsearch
-# exit 0
+# we don't include root by default
+BUILT=`readlink -e ${PWD}/Makefile`
 
 build () {
-  DIRNAME=`dirname $1`
-  if [[ "$DIRNAME" != "$DIRNAME_OLD" ]]; then
-    if [[ $BUILT != *"${DIRNAME}"* ]]; then
-      SLASHES=${PWD//[^\/]/}
-      MKFILE=`echo "${DIRNAME}/Makefile"`
-      if [ -f $MKFILE ]; then
-        echo "build ${DIRNAME}"
+    DIRNAME=`dirname $1`
+    echo "built makefiles: ${BUILT}"
+
+    SLASHES=${PWD//[^\/]/}
+    MKFILE=`echo "${DIRNAME}/Makefile"`
+
+    for (( n=${#SLASHES}; n>0; --n )); do
+        if [ -f $MKFILE ]; then
+            echo "found makefile in ${DIRNAME}"
+            break
+        else
+            DIRNAME="${DIRNAME}/.."
+            MKFILE=`echo "${DIRNAME}/Makefile"`
+        fi
+    done
+        
+    MKFILE_FULL=`readlink -e ${MKFILE}`
+    echo "full makefile path: ${MKFILE_FULL}"
+
+    if [[ $BUILT != *"${MKFILE_FULL}"* ]]; then
+        echo "build ${DIRNAME} (${MKFILE_FULL})"
         INCLUDE_MAKEFILE=$MKFILE make release
-        BUILT=`echo "${BUILT};${DIRNAME}"`
-      fi
+        BUILT=`echo "${BUILT};${MKFILE_FULL}"`
+    else
+        echo "${MKFILE_FULL} already built, skipping"
     fi
-  fi
-  DIRNAME_OLD=$DIRNAME
 }
+
+# for test
+# cat filelist | while read line; do
+#     echo "line: ${line}"
+#     build $line
+#     echo "-"
+# done
+# exit
 
 echo "range ${TRAVIS_COMMIT_RANGE}"
 
 # walk through each changed file
 git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
-    build $line;
+    build $line
+    echo "-"
 done

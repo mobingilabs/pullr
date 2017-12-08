@@ -1,6 +1,4 @@
 sudo: required
-env:
-- DIRNAME_OLD=. BUILT=.
 services:
 - docker
 before_script:
