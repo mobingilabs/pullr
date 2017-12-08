@@ -15,7 +15,7 @@ $(BASE):
 
 .PHONY: custom local
 
-# This is the rule that is called by the root Makefile during CI build.
+# The single rule that is called by our root Makefile during CI builds.
 custom:
 	@docker build -f dockerfile.apisvr --rm -t apisvr --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
 
