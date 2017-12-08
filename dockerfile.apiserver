@@ -11,9 +11,9 @@ ENV AWS_REGION=$awsrgn \
     AWS_SECRET_ACCESS_KEY=$awssec
 COPY pkg/ /go/src/github.com/mobingilabs/pullr/pkg/
 COPY vendor/ /go/src/github.com/mobingilabs/pullr/vendor/
-COPY cmd/apisvr/ /go/src/github.com/mobingilabs/pullr/cmd/apisvr/
-WORKDIR /go/src/github.com/mobingilabs/pullr/cmd/apisvr/
-RUN go build -v -ldflags "-X github.com/mobingilabs/pullr/cmd/apisvr/cmd.version=$version"
+COPY cmd/apiserver/ /go/src/github.com/mobingilabs/pullr/cmd/apiserver/
+WORKDIR /go/src/github.com/mobingilabs/pullr/cmd/apiserver/
+RUN go build -v -ldflags "-X github.com/mobingilabs/pullr/cmd/apiserver/app.version=$version"
 
-ENTRYPOINT ["/go/src/github.com/mobingilabs/pullr/cmd/apisvr"]
+ENTRYPOINT ["/go/src/github.com/mobingilabs/pullr/cmd/apiserver/apiserver"]
 CMD ["serve", "--logtostderr"]

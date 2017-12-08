@@ -15,7 +15,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mobingilabs/mobingi-sdk-go/pkg/private"
-	"github.com/mobingilabs/pullr/cmd/apisvr/v1"
+	"github.com/mobingilabs/pullr/cmd/apiserver/v1"
 	"github.com/mobingilabs/pullr/pkg/token"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
