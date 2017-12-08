@@ -5,14 +5,13 @@ BUILT=`readlink -e ${PWD}/Makefile`
 
 build () {
     DIRNAME=`dirname $1`
-    echo "built makefiles: ${BUILT}"
-
     SLASHES=${PWD//[^\/]/}
     MKFILE=`echo "${DIRNAME}/Makefile"`
 
+    # try walking up the path until we find a makefile
     for (( n=${#SLASHES}; n>0; --n )); do
         if [ -f $MKFILE ]; then
-            echo "found makefile in ${DIRNAME}"
+            echo "Found Makefile in ${DIRNAME}"
             break
         else
             DIRNAME="${DIRNAME}/.."
@@ -21,26 +20,17 @@ build () {
     done
         
     MKFILE_FULL=`readlink -e ${MKFILE}`
-    echo "full makefile path: ${MKFILE_FULL}"
 
     if [[ $BUILT != *"${MKFILE_FULL}"* ]]; then
-        echo "build ${DIRNAME} (${MKFILE_FULL})"
+        echo "Build ${DIRNAME} (${MKFILE_FULL})"
         INCLUDE_MAKEFILE=$MKFILE make release
         BUILT=`echo "${BUILT};${MKFILE_FULL}"`
     else
-        echo "${MKFILE_FULL} already built, skipping"
+        echo "Skip ${MKFILE_FULL} (already built, or root)"
     fi
 }
 
-# for test
-# cat filelist | while read line; do
-#     echo "line: ${line}"
-#     build $line
-#     echo "-"
-# done
-# exit
-
-echo "range ${TRAVIS_COMMIT_RANGE}"
+echo "Range ${TRAVIS_COMMIT_RANGE}"
 
 # walk through each changed file
 git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
