@@ -14,8 +14,11 @@ script:
       if [[ $BUILT == *"${DIRNAME}"* ]]; then
         echo "${DIRNAME} already built, skip";
       else
-        echo "build ${DIRNAME}/Makefile";
-        BUILT=`echo "${BUILT};${DIRNAME}"`;
+        MKFILE=`echo "${DIRNAME}/Makefile"`;
+        if [ -f $MKFILE ]; then
+          echo "build ${MKFILE}";
+          BUILT=`echo "${BUILT};${DIRNAME}"`;
+        fi;
       fi;
     fi;
     DIRNAME_OLD=$DIRNAME;
