@@ -1,9 +1,17 @@
 sudo: required
+env:
+- DIRNAME_OLD=.
 services:
 - docker
 script: 
 - echo "range ${TRAVIS_COMMIT_RANGE}"
 - git diff --name-only $TRAVIS_COMMIT_RANGE | while read line; do
+    echo "olddir ${DIRNAME_OLD}";
     DIRNAME=`dirname ${line}`;
-    echo "build ${DIRNAME}/Makefile";
+    if [[ "$DIRNAME" == "$DIRNAME_OLD" ]]; then
+      echo "same as old, skip";
+    else
+      echo "build ${DIRNAME}/Makefile";
+    fi;
+    DIRNAME_OLD=$DIRNAME;
   done
