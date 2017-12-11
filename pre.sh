@@ -27,4 +27,6 @@ fi
 kubectl version
 pip install --user awscli
 export PATH=${PATH}:${HOME}/.local/bin
+export AWS_ACCESS_KEY_ID=${PULLRCI_ACCESS_KEY_ID};
+export AWS_SECRET_ACCESS_KEY=${PULLRCI_SECRET_ACCESS_KEY};
 aws --version
