@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || cat $(CURDIR)/.version 2> /dev/null || echo v0)
 BLDVER = version:$(VERSION);build:$(shell date -Ins)
 BASE = $(CURDIR)
-NAME = pullrapiserver
+NAME = pullrbuildctl
 
 .PHONY: all $(NAME)
 all: version $(NAME)
@@ -21,11 +21,10 @@ custom: docker deploy
 local: docker prune
 
 docker:
-	@docker build -f dockerfile.apiserver --rm -t $(NAME) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
+	@hello "docker build"
 
 deploy:
-	@chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
-	$(BASE)/cmd/apiserver/deploy.sh;
+	@hello "deploy"
 
 # docker run containers
 
