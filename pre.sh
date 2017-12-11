@@ -11,6 +11,6 @@ kubectl config set clusters.mochi.k8s.local.server ${KUBE_SERVER}
 kubectl config set users.mochi.k8s.local.client-certificate-data ${KUBE_CLIENT_CERT}
 kubectl config set users.mochi.k8s.local.client-key-data ${KUBE_CLIENT_KEYDATA}
 kubectl version
-install --user awscli
+pip install --user awscli
 export PATH=${PATH}:${HOME}/.local/bin
 aws --version
