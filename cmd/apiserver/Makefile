@@ -25,7 +25,7 @@ docker:
 
 deploy:
 	@export NAME=$(MODULE); \
-	@chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
+	chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
 	$(BASE)/cmd/apiserver/deploy.sh;
 
 # docker run containers
