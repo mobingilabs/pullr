@@ -10,6 +10,7 @@ if [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" ]]; then
 fi
 
 IMAGE="${NAME}:${IMAGE_TAG}"
+echo "image = ${IMAGE}"
 docker tag ${IMAGE} ${ECR_REPO_URI}/${IMAGE}
 docker images
 docker push ${ECR_REPO_URI}/${IMAGE}

@@ -23,7 +23,11 @@ build () {
 
     if [[ $BUILT != *"${MKFILE_FULL}"* ]]; then
         echo "Build ${DIRNAME} (${MKFILE_FULL})"
+
+        # main build command
         INCLUDE_MAKEFILE=$MKFILE make release
+
+        # add item to our list of built modules
         BUILT=`echo "${BUILT};${MKFILE_FULL}"`
     else
         echo "Skip ${MKFILE_FULL} (already built, or root)"
