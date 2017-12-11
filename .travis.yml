@@ -2,8 +2,8 @@ sudo: required
 services:
 - docker
 before_script:
+- chmod +x pre.sh
 - chmod +x build.sh
-- chmod +x deploy.sh
 script:
 - ./build.sh
 notifications:
