@@ -5,8 +5,7 @@ before_script:
 - chmod +x pre.sh
 - chmod +x build.sh
 script:
-- ./pre.sh
-- ./build.sh
+- ./pre.sh && ./build.sh
 notifications:
   slack:
     secure: AAy6GqYblDowy7UKNKbv10Qx1IXysnnwSQlEOpi9AmRxrI4KOIqXi50ZEmA+ja0BfkejHTBtaiPSqSE+Vo62wiTAHYx9xgmpzOuBYKUCYj6PsPLhqyISeh2kxfApU3wqivQS5EzUv1v5wIyI2z8whV5LwNYuHNDoSGaV3yahioEczthYwQtVMmeJFrtdNG7dQZXYbcCIWfLfZLboI+/9JXabsP63JSUQmMVx06Z45W50OhQXBCyRGf+dXDrfYyJ6bcfXya0Mg/zzJ+LoFOJSKE4lnMinK4Y2XCTPPQeiuEdKb0E4KK8ya81mZ6lGc5tGq6PrptTRnfPSmrrkHwOAyXUBxqYgnzcUx58DWZXDHB+JAAGUsaoCDmPZkUSBQHo7+TcnySGqllzr7aFwHDqi07cBeXrWNVIKnC7JKBu6fnwLxOQzWPwmkozHYw9nRZursW1cx0G7E41redc8GgywMwcTRx7GU195Fh3AK0P2ZveqrTZEDXLpU5gcPdMEYxNSAESxDVJ0Mjj3dLBv7znBaMe8qzbVGFO/V+ei74QPKGze0hB8V8p1s+9aB92waE+hAiXLrSi26eqs6i3/zM2palUC554gLUToEaJmeUv90IZOpv5yTdJp9DJAxJUGqRcXX4itL3khpxtK1n5tPqn2yi6Y9om2NpcFd6TxJR6tzwo=

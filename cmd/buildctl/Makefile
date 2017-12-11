@@ -21,10 +21,10 @@ custom: docker deploy
 local: docker prune
 
 docker:
-	@hello "docker build"
+	@echo "docker build"
 
 deploy:
-	@hello "deploy"
+	@echo "deploy"
 
 # docker run containers
 

@@ -27,7 +27,8 @@ docker:
 	@docker build -f dockerfile.apiserver --rm -t $(MODULE) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
 
 deploy:
-	@chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
+	@echo "key $(AWS_ACCESS_KEY_ID)"; \
+	chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
 	$(BASE)/cmd/apiserver/deploy.sh;
 
 # docker run containers
