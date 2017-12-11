@@ -20,15 +20,12 @@ $(BASE):
 custom: docker deploy
 local: docker prune
 
-pre:
-	@export NAME=$(MODULE);
-
 docker:
 	@docker build -f dockerfile.apiserver --rm -t $(MODULE) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
 
 deploy:
-	@echo "key $(AWS_ACCESS_KEY_ID)"; \
-	chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
+	@export NAME=$(MODULE); \
+	@chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
 	$(BASE)/cmd/apiserver/deploy.sh;
 
 # docker run containers

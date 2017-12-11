@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # login to ecr
+export AWS_ACCESS_KEY_ID=`echo ${PULLRCI_ACCESS_KEY_ID}`;
+export AWS_SECRET_ACCESS_KEY=`echo ${PULLRCI_SECRET_ACCESS_KEY}`;
 `aws ecr get-login --region ap-northeast-1`
 
 IMAGE_TAG="latest"

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "[build]key: ${AWS_ACCESS_KEY_ID}"
-
 # we don't include root by default
 BUILT=`readlink -e ${PWD}/Makefile`
 
