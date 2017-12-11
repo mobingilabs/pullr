@@ -21,7 +21,7 @@ custom: docker deploy
 local: docker prune
 
 docker:
-	@docker build -f dockerfile.apiserver --rm -t $(MODULE) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
+	@docker build -f dockerfile.apiserver --rm -t $(MODULE):$(TRAVIS_COMMIT) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
 
 deploy:
 	@export NAME=$(MODULE); \
