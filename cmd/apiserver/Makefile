@@ -15,7 +15,7 @@ $(BASE):
 
 .PHONY: custom local on off
 
-# The single rule that is called by our root Makefile during CI builds. -
+# The single rule that is called by our root Makefile during CI builds.
 custom:
 	@docker build -f dockerfile.apiserver --rm -t apiserver --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(AUTHD_ACCESS_KEY_ID) --build-arg awssec=$(AUTHD_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .; \
 
