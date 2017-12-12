@@ -26,7 +26,6 @@ if [[ "$TRAVIS_BRANCH" == "production" ]] || [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG
 fi
 
 kubectl version
-kubectl get deployments
 pip install --user awscli
 export PATH=${PATH}:${HOME}/.local/bin
 aws --version
