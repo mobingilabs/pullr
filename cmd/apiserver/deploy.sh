@@ -14,7 +14,7 @@ if [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" ]]; then
 fi
 
 if [[ $DEPLOY -eq 0 ]]; then
-    echo "Deploy not supported"
+    echo "Deployment not supported"
     exit 0
 fi
 
