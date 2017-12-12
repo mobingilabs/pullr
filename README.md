@@ -1,2 +1,3 @@
-## pullr
-tbd
+|master|
+|:-----|
+|[![Build Status](https://travis-ci.org/mobingilabs/pullr.svg?branch=master)](https://travis-ci.org/mobingilabs/pullr)|
