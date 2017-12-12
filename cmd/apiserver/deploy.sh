@@ -2,7 +2,7 @@
 
 DEPLOY=0
 
-if [[ "$TRAVIS_BRANCH" == "master" ]]i || [[ "$TRAVIS_BRANCH" == "production" ]]; then
+if [[ "$TRAVIS_BRANCH" == "master" ]] || [[ "$TRAVIS_BRANCH" == "production" ]]; then
     DEPLOY=1
 fi
 
