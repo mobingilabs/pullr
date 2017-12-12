@@ -16,6 +16,7 @@ if [[ "$TRAVIS_BRANCH" == "master" ]]; then
     kubectl config set users.mochi.k8s.local.client-key-data ${KUBE_CLIENT_KEYDATA}
 fi
 
+# production branch and tags will deploy to production
 if [[ "$TRAVIS_BRANCH" == "production" ]] || [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" ]]; then
     echo "Setting up production environment"
     kubectl config set clusters.mochi.k8s.local.certificate-authority-data ${KUBE_PROD_CLUSTER_CERT}

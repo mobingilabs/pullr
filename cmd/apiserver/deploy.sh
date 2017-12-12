@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # login to ecr
-export AWS_ACCESS_KEY_ID=`echo ${PULLRCI_ACCESS_KEY_ID}`;
-export AWS_SECRET_ACCESS_KEY=`echo ${PULLRCI_SECRET_ACCESS_KEY}`;
+export AWS_ACCESS_KEY_ID=`echo ${PULLRCI_ACCESS_KEY_ID}`
+export AWS_SECRET_ACCESS_KEY=`echo ${PULLRCI_SECRET_ACCESS_KEY}`
 `aws ecr get-login --region ap-northeast-1`
 
 IMAGE_TAG=`echo ${TRAVIS_COMMIT}`
@@ -18,5 +18,5 @@ docker tag ${IMAGE} ${ECR_REPO_URI}/${IMAGE}
 docker images
 docker push ${ECR_REPO_URI}/${IMAGE}
 
-# update kubernetes deployment
-kubectl set image deployment ${NAME} ${NAME}=${ECR_REPO_URI}/${IMAGE};
+# update kubernetes deployment with the new image
+kubectl set image deployment ${NAME} ${NAME}=${ECR_REPO_URI}/${IMAGE}
