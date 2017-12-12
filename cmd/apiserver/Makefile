@@ -1,7 +1,8 @@
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || cat $(CURDIR)/.version 2> /dev/null || echo v0)
-BLDVER = version:$(VERSION);build:$(shell date -Ins)
 BASE = $(CURDIR)
 MODULE = pullrapiserver
+# BLDVER = version:$(VERSION);build:$(shell date -Ins)
+BLDVER = module:$(MODULE),version:$(VERSION),build:$(shell date +"%Y%m%d.%H%M%S.%N.%z")
 
 .PHONY: all $(MODULE)
 all: version $(MODULE)
@@ -18,7 +19,7 @@ $(BASE):
 
 # The single rule that is called by our root Makefile during CI builds.
 custom: docker deploy
-local: docker prune
+local: __local prune
 
 docker:
 	@docker build -f dockerfile.apiserver --rm -t $(MODULE):$(TRAVIS_COMMIT) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
@@ -27,6 +28,9 @@ deploy:
 	@export NAME=$(MODULE); \
 	chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
 	$(BASE)/cmd/apiserver/deploy.sh;
+
+__local:
+	@docker build -f dockerfile.apiserver --rm -t $(MODULE) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
 
 # docker run containers
 

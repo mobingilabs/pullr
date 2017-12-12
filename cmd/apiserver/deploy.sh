@@ -11,8 +11,12 @@ if [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" ]]; then
     IMAGE_TAG=${TRAVIS_TAG}
 fi
 
+# push image to ecr
 IMAGE="${NAME}:${IMAGE_TAG}"
 echo "image = ${IMAGE}"
 docker tag ${IMAGE} ${ECR_REPO_URI}/${IMAGE}
 docker images
 docker push ${ECR_REPO_URI}/${IMAGE}
+
+# update kubernetes deployment
+kubectl set image deployment ${NAME} ${NAME}=${ECR_REPO_URI}/${IMAGE};
