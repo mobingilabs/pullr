@@ -5,7 +5,7 @@ curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s htt
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 mkdir ${HOME}/.kube
-cp ./kubeconf.yaml ${HOME}/.kube/config
+cp ./kubeconf.yml ${HOME}/.kube/config
 
 # 'master' is our development branch
 if [[ "$TRAVIS_BRANCH" == "master" ]]; then
