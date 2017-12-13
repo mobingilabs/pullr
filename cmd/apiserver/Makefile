@@ -14,33 +14,18 @@ $(BASE):
 
 # docker builds
 
-.PHONY: custom docker local on off
+.PHONY: custom docker deploy
 
 # The single rule that is called by our root Makefile during CI builds.
 custom: docker deploy
-local: __local prune
 
 docker:
-	@docker build -f dockerfile.apiserver --rm -t $(MODULE):$(TRAVIS_COMMIT) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
+	docker build -f dockerfile.apiserver --rm -t $(MODULE):$(TRAVIS_COMMIT) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .
 
 deploy:
-	@export NAME=$(MODULE); \
-	chmod +x $(BASE)/cmd/apiserver/deploy.sh; \
-	$(BASE)/cmd/apiserver/deploy.sh;
-
-__local:
-	@docker build -f dockerfile.apiserver --rm -t $(MODULE) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .;
-
-# docker run containers
-
-on: __on prune
-off: __off prune
-
-__on:
-	@docker run --rm -d -p 8080:8080 --name $(MODULE) $(MODULE)
-
-__off:
-	@docker rm -f $(MODULE)
+	export NAME=$(MODULE)
+	chmod +x $(BASE)/cmd/apiserver/deploy.sh
+	$(BASE)/cmd/apiserver/deploy.sh
 
 # misc
 prune:
@@ -48,9 +33,9 @@ prune:
 
 .PHONY: clean version list
 clean:
-	@rm -rfv bin; \
-	docker rmi $(docker images --filter "dangling=true" -q --no-trunc); \
-	exit 0
+	@rm -rfv bin
+	@docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
+	@exit 0
 
 version:
 	@echo "Version: $(VERSION)"
