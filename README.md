@@ -9,7 +9,7 @@ tbd
 # a) docker
 # b) docker-compose
 
-# you also need you have these environment variables (todo: remove)
+# you also need you have these environment variables (todo: make optional)
 # APISERVER_ACCESS_KEY_ID
 # APISERVER_SECRET_ACCESS_KEY
 
