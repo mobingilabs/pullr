@@ -4,7 +4,7 @@ log:
     service: registry
 storage:
   s3:
-    accesskey: AKIAJSORVW3IOUWTQTCA
+    accesskey: xx
     secretkey: xx
       region: xx
       bucket: xx
@@ -33,7 +33,7 @@ health:
 notifications:
   endpoints:
   - name: listener
-      url: http://ec2-13-113-151-82.ap-northeast-1.compute.amazonaws.com:8080
+      url: http://url:port
       timeout: 800ms
       threshold: 5
       backoff: 2s
