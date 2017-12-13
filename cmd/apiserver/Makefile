@@ -1,7 +1,6 @@
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || cat $(CURDIR)/.version 2> /dev/null || echo v0)
 BASE = $(CURDIR)
 MODULE = pullrapiserver
-# BLDVER = version:$(VERSION);build:$(shell date -Ins)
 BLDVER = module:$(MODULE),version:$(VERSION),build:$(shell date +"%Y%m%d.%H%M%S.%N.%z")
 
 .PHONY: all $(MODULE)
