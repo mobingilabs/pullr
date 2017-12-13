@@ -6,12 +6,12 @@ tbd
 
 ```bash
 # install the following prerequisites first:
-# a) docker
-# b) docker-compose
+#   docker
+#   docker-compose
 
 # you also need you have these environment variables (todo: make optional)
-# APISERVER_ACCESS_KEY_ID
-# APISERVER_SECRET_ACCESS_KEY
+#   APISERVER_ACCESS_KEY_ID
+#   APISERVER_SECRET_ACCESS_KEY
 
 # then run locally
 $ make up
