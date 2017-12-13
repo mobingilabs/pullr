@@ -6,8 +6,8 @@ tbd
 
 ```bash
 # install the following prerequisites first:
-  - docker
-  - docker-compose
+# a) docker
+# b) docker-compose
 
 # then run locally
 $ make up
