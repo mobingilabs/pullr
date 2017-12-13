@@ -16,6 +16,7 @@ import (
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/docker/libtrust"
+	"github.com/golang/glog"
 )
 
 // ResolveScopeSpecifiers converts a list of scope specifiers from a token
@@ -110,6 +111,8 @@ type TokenIssuer struct {
 // CreateJWT creates and signs a JSON Web Token for the given subject and
 // audience with the granted access.
 func (issuer *TokenIssuer) CreateJWT(subject string, audience string, grantedAccessList []auth.Access) (string, error) {
+	glog.Info("sub: ", subject, ", aud: ", audience, ", grantedAccessList: ", grantedAccessList)
+
 	// Make a set of access entries to put in the token's claimset.
 	resourceActionSets := make(map[auth.Resource]map[string]struct{}, len(grantedAccessList))
 	for _, access := range grantedAccessList {
@@ -188,6 +191,8 @@ func (issuer *TokenIssuer) CreateJWT(subject string, audience string, grantedAcc
 
 		Access: accessEntries,
 	}
+
+	glog.Info("claim set: ", claimSet)
 
 	var (
 		joseHeaderBytes []byte

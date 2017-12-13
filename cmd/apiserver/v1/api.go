@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -51,6 +52,10 @@ type apiv1 struct {
 	pub []byte
 	e   *echo.Echo
 	g   *echo.Group
+	u   string
+	p   string
+
+	Scopes []authScope
 }
 
 type WrapperClaims struct {
@@ -266,11 +271,91 @@ type tokenResponse struct {
 	ExpiresIn    int    `json:"expires_in,omitempty"`
 }
 
-func (a *apiv1) dockerToken(c echo.Context) error {
+func validate(username, password string) bool {
+	if username == "test" && password == "test" {
+		return true
+	}
+
+	return false
+}
+
+type authScope struct {
+	Type    string
+	Name    string
+	Actions []string
+}
+
+func (a *apiv1) doauth(c echo.Context) error {
+	/*
+		params := c.Request().URL.Query()
+		service := params.Get("service")
+		scopeSpecifiers := params["scope"]
+
+		user, password, haveBasicAuth := c.Request().BasicAuth()
+		if haveBasicAuth {
+			a.u = user
+			a.p = password
+		}
+
+		for _, scopeStr := range scopeSpecifiers {
+			parts := strings.Split(scopeStr, ":")
+			var scope authScope
+			switch len(parts) {
+			case 3:
+				scope = authScope{
+					Type:    parts[0],
+					Name:    parts[1],
+					Actions: strings.Split(parts[2], ","),
+				}
+			case 4:
+				scope = authScope{
+					Type:    parts[0],
+					Name:    parts[1] + ":" + parts[2],
+					Actions: strings.Split(parts[3], ","),
+				}
+			default:
+				return fmt.Errorf("invalid scope: %q", scopeStr)
+			}
+
+			sort.Strings(scope.Actions)
+			a.Scopes = append(a.Scopes, scope)
+		}
+
+		// authenticate here
+
+		if len(a.Scopes) > 0 {
+			glog.Info("todo: scopes")
+		} else {
+			glog.Info("docker login here")
+		}
+	*/
+
+	return nil
+}
+
+func (a *apiv1) dockerRegistryToken(c echo.Context) error {
 	ctx := c.Request().Context()
 	params := c.Request().URL.Query()
 	service := params.Get("service")
 	scopeSpecifiers := params["scope"]
+
+	authhdr := strings.SplitN(c.Request().Header.Get("Authorization"), " ", 2)
+	if len(authhdr) != 2 || authhdr[0] != "Basic" {
+		c.NoContent(http.StatusUnauthorized)
+		return nil
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString(authhdr[1])
+	pair := strings.SplitN(string(payload), ":", 2)
+
+	if len(pair) != 2 || !validate(pair[0], pair[1]) {
+		c.NoContent(http.StatusUnauthorized)
+		return nil
+	}
+
+	username := pair[0]
+
+	glog.Info("user is validated at this point")
 
 	/*
 		var offline bool
@@ -294,7 +379,7 @@ func (a *apiv1) dockerToken(c echo.Context) error {
 		})
 	*/
 
-	glog.Info(scopeSpecifiers)
+	glog.Info("scope specifiers: ", scopeSpecifiers)
 
 	requestedAccessList := token.ResolveScopeSpecifiers(ctx, scopeSpecifiers)
 	glog.Info("requestedAccessList: ", requestedAccessList)
@@ -326,7 +411,6 @@ func (a *apiv1) dockerToken(c echo.Context) error {
 	// ctx = authorizedCtx
 
 	// username := dcontext.GetStringValue(ctx, "auth.user.name")
-	username := "subuser01"
 
 	/*
 		ctx = context.WithValue(ctx, acctSubject{}, username)
@@ -356,7 +440,6 @@ func (a *apiv1) dockerToken(c echo.Context) error {
 		return nil
 	}
 
-	glog.Info("context: ", ctx)
 	glog.Info("generated token: ", token)
 	dcontext.GetLogger(ctx).Info("authorized client")
 
@@ -386,6 +469,17 @@ func (a *apiv1) dockerToken(c echo.Context) error {
 	return nil
 }
 
+func (a *apiv1) dockerRegistryNotify(c echo.Context) error {
+	body, err := ioutil.ReadAll(c.Request().Body)
+	if err != nil {
+		glog.Error(err)
+	}
+
+	glog.Info(string(body))
+	c.NoContent(http.StatusOK)
+	return nil
+}
+
 func NewApiV1(e *echo.Echo, cnf *ApiV1Config) *apiv1 {
 	bprv, err := ioutil.ReadFile(cnf.PrivatePemFile)
 	if err != nil {
@@ -408,7 +502,8 @@ func NewApiV1(e *echo.Echo, cnf *ApiV1Config) *apiv1 {
 
 	g.POST("/token", api.token)
 	g.POST("/verify", api.verify)
-	g.GET("/docker/token", api.dockerToken)
+	g.GET("/docker/registry/token", api.dockerRegistryToken)
+	g.POST("/docker/registry/notify", api.dockerRegistryNotify)
 
 	return api
 }

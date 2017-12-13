@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || cat $(CURDIR)/.version 2> /dev/null || echo v0)
+BLDVER = module:$(MODULE),version:$(VERSION),build:$(shell date +"%Y%m%d.%H%M%S.%N.%z")
 BASE = $(CURDIR)
 MODULE = pullrapiserver
-BLDVER = module:$(MODULE),version:$(VERSION),build:$(shell date +"%Y%m%d.%H%M%S.%N.%z")
 
 .PHONY: all $(MODULE)
 all: version $(MODULE)
@@ -12,18 +12,16 @@ $(MODULE):| $(BASE)
 $(BASE):
 	@mkdir -p $(dir $@)
 
-# docker builds
-
 .PHONY: custom docker deploy
 
-# The single rule that is called by our root Makefile during CI builds.
+# the rule that is called by our root Makefile during CI builds
 custom: docker deploy
 
 docker:
 	docker build -f dockerfile.apiserver --rm -t $(MODULE):$(TRAVIS_COMMIT) --build-arg awsrgn=ap-northeast-1 --build-arg awsid=$(APISERVER_ACCESS_KEY_ID) --build-arg awssec=$(APISERVER_SECRET_ACCESS_KEY) --build-arg version="$(BLDVER)" .
 
 deploy:
-	chmod +x $(BASE)/cmd/apiserver/deploy.sh
+	@chmod +x $(BASE)/cmd/apiserver/deploy.sh
 	NAME=$(MODULE) $(BASE)/cmd/apiserver/deploy.sh
 
 # misc

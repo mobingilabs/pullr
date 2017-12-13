@@ -1,0 +1,28 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+  delete:
+    enabled: true
+  cache:
+    blobdescriptor: inmemory
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+auth:
+  token:
+    realm: "http://localhost:8080/api/v1/docker/registry/token"
+    service: "pullr.io"
+    issuer: "pullr.io auth server"
+    rootcertbundle: /certs/auth.crt
+notifications:
+  endpoints:
+  - name: listener
+    url: http://localhost:8080/api/v1/docker/registry/notify
+    timeout: 800ms
+    threshold: 5
+    backoff: 2s

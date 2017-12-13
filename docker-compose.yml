@@ -5,3 +5,13 @@ services:
     image: pullrapiserver
     ports:
     - "8080:8080"
+  registry:
+    image: registry:2
+    ports:
+    - "5000:5000"
+    volumes:
+    - "./certs:/certs:ro"
+    - "./registry:/etc/docker/registry:ro"
+    - "/var/tmp/registry/storage:/var/lib/registry:rw"
+    depends_on:
+    - apiserver

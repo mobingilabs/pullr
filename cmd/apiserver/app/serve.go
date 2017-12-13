@@ -69,8 +69,10 @@ func serve(cmd *cobra.Command, args []string) {
 	})
 
 	issuer := &token.TokenIssuer{
+		Issuer:     "pullr.io auth server",
 		Expiration: 24 * time.Hour,
 	}
+
 	issuer.SigningKey, err = libtrust.LoadKeyFile("./testkey")
 
 	// routes
