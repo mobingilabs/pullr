@@ -1,0 +1,41 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+storage:
+  s3:
+    accesskey: AKIAJSORVW3IOUWTQTCA
+    secretkey: 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
+      region: ap-northeast-1
+      bucket: docker-registry-dev-tokyo
+      secure: false
+      v4auth: true
+      chunksize: 5242880
+    delete:
+      enabled: true
+    cache:
+      blobdescriptor: inmemory
+    maintenance:
+      uploadpurging:
+        enabled: true
+        age: 168h
+        interval: 24h
+        dryrun: false
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+notifications:
+  endpoints:
+  - name: listener
+      url: http://ec2-13-113-151-82.ap-northeast-1.compute.amazonaws.com:8080
+      timeout: 800ms
+      threshold: 5
+      backoff: 2s
+  - name: xx
+      url: alb
