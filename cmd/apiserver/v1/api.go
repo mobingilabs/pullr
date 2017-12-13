@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -286,49 +287,48 @@ type authScope struct {
 }
 
 func (a *apiv1) doauth(c echo.Context) error {
-	/*
-		params := c.Request().URL.Query()
-		service := params.Get("service")
-		scopeSpecifiers := params["scope"]
+	params := c.Request().URL.Query()
+	service := params.Get("service")
+	scopeSpecifiers := params["scope"]
+	_ = service
 
-		user, password, haveBasicAuth := c.Request().BasicAuth()
-		if haveBasicAuth {
-			a.u = user
-			a.p = password
-		}
+	user, password, haveBasicAuth := c.Request().BasicAuth()
+	if haveBasicAuth {
+		a.u = user
+		a.p = password
+	}
 
-		for _, scopeStr := range scopeSpecifiers {
-			parts := strings.Split(scopeStr, ":")
-			var scope authScope
-			switch len(parts) {
-			case 3:
-				scope = authScope{
-					Type:    parts[0],
-					Name:    parts[1],
-					Actions: strings.Split(parts[2], ","),
-				}
-			case 4:
-				scope = authScope{
-					Type:    parts[0],
-					Name:    parts[1] + ":" + parts[2],
-					Actions: strings.Split(parts[3], ","),
-				}
-			default:
-				return fmt.Errorf("invalid scope: %q", scopeStr)
+	for _, scopeStr := range scopeSpecifiers {
+		parts := strings.Split(scopeStr, ":")
+		var scope authScope
+		switch len(parts) {
+		case 3:
+			scope = authScope{
+				Type:    parts[0],
+				Name:    parts[1],
+				Actions: strings.Split(parts[2], ","),
 			}
-
-			sort.Strings(scope.Actions)
-			a.Scopes = append(a.Scopes, scope)
+		case 4:
+			scope = authScope{
+				Type:    parts[0],
+				Name:    parts[1] + ":" + parts[2],
+				Actions: strings.Split(parts[3], ","),
+			}
+		default:
+			return fmt.Errorf("invalid scope: %q", scopeStr)
 		}
 
-		// authenticate here
+		sort.Strings(scope.Actions)
+		a.Scopes = append(a.Scopes, scope)
+	}
 
-		if len(a.Scopes) > 0 {
-			glog.Info("todo: scopes")
-		} else {
-			glog.Info("docker login here")
-		}
-	*/
+	// authenticate here
+
+	if len(a.Scopes) > 0 {
+		glog.Info("todo: scopes")
+	} else {
+		glog.Info("docker login here")
+	}
 
 	return nil
 }
