@@ -5,9 +5,9 @@ log:
 storage:
   s3:
     accesskey: AKIAJSORVW3IOUWTQTCA
-    secretkey: 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
-      region: ap-northeast-1
-      bucket: docker-registry-dev-tokyo
+    secretkey: xx
+      region: xx
+      bucket: xx
       secure: false
       v4auth: true
       chunksize: 5242880
