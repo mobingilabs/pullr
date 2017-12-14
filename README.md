@@ -16,6 +16,12 @@ tbd
 # then run locally
 $ make up
 
+# test docker login and docker push
+$ docker login localhost:5000
+Username: admin
+Password: badmin
+Login Succeeded
+
 # when done, run
 $ make down
 ```
