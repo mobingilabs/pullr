@@ -15,10 +15,6 @@ http:
     X-Content-Type-Options: [nosniff]
 auth:
   token:
-#    realm: "http://localhost:8080/api/v1/docker/registry/token"
-#    service: "pullr.io"
-#    issuer: "pullr.io auth server"
-#    rootcertbundle: /certs/auth.crt
      realm: "http://127.0.0.1:5001/auth"
      service: "Docker registry"
      issuer: "Acme auth server"
@@ -26,7 +22,7 @@ auth:
 notifications:
   endpoints:
   - name: listener
-    url: http://localhost:8080/api/v1/docker/registry/notify
+    url: http://apiserver:8080/api/v1/docker/registry/notify
     timeout: 800ms
     threshold: 5
     backoff: 2s

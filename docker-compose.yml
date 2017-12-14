@@ -1,10 +1,7 @@
 version: '3'
 services:
-  apiserver:
-#    container_name: pullrapiserver
-#    image: pullrapiserver
-#    ports:
-#    - "8080:8080"
+  tokenserver:
+    container_name: tokenserver
     image: cesanta/docker_auth:1
     command: --v=3 --alsologtostderr /config/auth_config.yml
     ports:
@@ -12,7 +9,13 @@ services:
     volumes:
     - "./certs:/certs:ro"
     - "./registry/tokenserver:/config:ro"
+  apiserver:
+    container_name: apiserver
+    image: pullrapiserver
+    ports:
+    - "8080:8080"
   registry:
+    container_name: registry2
     image: registry:2
     ports:
     - "5000:5000"
@@ -21,4 +24,5 @@ services:
     - "./registry:/etc/docker/registry:ro"
     - "/var/tmp/registry/storage:/var/lib/registry:rw"
     depends_on:
+    - tokenserver
     - apiserver

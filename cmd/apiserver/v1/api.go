@@ -1,15 +1,11 @@
 package v1
 
 import (
-	"context"
 	"crypto/md5"
 	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,8 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	jwt "github.com/dgrijalva/jwt-go"
-	dcontext "github.com/docker/distribution/context"
-	"github.com/docker/distribution/registry/auth"
 	"github.com/golang/glog"
 	"github.com/guregu/dynamo"
 	"github.com/labstack/echo"
@@ -55,8 +49,6 @@ type apiv1 struct {
 	g   *echo.Group
 	u   string
 	p   string
-
-	Scopes []authScope
 }
 
 type WrapperClaims struct {
@@ -213,263 +205,7 @@ func (a *apiv1) checkdb(uname string, pwdmd5 string) (bool, error) {
 	return ret, err
 }
 
-var (
-	repositoryClassCache = map[string]string{}
-	enforceRepoClass     bool
-)
-
-type acctSubject struct{}
-
-func (acctSubject) String() string { return "acctSubject" }
-
-type requestedAccess struct{}
-
-func (requestedAccess) String() string { return "requestedAccess" }
-
-type grantedAccess struct{}
-
-func (grantedAccess) String() string { return "grantedAccess" }
-
-func filterAccessList(ctx context.Context, scope string, requestedAccessList []auth.Access) []auth.Access {
-	if !strings.HasSuffix(scope, "/") {
-		scope = scope + "/"
-	}
-	grantedAccessList := make([]auth.Access, 0, len(requestedAccessList))
-	for _, access := range requestedAccessList {
-		if access.Type == "repository" {
-			if !strings.HasPrefix(access.Name, scope) {
-				dcontext.GetLogger(ctx).Debugf("Resource scope not allowed: %s", access.Name)
-				continue
-			}
-			if enforceRepoClass {
-				if class, ok := repositoryClassCache[access.Name]; ok {
-					if class != access.Class {
-						dcontext.GetLogger(ctx).Debugf("Different repository class: %q, previously %q", access.Class, class)
-						continue
-					}
-				} else if strings.EqualFold(access.Action, "push") {
-					repositoryClassCache[access.Name] = access.Class
-				}
-			}
-		} else if access.Type == "registry" {
-			if access.Name != "catalog" {
-				dcontext.GetLogger(ctx).Debugf("Unknown registry resource: %s", access.Name)
-				continue
-			}
-			// TODO: Limit some actions to "admin" users
-		} else {
-			dcontext.GetLogger(ctx).Debugf("Skipping unsupported resource type: %s", access.Type)
-			continue
-		}
-		grantedAccessList = append(grantedAccessList, access)
-	}
-	return grantedAccessList
-}
-
-type tokenResponse struct {
-	Token        string `json:"access_token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	ExpiresIn    int    `json:"expires_in,omitempty"`
-}
-
-func validate(username, password string) bool {
-	if username == "test" && password == "test" {
-		return true
-	}
-
-	return false
-}
-
-type authScope struct {
-	Type    string
-	Name    string
-	Actions []string
-}
-
-func (a *apiv1) doauth(c echo.Context) error {
-	params := c.Request().URL.Query()
-	service := params.Get("service")
-	scopeSpecifiers := params["scope"]
-	_ = service
-
-	user, password, haveBasicAuth := c.Request().BasicAuth()
-	if haveBasicAuth {
-		a.u = user
-		a.p = password
-	}
-
-	for _, scopeStr := range scopeSpecifiers {
-		parts := strings.Split(scopeStr, ":")
-		var scope authScope
-		switch len(parts) {
-		case 3:
-			scope = authScope{
-				Type:    parts[0],
-				Name:    parts[1],
-				Actions: strings.Split(parts[2], ","),
-			}
-		case 4:
-			scope = authScope{
-				Type:    parts[0],
-				Name:    parts[1] + ":" + parts[2],
-				Actions: strings.Split(parts[3], ","),
-			}
-		default:
-			return fmt.Errorf("invalid scope: %q", scopeStr)
-		}
-
-		sort.Strings(scope.Actions)
-		a.Scopes = append(a.Scopes, scope)
-	}
-
-	// authenticate here
-
-	if len(a.Scopes) > 0 {
-		glog.Info("todo: scopes")
-	} else {
-		glog.Info("docker login here")
-	}
-
-	return nil
-}
-
-func (a *apiv1) dockerRegistryToken(c echo.Context) error {
-	ctx := c.Request().Context()
-	params := c.Request().URL.Query()
-	service := params.Get("service")
-	scopeSpecifiers := params["scope"]
-
-	authhdr := strings.SplitN(c.Request().Header.Get("Authorization"), " ", 2)
-	if len(authhdr) != 2 || authhdr[0] != "Basic" {
-		c.NoContent(http.StatusUnauthorized)
-		return nil
-	}
-
-	payload, _ := base64.StdEncoding.DecodeString(authhdr[1])
-	pair := strings.SplitN(string(payload), ":", 2)
-
-	if len(pair) != 2 || !validate(pair[0], pair[1]) {
-		c.NoContent(http.StatusUnauthorized)
-		return nil
-	}
-
-	username := pair[0]
-
-	glog.Info("user is validated at this point")
-
-	/*
-		var offline bool
-		if offlineStr := params.Get("offline_token"); offlineStr != "" {
-			var err error
-			offline, err = strconv.ParseBool(offlineStr)
-			if err != nil {
-				handleError(ctx, ErrorBadTokenOption.WithDetail(err), w)
-				return
-			}
-		}
-	*/
-
-	// realm := "authd-realm"
-	// passwdFile := "nil"
-
-	/*
-		ac, err := auth.GetAccessController("htpasswd", map[string]interface{}{
-			"realm": realm,
-			"path":  passwdFile,
-		})
-	*/
-
-	glog.Info("scope specifiers: ", scopeSpecifiers)
-
-	requestedAccessList := token.ResolveScopeSpecifiers(ctx, scopeSpecifiers)
-	glog.Info("requestedAccessList: ", requestedAccessList)
-
-	/*
-		authorizedCtx, err := ac.Authorized(ctx, requestedAccessList...)
-		if err != nil {
-			challenge, ok := err.(auth.Challenge)
-			if !ok {
-				// handleError(ctx, err, w)
-				// return
-				glog.Error("challenge not ok")
-			}
-
-			// Get response context.
-			// ctx, w = dcontext.WithResponseWriter(ctx, w)
-
-			challenge.SetHeaders(c.Response())
-			// handleError(ctx, errcode.ErrorCodeUnauthorized.WithDetail(challenge.Error()), w)
-
-			// dcontext.GetResponseLogger(ctx).Info("get token authentication challenge")
-
-			// return
-			c.String(http.StatusOK, "hello")
-			return nil
-		}
-	*/
-
-	// ctx = authorizedCtx
-
-	// username := dcontext.GetStringValue(ctx, "auth.user.name")
-
-	/*
-		ctx = context.WithValue(ctx, acctSubject{}, username)
-		ctx = dcontext.WithLogger(ctx, dcontext.GetLogger(ctx, acctSubject{}))
-
-		dcontext.GetLogger(ctx).Info("authenticated client")
-
-		ctx = context.WithValue(ctx, requestedAccess{}, requestedAccessList)
-		ctx = dcontext.WithLogger(ctx, dcontext.GetLogger(ctx, requestedAccess{}))
-	*/
-
-	grantedAccessList := filterAccessList(ctx, username, requestedAccessList)
-	glog.Info("grantedAccessList: ", grantedAccessList)
-
-	ctx = context.WithValue(ctx, grantedAccess{}, grantedAccessList)
-	ctx = dcontext.WithLogger(ctx, dcontext.GetLogger(ctx, grantedAccess{}))
-
-	// token, err := ts.issuer.CreateJWT(username, service, grantedAccessList)
-	if a.cnf.Issuer == nil {
-		glog.Info("nil issuer")
-	}
-
-	token, err := a.cnf.Issuer.CreateJWT(username, service, grantedAccessList)
-	if err != nil {
-		// handleError(ctx, err, w)
-		glog.Error(err)
-		return nil
-	}
-
-	glog.Info("generated token: ", token)
-	dcontext.GetLogger(ctx).Info("authorized client")
-
-	response := tokenResponse{
-		Token:     token,
-		ExpiresIn: int(a.cnf.Issuer.Expiration.Seconds()),
-	}
-
-	/*
-		if offline {
-			response.RefreshToken = newRefreshToken()
-			ts.refreshCache[response.RefreshToken] = refreshToken{
-				subject: username,
-				service: service,
-			}
-		}
-
-		ctx, w = dcontext.WithResponseWriter(ctx, w)
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-
-		dcontext.GetResponseLogger(ctx).Info("get token complete")
-	*/
-
-	c.JSON(http.StatusOK, response)
-	return nil
-}
-
-func (a *apiv1) dockerRegistryNotify(c echo.Context) error {
+func (a *apiv1) regnotify(c echo.Context) error {
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
 		glog.Error(err)
@@ -502,9 +238,7 @@ func NewApiV1(e *echo.Echo, cnf *ApiV1Config) *apiv1 {
 
 	g.POST("/token", api.token)
 	g.POST("/verify", api.verify)
-	// g.GET("/docker/registry/token", api.dockerRegistryToken)
-	g.GET("/docker/registry/token", api.doauth)
-	g.POST("/docker/registry/notify", api.dockerRegistryNotify)
+	g.POST("/docker/registry/notify", api.regnotify)
 
 	return api
 }
