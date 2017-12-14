@@ -502,7 +502,8 @@ func NewApiV1(e *echo.Echo, cnf *ApiV1Config) *apiv1 {
 
 	g.POST("/token", api.token)
 	g.POST("/verify", api.verify)
-	g.GET("/docker/registry/token", api.dockerRegistryToken)
+	// g.GET("/docker/registry/token", api.dockerRegistryToken)
+	g.GET("/docker/registry/token", api.doauth)
 	g.POST("/docker/registry/notify", api.dockerRegistryNotify)
 
 	return api
