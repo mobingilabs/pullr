@@ -52,15 +52,15 @@ func (a *apiv1) regnotify(c echo.Context) error {
 }
 
 func (a *apiv1) test(c echo.Context) error {
-	resp, err := http.Get("http://oath.default.svc.cluster.local/version")
+	resp, err := http.Get("http://oath.default.svc.cluster.local:8080/version")
 	if err != nil {
-		glog.Error(err)
+		glog.Errorf("get failed: %v", err)
 		return err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		glog.Error(err)
+		glog.Errorf("readall failed: %v", err)
 		return err
 	}
 
