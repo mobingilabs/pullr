@@ -3,6 +3,7 @@ package v1
 import (
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/golang/glog"
@@ -52,6 +53,7 @@ func (a *apiv1) regnotify(c echo.Context) error {
 }
 
 func (a *apiv1) test(c echo.Context) error {
+	start := time.Now()
 	resp, err := http.Get("http://oath.default.svc.cluster.local:8080/version")
 	if err != nil {
 		glog.Errorf("get failed: %v", err)
@@ -66,6 +68,7 @@ func (a *apiv1) test(c echo.Context) error {
 
 	defer resp.Body.Close()
 	glog.Infof("body: %v", string(body))
+	glog.Infof("delta: %v", time.Now().Sub(start))
 	return c.NoContent(http.StatusOK)
 }
 
