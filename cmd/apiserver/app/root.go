@@ -9,8 +9,8 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Short: "authorization and authentication service for Mobingi",
-		Long:  "Authorization and authentication for Mobingi.",
+		Short: "API server for pullr.io.",
+		Long:  "API server for pullr.io.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			goflag.Parse()
 		},
@@ -21,7 +21,6 @@ func init() {
 	rootCmd.AddCommand(
 		VersionCmd(),
 		ServeCmd(),
-		KeyCmd(),
 	)
 
 	flag.CommandLine.AddGoFlagSet(goflag.CommandLine)

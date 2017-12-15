@@ -2,40 +2,10 @@
 
 
 [[projects]]
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
-  version = "v1.0.4"
-
-[[projects]]
-  name = "github.com/aws/aws-sdk-go"
-  packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/json/jsonutil","private/protocol/jsonrpc","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/restxml","private/protocol/xml/xmlutil","service/dynamodb","service/dynamodb/dynamodbattribute","service/dynamodb/dynamodbiface","service/s3","service/s3/s3iface","service/s3/s3manager","service/sts"]
-  revision = "25ef42b41b82230caae56ab23d872c81fb5c0eae"
-  version = "v1.12.46"
-
-[[projects]]
-  name = "github.com/cenkalti/backoff"
-  packages = ["."]
-  revision = "61153c768f31ee5f130071d08fc82b85208528de"
-  version = "v1.1.0"
-
-[[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
   revision = "dbeaa9332f19a944acb5736b4456cfcc02140e29"
   version = "v3.1.0"
-
-[[projects]]
-  name = "github.com/docker/distribution"
-  packages = ["context","registry/auth","registry/auth/token","uuid"]
-  revision = "48294d928ced5dd9b378f7fd7c6f5da3ff3f2c89"
-  version = "v2.6.2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/docker/libtrust"
-  packages = ["."]
-  revision = "aabc10ec26b754e797f9028f4589c5b7bd90dc20"
 
 [[projects]]
   branch = "master"
@@ -68,45 +38,16 @@
   version = "v1.5.0"
 
 [[projects]]
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
-  version = "v1.32.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/golang/glog"
   packages = ["."]
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
-  version = "v1.1"
-
-[[projects]]
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "7f08801859139f86dfafd1c296e2cba9a80d292e"
-  version = "v1.6.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/guregu/dynamo"
-  packages = [".","internal/exprs"]
-  revision = "78f36f7876767b1899b4bac7381d109fe5a58539"
-
-[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
-
-[[projects]]
-  name = "github.com/jmespath/go-jmespath"
-  packages = ["."]
-  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/labstack/echo"
@@ -134,7 +75,7 @@
 
 [[projects]]
   name = "github.com/mobingilabs/mobingi-sdk-go"
-  packages = ["pkg/debug","pkg/private"]
+  packages = ["pkg/debug"]
   revision = "60282744cb55e139b09b9903b8684e4f7925d87b"
   version = "v0.1.30"
 
@@ -171,24 +112,18 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["acme","acme/autocert","ssh/terminal"]
+  packages = ["acme","acme/autocert"]
   revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
-  revision = "0131e684e801af603bb75e5d7f959b32442f327a"
+  packages = ["unix"]
+  revision = "1d2aa6dbdea45adaaebb9905d0666e4537563829"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "71b0318d2d6ead3a45d44b3db2dafed434421937df70ce20d3fb92f7020318b7"
+  inputs-digest = "d556e3f0c009e209dd79a531154fcf784c26821e57bb1423755c9b9915abfbbb"
   solver-name = "gps-cdcl"
   solver-version = 1
