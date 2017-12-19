@@ -28,9 +28,14 @@ import (
 
 	"github.com/facebookgo/httpdown"
 	"github.com/golang/glog"
-	"github.com/pullr/tokenserver/server"
+	"github.com/mobingilabs/pullr/tokenserver/server"
 	"golang.org/x/crypto/acme/autocert"
 	fsnotify "gopkg.in/fsnotify.v1"
+)
+
+var (
+	Version string
+	BuildId string
 )
 
 type RestartableServer struct {

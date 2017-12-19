@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/pullr/tokenserver/authn"
+	"github.com/mobingilabs/pullr/tokenserver/authn"
 )
 
 // Authorizer interface performs authorization of the request.

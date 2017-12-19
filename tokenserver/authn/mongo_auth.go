@@ -23,8 +23,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/pullr/tokenserver/mgo_session"
+	"github.com/mobingilabs/pullr/tokenserver/mgo_session"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 

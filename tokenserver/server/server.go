@@ -30,8 +30,8 @@ import (
 
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
-	"github.com/pullr/tokenserver/authn"
-	"github.com/pullr/tokenserver/authz"
+	"github.com/mobingilabs/pullr/tokenserver/authn"
+	"github.com/mobingilabs/pullr/tokenserver/authz"
 )
 
 var (

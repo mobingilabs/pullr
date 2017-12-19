@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/docker/libtrust"
-	"github.com/pullr/tokenserver/authn"
-	"github.com/pullr/tokenserver/authz"
+	"github.com/mobingilabs/pullr/tokenserver/authn"
+	"github.com/mobingilabs/pullr/tokenserver/authz"
 	yaml "gopkg.in/yaml.v2"
 )
 

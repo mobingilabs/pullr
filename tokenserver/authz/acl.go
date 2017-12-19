@@ -11,7 +11,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/pullr/tokenserver/authn"
+	"github.com/mobingilabs/pullr/tokenserver/authn"
+	cartesian "github.com/schwarmco/go-cartesian-product"
 )
 
 type ACL []ACLEntry

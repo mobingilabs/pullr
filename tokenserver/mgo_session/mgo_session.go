@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"gopkg.in/mgo.v2"
 )
 
 // Config stores how to connect to the MongoDB server and an optional password file
