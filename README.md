@@ -18,8 +18,7 @@ $ make up
 
 # test docker login
 # valid user/password combinations
-#   admin / badmin (all access)
-#   user / 123 (pull only)
+#   admin / admin
 $ docker login localhost:5000
 
 # when done, run
