@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mobingilabs/pullr/cmd/apiserver/v1"
+	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -37,11 +38,13 @@ func serve(cmd *cobra.Command, args []string) {
 	e := echo.New()
 	e.Use(middleware.CORS())
 
-	// test order
+	// time in
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			glog.Infof("first: %v", time.Now())
-			c.Set("enter", time.Now())
+			cid := uuid.NewV4().String()
+			c.Set("contextid", cid)
+			c.Set("starttime", time.Now())
+			glog.Infof("--> %v", cid)
 			return next(c)
 		}
 	})
@@ -54,11 +57,11 @@ func serve(cmd *cobra.Command, args []string) {
 		}
 	})
 
-	// test order
+	// time out
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			start := c.Get("enter").(time.Time)
-			glog.Infof("timediff: %v", time.Now().Sub(start))
+			start := c.Get("starttime").(time.Time)
+			glog.Infof("<-- %v, delta: %v", c.Get("contextid"), time.Now().Sub(start))
 			return next(c)
 		}
 	})
