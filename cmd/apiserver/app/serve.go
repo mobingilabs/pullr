@@ -80,6 +80,7 @@ func serve(cmd *cobra.Command, args []string) {
 	v1.NewApiV1(e, &v1.ApiV1Config{AwsRegion: region})
 
 	// serve
+	glog.Infof("serve @%v", port)
 	e.Server.Addr = ":" + port
 	gracehttp.Serve(e.Server)
 }
