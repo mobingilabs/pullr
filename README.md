@@ -6,8 +6,8 @@ tbd
 
 Install the following prerequisites first:
 
-- docker
-- docker-compose
+- [docker](https://docs.docker.com/engine/installation/)
+- [docker-compose](https://docs.docker.com/compose/install/)
 
 Set the following environment variables as well:
 
