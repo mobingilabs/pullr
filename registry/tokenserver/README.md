@@ -16,6 +16,7 @@ $ docker exec -it mongodb mongo -u root -p rootpass --authenticationDatabase adm
 > db.createCollection("users");
 
 # insert admin/admin user to collection
+# the bcrypt hash for the password admin was generated using `htpasswd -nB admin`
 > db.users.insert({"username": "admin", "password": "$2y$05$oBNfJkZ4rMd6PjrRHq3FdeZXezfBzWqWsZuJ7v0ePpdUFCVNaOv52"});
 > db.users.find({});
 ```
