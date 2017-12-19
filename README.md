@@ -14,7 +14,7 @@ Set the following environment variables as well:
 - `APISERVER_ACCESS_KEY_ID`
 - `APISERVER_SECRET_ACCESS_KEY`
 
-> Tested only on Linux (Ubuntu)
+> Tested only on Linux (Ubuntu 16.04)
 
 ```bash
 # run the stack first so we can connect to db and create users
