@@ -1,7 +1,0 @@
-bin
-tokenserver
-Gopkg*
-README.md
-Dockerfile*
-kubeconf.yaml
-.travis.yml
