@@ -32,11 +32,18 @@ type creds struct {
 	Password string `json:"password"`
 }
 
+func (a *apiv1) elapsed(c echo.Context) {
+	fn := c.Get("fnelapsed").(func(echo.Context))
+	fn(c)
+}
+
 func (a *apiv1) token(c echo.Context) error {
+	defer a.elapsed(c)
 	return nil
 }
 
 func (a *apiv1) verify(c echo.Context) error {
+	defer a.elapsed(c)
 	return nil
 }
 
@@ -53,6 +60,7 @@ func (a *apiv1) regnotify(c echo.Context) error {
 }
 
 func (a *apiv1) test(c echo.Context) error {
+	defer a.elapsed(c)
 	start := time.Now()
 	resp, err := http.Get("http://oath.default.svc.cluster.local:8080/version")
 	if err != nil {

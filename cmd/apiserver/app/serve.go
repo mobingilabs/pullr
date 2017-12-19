@@ -36,32 +36,32 @@ func ServeCmd() *cobra.Command {
 
 func serve(cmd *cobra.Command, args []string) {
 	e := echo.New()
-	e.Use(middleware.CORS())
 
-	// time in
+	// time in, should be the first middleware
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cid := uuid.NewV4().String()
 			c.Set("contextid", cid)
 			c.Set("starttime", time.Now())
+
+			// Helper func to print the elapsed time since this middleware. Good to call at end of
+			// request handlers, right before/after replying to caller.
+			c.Set("fnelapsed", func(ctx echo.Context) {
+				start := ctx.Get("starttime").(time.Time)
+				glog.Infof("<-- %v, delta: %v", ctx.Get("contextid"), time.Now().Sub(start))
+			})
+
 			glog.Infof("--> %v", cid)
 			return next(c)
 		}
 	})
 
+	e.Use(middleware.CORS())
+
 	// add server name in response header
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderServer, "mobingi:pullr:apiserver:"+version)
-			return next(c)
-		}
-	})
-
-	// time out
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			start := c.Get("starttime").(time.Time)
-			glog.Infof("<-- %v, delta: %v", c.Get("contextid"), time.Now().Sub(start))
 			return next(c)
 		}
 	})
