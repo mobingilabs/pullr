@@ -14,4 +14,7 @@ $ docker exec -it mongodb mongo -u root -p rootpass --authenticationDatabase adm
 
 > use pullr;
 > db.createCollection("users");
+
+# insert admin/admin user to collection
+> db.users.insert({"username": "admin", "password": "$2y$05$oBNfJkZ4rMd6PjrRHq3FdeZXezfBzWqWsZuJ7v0ePpdUFCVNaOv52"});
 ```
