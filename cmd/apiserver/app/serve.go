@@ -41,6 +41,7 @@ func serve(cmd *cobra.Command, args []string) {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			glog.Infof("first: %v", time.Now())
+			c.Set("enter", time.Now())
 			return next(c)
 		}
 	})
@@ -56,7 +57,8 @@ func serve(cmd *cobra.Command, args []string) {
 	// test order
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			glog.Infof("second: %v", time.Now())
+			start := c.Get("enter").(time.Time)
+			glog.Infof("timediff: %v", time.Now().Sub(start))
 			return next(c)
 		}
 	})
