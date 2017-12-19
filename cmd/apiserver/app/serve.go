@@ -2,8 +2,10 @@ package app
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/facebookgo/grace/gracehttp"
+	"github.com/golang/glog"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mobingilabs/pullr/cmd/apiserver/v1"
@@ -35,10 +37,26 @@ func serve(cmd *cobra.Command, args []string) {
 	e := echo.New()
 	e.Use(middleware.CORS())
 
+	// test order
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			glog.Infof("first: %v", time.Now())
+			return next(c)
+		}
+	})
+
 	// add server name in response header
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderServer, "mobingi:pullr:apiserver:"+version)
+			return next(c)
+		}
+	})
+
+	// test order
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			glog.Infof("second: %v", time.Now())
 			return next(c)
 		}
 	})
