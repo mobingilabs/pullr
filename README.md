@@ -4,14 +4,38 @@ tbd
 
 ## Getting started
 
-```bash
-# install the following prerequisites first:
-#   docker
-#   docker-compose
+Install the following prerequisites first:
 
-# you also need you have these environment variables (todo: make optional)
-#   APISERVER_ACCESS_KEY_ID
-#   APISERVER_SECRET_ACCESS_KEY
+- docker
+- docker-compose
+
+Set the following environment variables as well:
+
+- `APISERVER_ACCESS_KEY_ID`
+- `APISERVER_SECRET_ACCESS_KEY`
+
+> Tested only on Linux (Ubuntu)
+
+```bash
+# go to admin to add superuser
+$ docker exec -it mongodb mongo admin
+
+> use admin;
+> db.createUser({user: "root", pwd: "rootpass", roles: ["root"]});
+
+# connect using superuser
+$ docker exec -it mongodb mongo -u root -p rootpass --authenticationDatabase admin
+
+# create pullr user for tokenserver
+> db.createUser({user: "pullr", pwd: "pullrpass", roles: ["readWrite"]});
+
+> use pullr;
+> db.createCollection("users");
+
+# insert admin/admin user to collection
+# the bcrypt hash for the password admin was generated using `htpasswd -nB admin`
+> db.users.insert({"username": "admin", "password": "$2y$05$oBNfJkZ4rMd6PjrRHq3FdeZXezfBzWqWsZuJ7v0ePpdUFCVNaOv52"});
+> db.users.find({});
 
 # then run locally
 $ make up
