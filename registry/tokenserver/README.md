@@ -7,10 +7,13 @@ The file `auth_config.yml` is copied from [this file](https://github.com/cesanta
 $ docker exec -it mongodb mongo admin
 
 > use admin;
-> db.createUser({ user: "root", pwd: "rootpass", roles: ["root"] });
+> db.createUser({user: "root", pwd: "rootpass", roles: ["root"]});
 
 # connect using superuser
 $ docker exec -it mongodb mongo -u root -p rootpass --authenticationDatabase admin
+
+# create pullr user for tokenserver
+> db.createUser({user: "pullr", pwd: "pullrpass", roles: ["readWrite"]});
 
 > use pullr;
 > db.createCollection("users");
