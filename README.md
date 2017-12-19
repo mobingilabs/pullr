@@ -17,32 +17,34 @@ Set the following environment variables as well:
 > Tested only on Linux (Ubuntu)
 
 ```bash
-# go to admin to add superuser
+# run the stack first so we can connect to db and create users
+$ make up
+
+# connect to db as admin and add root superuser
 $ docker exec -it mongodb mongo admin
 
 > use admin;
 > db.createUser({user: "root", pwd: "rootpass", roles: ["root"]});
+> exit
 
-# connect using superuser
+# connect to db using root
 $ docker exec -it mongodb mongo -u root -p rootpass --authenticationDatabase admin
 
-# create pullr user for tokenserver
-> db.createUser({user: "pullr", pwd: "pullrpass", roles: ["readWrite"]});
-
+# create pullr user for our tokenserver
 > use pullr;
+> db.createUser({user: "pullr", pwd: "pullrpass", roles: ["readWrite"]});
 > db.createCollection("users");
 
-# insert admin/admin user to collection
+# insert admin/admin user to collection, used for docker login
 # the bcrypt hash for the password admin was generated using `htpasswd -nB admin`
 > db.users.insert({"username": "admin", "password": "$2y$05$oBNfJkZ4rMd6PjrRHq3FdeZXezfBzWqWsZuJ7v0ePpdUFCVNaOv52"});
 > db.users.find({});
+> exit
 
-# then run locally
-$ make up
+# then rerun the whole stack
+$ make down && make up
 
-# test docker login
-# valid user/password combinations
-#   admin / admin
+# test `docker login` using "admin/admin" as credentials
 $ docker login localhost:5000
 
 # when done, run
