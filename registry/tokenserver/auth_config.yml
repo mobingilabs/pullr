@@ -36,9 +36,9 @@ mongo_auth:
     # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
     timeout: "10s"
     # Database name that will be used on the MongoDB server.
-    database: "admin"
+    database: "pullr"
     # The username with which to connect to the MongoDB server.
-    username: "root"
+    username: "pullr"
     # Path to the text file with the password in it.
     password_file: "/config/mongopass.txt"
     # Enable TLS connection to MongoDB (only enable this if your server supports it)
