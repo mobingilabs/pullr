@@ -1,0 +1,48 @@
+.sidebar {
+    background-color: #333;
+    width: 60px;
+    flex-shrink: 0;
+
+    &.wide {
+        width: 260px;
+        padding: 42px;
+    }
+
+    & > ul {
+        margin: 45px -42px 0;
+        padding: 0 22px;
+
+        .fa {
+            font-size: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        li {
+            margin-bottom: 4px;
+
+            a {
+                text-decoration: none;
+                display: block;
+                cursor: pointer;
+                padding: 0 20px;
+                height: 46px;
+                line-height: 46px;
+                color: #fff;
+            }
+
+
+            a.active {
+                background: #fff;
+                border-radius: 23px;
+                color: #333;
+            }
+        }
+
+        li a:hover:not(.active) {
+            cursor: pointer;
+            background: #444;
+            border-radius: 23px;
+        }
+    }
+}

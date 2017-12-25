@@ -1,0 +1,26 @@
+.wizard {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+
+    .wizard-step {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+
+        .wizard-step-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+
+            & > * {
+                flex-grow: 1;
+            }
+        }
+    }
+}
+
+.wizard-step-content {
+    background: #fff;
+    padding: 25px 42px;
+}

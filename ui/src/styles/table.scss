@@ -1,0 +1,137 @@
+table {
+    width: 100%;
+    border-spacing: 0;
+
+    .fa {
+        font-size: 20px;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+
+    thead {
+        background: #f5f5f5;
+
+        tr {
+            height: 49px;
+            line-height: 49px;
+        }
+
+        th {
+            text-align: left;
+            font-weight: bold;
+            font-size: 12px;
+            color: #AAAAAA;
+            border-bottom: 1px solid #d6d6d6;
+        }
+    }
+
+    tbody tr:nth-child(even) {
+        background: #f5f5f5;
+    }
+
+    tbody tr:not(.table-footer):last-child td {
+        border: 0;
+    }
+
+    td {
+        padding: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+        text-overflow: ellipsis;
+    }
+
+    &.wide {
+        th {
+            padding: 0 42px;
+        }
+
+        td {
+            padding: 0 42px;
+            height: 59px;
+            line-height: 59px;
+            border-bottom: 1px solid #d6d6d6;
+        }
+    }
+
+    tr.table-footer td {
+        background: #f5f5f5;
+        border-top: 1px solid #d6d6d6;
+    }
+}
+
+table.table-inline {
+    border: 1px solid #dedede;
+    border-radius: 4px;
+
+    thead tr {
+        height: 42px;
+        line-height: 42px;
+
+        th {
+            padding: 0;
+            padding-left: 14px;
+
+            &:last-child {
+                padding-right: 14px;
+            }
+        }
+    }
+
+    tbody tr {
+        height: 58px;
+
+        td {
+            padding: 10px 0;
+            padding-left: 14px;
+        }
+
+        &.table-footer {
+            height: 42px;
+        }
+    }
+
+}
+
+.table-link {
+    color: #333;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+table.small {
+    tbody tr {
+        height: 40px;
+        line-height: 40px;
+
+        td { padding-top: 0; padding-bottom: 0; border-bottom: 1px solid #dedede; }
+    }
+}
+
+table.bold {
+    border: 0;
+
+    thead {
+        background: #333;
+        tr {
+            height: 36px;
+            line-height: 36px;
+
+            th {
+                padding: 0 16px;
+                border: 0;
+                color: #fff;
+            }
+        }
+    }
+
+    tbody {
+        tr td { 
+            padding: 0 16px;; 
+        }
+
+        tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+    }
+}

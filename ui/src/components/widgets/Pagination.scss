@@ -1,0 +1,45 @@
+.pagination {
+    height: 56px;
+    line-height: 56px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #aaa;
+    border-top: 1px solid #dedede;
+
+    .pagination-items {
+        display: inline-block;
+        float: left;
+    }
+
+    .pagination-pages {
+        display: inline-block;
+        float: right;
+    }
+
+    .pagination-page-numbers {
+        display: inline-block;
+        margin-left: 10px;
+
+        a {
+            display: inline-block;
+            cursor: pointer;
+            margin: 0 2px;
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            line-height: 24px;
+            text-align: center;
+        }
+
+        a[disabled] {
+            cursor: default;
+            background: #d8d8d8;
+            border-radius: 4px;
+            color: #333;
+        }
+    }
+}
+
+.screen .pagination {
+    padding: 0 42px;
+}

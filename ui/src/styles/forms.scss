@@ -1,0 +1,68 @@
+form, .form {
+    display: flex;
+    color: #333;
+    flex-wrap: wrap;
+    margin-bottom: 44px;
+
+    .entry {
+        width: 100%;
+        max-width: 1000px;
+        margin-bottom: 44px;
+    }
+
+    .entry.entry-half {
+        width: 50%;
+        max-width: 500px;
+
+        &:nth-of-type(n) {
+            padding-left: 0;
+            padding-right: 10px;
+        }
+
+        &:nth-of-type(2n) {
+            padding-right: 0;
+            padding-left: 10px;
+        }
+    }
+
+    .entry-help {
+        display: block;
+        color: #aaa;
+        font-style: italic;
+        margin-top: -10px;
+        margin-bottom: 10px;
+    }
+
+    label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    input, select {
+        color: #333;
+        height: 38px;
+        line-height: 38px;
+        border: 1px solid #dedede;
+        border-radius: 4px;
+        background: #fff;
+        padding: 0 14px;
+        display: block;
+        width: 100%;
+    }
+
+    input::placeholder {
+        color: #aaa;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        max-width: 1000px;
+        width: 100%;
+
+        button {
+            margin-left: 8px;
+        }
+    }
+}
