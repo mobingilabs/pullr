@@ -1,12 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { withRouter } from 'react-router-dom';
 
 import Logo from './Logo';
 import MenuItem from './MenuItem';
 import Icons from './Icons';
 import './SideBar.scss';
 
-export default class SideBar extends React.PureComponent {
+export class SideBar extends React.PureComponent {
     static propTypes = {
         wide: PropTypes.bool
     }
@@ -39,3 +40,5 @@ export default class SideBar extends React.PureComponent {
         );
     }
 }
+
+export default withRouter(SideBar);

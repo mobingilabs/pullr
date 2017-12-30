@@ -2,16 +2,17 @@ import * as helpers from './helpers';
 
 export default {
     step: 0,
-    provider: null,
-    organisation: null,
-    repository: null,
     organisations: ['mobingilabs', 'EpicGames', 'umurgdk'],
     repositories: {
         mobingilabs: ['pullr'],
         umurgdk: ['soundlines', 'flight-crusader']
     },
-    config: {
+    image: {
+        provider: null,
+        organisation: null,
+        repository: null,
+        name: '',
         dockerfilePath: '',
-        tags: [helpers.defaultTagObject()],
+        builds: [helpers.defaultBuildObject()],
     }
 }

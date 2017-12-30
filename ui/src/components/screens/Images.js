@@ -6,14 +6,16 @@ import moment from 'moment';
 
 import Screen from '../layout/Screen';
 import Header from '../layout/Header';
+import Button from '../layout/Button';
 import Icons from '../layout/Icons';
 import Pagination from '../widgets/Pagination';
+import Notification from '../widgets/Notification';
 import ImageDetailModal from './ImageDetailModal';
 
 import * as ImagesActions from '../../state/images/actions';
 
 export class ImagesScreen extends React.PureComponent {
-    constructor (props) {
+    constructor(props) {
         super(props);
 
         this.actions = [
@@ -25,47 +27,51 @@ export class ImagesScreen extends React.PureComponent {
         this.props.history.push('/images/add');
     }
 
-    handleEditImage = (row) => {
-        console.log(`Edit image named: ${row['name']}`);
+    handleEditImage = (imageName) => {
+        this.props.history.push(`/images/${imageName}/edit`);
     }
 
-    render () {
+    render() {
+        const { images, imageOrder } = this.props;
         return (
             <Screen>
-                <Header title="IMAGES" subTitle={`${this.props.totalImages} images found...`} actions={ this.actions } />
+                <Header title="IMAGES" subTitle={`${this.props.totalImages} images found...`} actions={this.actions} />
+                <Notification id="images-create" />
                 <div className="scroll-horizontal">
                     <table className="wide">
                         <thead>
                             <tr>
                                 <th>IMAGE NAME</th>
-                                <th>COMMIT</th>
-                                <th>TAG</th>
-                                <th>LAST BUILD</th>
+                                <th>SOURCE PROVIDER</th>
+                                <th>REPOSITORY</th>
+                                <th>TAGS</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            { this.props.images.map(image => 
-                                <tr key={ image.name }>
+                            {imageOrder.map(key =>
+                                <tr key={images[key].name}>
                                     <td>
-                                        <Link className="table-link" to={ `/images/${image.name}` }><Icon name={ Icons.images }/> { image.name }</Link>
+                                        <Link className="table-link" to={`/images/${images[key].name}`}><Icon name={Icons.images} /> {images[key].name}</Link>
                                     </td>
-                                    <td>{ image.commitHash }</td>
-                                    <td>{ image.tag }</td>
-                                    <td>{ moment(image.lastBuild).fromNow() }</td>
+                                    <td>{images[key].provider}</td>
+                                    <td>{images[key].organisation}/{images[key].repository}</td>
+                                    <td>{images[key].builds.map(build => build.tag || build.name).join(', ')}</td>
+                                    <td width="100"><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, key)} /></td>
                                 </tr>
-                            ) }
+                            )}
                         </tbody>
                     </table>
                 </div>
-                <Pagination  
+                <Pagination
                     className="big-shadow"
                     currentPage={this.props.currentPage}
                     totalPages={this.props.totalPages}
                     onChangePage={this.props.onShowPage}
                     itemPerPage={10}
                     totalItems={this.props.totalImages} />
-                
-                <Route path="/images/:imageName" component={ ImageDetailModal } />
+
+                <Route path="/images/:imageName" component={ImageDetailModal} />
             </Screen>
         )
     }
@@ -73,6 +79,7 @@ export class ImagesScreen extends React.PureComponent {
 
 const mapStateToProps = (state) => ({
     images: state.images.data,
+    imageOrder: state.images.dataOrder,
     currentPage: state.images.currentPage,
     totalPages: state.images.totalPages,
     totalImages: state.images.totalImages

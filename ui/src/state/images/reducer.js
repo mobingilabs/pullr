@@ -1,5 +1,18 @@
 import * as Actions from './actions';
 
+export default function (state, action) {
+    switch (action.type) {
+        case Actions.IMAGES_SHOW_PAGE:
+            return showPage(state, action);
+        case Actions.IMAGES_ADD_IMAGE:
+            return addImage(state, action);
+        case Actions.IMAGES_UPDATE_IMAGE:
+            return updateImage(state, action);
+        default:
+            return state;
+    }
+}
+
 export function showPage(state, action) {
     return Object.assign({}, state, {
         currentPage: action.pageNumber
@@ -7,27 +20,24 @@ export function showPage(state, action) {
 }
 
 export function addImage(state, action) {
-    return Object.assign({}, state, {
-        data: state.images.concat([ action.image ])
-    });
+    const dataOrder = [].concat(state.dataOrder, [action.image.name]);
+    const data = Object.assign({}, state.data, { [action.image.name]: action.image });
+    return Object.assign({}, state, { dataOrder, data });
 }
 
-export function addDetail(state, action) {
-    const details = Object.assign({}, state.details);
-    details[action.imageDetail.name] = action.imageDetail;
+export function updateImage(state, action) {
+    let dataOrder = state.dataOrder;
+    let data = Object.assign({}, state.data);
+    if (action.imageName != action.imageData.name) {
+        dataOrder = [].concat(dataOrder);
 
-    return Object.assign({}, state, { details });
-}
+        const oldNameIndex = dataOrder.indexOf(action.imageName);
+        dataOrder[oldNameIndex] = action.imageData.name;
 
-export default function (state, action) {
-    switch (action.type) {
-        case Actions.IMAGES_SHOW_PAGE:
-            return showPage(state, action);
-        case Actions.IMAGES_ADD_ENTRY:
-            return addImage(state, action);
-        case Actions.IMAGES_ADD_DETAIL:
-            return addDetail(state, action);
-        default:
-            return state;
+        delete data[action.imageName];
     }
+
+    data[action.imageData.name] = action.imageData;
+
+    return Object.assign({}, state, { dataOrder, data });
 }

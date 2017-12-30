@@ -1,7 +1,8 @@
+import * as notificationActions from '../notifications/actions';
+
 export const IMAGES_SHOW_PAGE = 'IMAGES_SHOW_PAGE';
-export const IMAGES_ADD_SELECT_PROVIDER = 'IMAGES_ADD_SET_PROVIDER';
-export const IMAGES_ADD_ENTRY = 'IMAGES_ADD_ENTRY';
-export const IMAGES_ADD_DETAIL = 'IMAGES_ADD_DETAIL';
+export const IMAGES_ADD_IMAGE = 'IMAGES_ADD_IMAGE';
+export const IMAGES_UPDATE_IMAGE = 'IMAGES_UPDATE_IMAGE';
 
 export function showPage(pageNumber) {
     return {
@@ -10,24 +11,26 @@ export function showPage(pageNumber) {
     };
 }
 
-export function newImageSetProvider(provider) {
+export function addImage(image) {
     return {
-        type: IMAGES_ADD_SET_PROVIDER,
-        provider
-    };
-}
-
-
-export function addEntry(image) {
-    return {
-        type: IMAGES_ADD_ENTRY,
+        type: IMAGES_ADD_IMAGE,
         image
     };
 }
 
-export function addDetail(imageDetail) {
+export function updateImage(imageName, imageData) {
     return {
-        type: IMAGES_ADD_DETAIL,
-        imageDetail
+        type: IMAGES_UPDATE_IMAGE,
+        imageName,
+        imageData
+    }
+}
+
+export function saveChanges(imageName, imageData) {
+    return (dispatch) => {
+        dispatch(updateImage(imageName, imageData));
+
+        const message = `${imageName} successfully updated.`;
+        dispatch(notificationActions.show('images-update-image', message, 'success'));
     };
 }

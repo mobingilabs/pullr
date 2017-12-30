@@ -21,20 +21,15 @@ export class AddImageScreen extends React.PureComponent {
     }
 
     createImage = () => {
-        this.props.onCreateImage({
-            provider: this.props.provider,
-            organisation: this.props.organisation,
-            repository: this.props.repository,
-            dockerfilePath: this.props.config.dockerfilePath,
-            tags: this.props.config.tags
-        });
-        this.props.history.push('/images');
+        this.props.onCreateImage(this.props.image);
+        this.props.onReset();
+        this.props.history.push(`/images/${this.props.image.name}`);
     }
 
     render () {
         return (
             <Screen className="screen-addimage">
-                <Header title="ADD IMAGE" subTitle="Source Provider ..." actions={[]} />
+                <Header title="ADD IMAGE" subTitle="Source Provider ..." />
                 <Wizard step={ this.props.step }>
                     <WizardStep 
                         title="Select a source provider" 
@@ -47,7 +42,7 @@ export class AddImageScreen extends React.PureComponent {
                         title="Choose a repository from Github" 
                         component={ChooseRepository}
                         props={{
-                            selectedOrganisation: this.props.selectedOrganisation,
+                            selectedOrganisation: this.props.image.organisation,
                             organisations: this.props.organisations,
                             repositories: this.props.repositories,
                             onSelectOrganisation: this.props.onSelectOrganisation,
@@ -57,16 +52,12 @@ export class AddImageScreen extends React.PureComponent {
                         title="Configure image" 
                         component={ConfigureImage}
                         props={{
-                            selectedOrganisation: this.props.selectedOrganisation,
-                            selectedRepository: this.props.selectedRepository,
+                            image: this.props.image,
                             organisations: this.props.organisations,
-                            repositories: this.props.repositories,
-                            config: this.props.config,
+                            repositories: this.props.repositories[this.props.image.organisation],
                             onCancel: this.cancel,
-                            onSelectOrganisation: this.props.onSelectOrganisation,
-                            onSelectRepository: this.props.onSelectRepository,
                             onCreateImage: this.createImage,
-                            onUpdateConfig: this.props.onUpdateConfig
+                            onUpdateImage: this.props.onUpdateImage
                         }}/>
                 </Wizard>
             </Screen>
@@ -77,12 +68,9 @@ export class AddImageScreen extends React.PureComponent {
 function mapStateToProps(state) {
     return {
         step: state.addImage.step,
-        provider: state.addImage.provider,
-        selectedOrganisation: state.addImage.organisation,
-        selectedRepository: state.addImage.repository,
         organisations: state.addImage.organisations,
         repositories: state.addImage.repositories,
-        config: state.addImage.config
+        image: state.addImage.image
     }
 }
 
@@ -92,8 +80,8 @@ function mapDispatchToProps(dispatch) {
         onSelectProvider: (provider) => dispatch(actions.setProvider(provider)),
         onSelectOrganisation: (organisation) => dispatch(actions.setOrganisation(organisation)),
         onSelectRepository: (repository) => dispatch(actions.setRepository(repository)),
-        onUpdateConfig: (config) => dispatch(actions.updateConfig(config)),
-        onCreateImage: (image) => dispatch(actions.createImage())
+        onUpdateImage: (config) => dispatch(actions.updateImage(config)),
+        onCreateImage: (image) => dispatch(actions.createImage(image))
     }
 }
 

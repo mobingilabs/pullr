@@ -9,8 +9,8 @@ export default function (state, action) {
             return setOrganisation(state, action);
         case actions.ADD_IMAGE_SET_REPOSITORY:
             return setRepository(state, action);
-        case actions.ADD_IMAGE_UPDATE_CONFIG:
-            return updateConfig(state, action);
+        case actions.ADD_IMAGE_UPDATE_IMAGE:
+            return updateImage(state, action);
         case actions.ADD_IMAGE_RESET:
             return reset(state, action);
         default:
@@ -21,25 +21,32 @@ export default function (state, action) {
 export function setProvider(state, action) {
     return Object.assign({}, state, {
         step: 1,
-        provider: action.provider
+        image: Object.assign({}, state.image, {
+            provider: action.provider
+        })
     });
 }
 
 export function setOrganisation(state, action) {
     return Object.assign({}, state, {
-        organisation: action.organisation
+        image: Object.assign({}, state.image, {
+            organisation: action.organisation
+        })
     });
 }
 
 export function setRepository(state, action) {
     return Object.assign({}, state, {
         step: 2,
-        repository: action.repository
+        image: Object.assign({}, state.image, {
+            repository: action.repository,
+            name: action.repository
+        })
     });
 }
 
-export function updateConfig(state, action) {
-    return Object.assign({}, state, { config: action.config });
+export function updateImage(state, action) {
+    return Object.assign({}, state, { image: action.image });
 }
 
 export function reset(state, action) {

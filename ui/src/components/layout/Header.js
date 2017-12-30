@@ -11,7 +11,7 @@ export class Header extends React.PureComponent {
     static propTypes = {
         title: PropTypes.string.isRequired,
         subTitle: PropTypes.node,
-        back: PropTypes.string,
+        back: PropTypes.bool,
         actions: PropTypes.arrayOf(PropTypes.shape({
             text: PropTypes.string.isRequired,
             handler: PropTypes.func.isRequired,
@@ -22,7 +22,8 @@ export class Header extends React.PureComponent {
 
     static defaultProps = {
         subTitle: '',
-        actions: []
+        actions: [],
+        back: false
     }
 
     render () {
