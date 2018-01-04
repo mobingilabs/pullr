@@ -8,4 +8,6 @@ export default {
     trash: 'trash',
     back: 'angle-left',
     close: 'times',
+    rightArrow: 'angle-right',
+    loadingSpinner: 'circle-o-notch'
 };

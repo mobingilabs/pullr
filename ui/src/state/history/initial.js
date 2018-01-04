@@ -1,7 +1,17 @@
 export default {
-    page: 0,
-    builds: [
+    currentPage: 0,
+    loadInProgress: false,
+    thereIsMore: true,
+    lastBuilds: [
         {
+            imageName: 'pullr',
+            date: new Date(),
+            tag: 'latest',
+            status: 'inProgress'
+        }
+    ],
+    buildsByImage: {
+        pullr: {
             image: 'pullr',
             build: {
                 type: 'branch',
@@ -11,5 +21,5 @@ export default {
 
             }
         }
-    ]
+    }
 }

@@ -24,6 +24,7 @@
   "dependencies": {
     "@fortawesome/fontawesome": "^1.0.1",
     "@fortawesome/react-fontawesome": "0.0.16",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-polyfill": "^6.26.0",
     "flexboxgrid": "^6.3.1",
     "moment": "^2.20.1",

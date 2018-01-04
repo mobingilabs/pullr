@@ -1,16 +1,26 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { Route, Link } from 'react-router-dom';
+import { Icon } from 'react-fa';
 
 import Screen from '../layout/Screen';
 import Header from '../layout/Header';
+import Button from '../layout/Button';
+import Icons from '../layout/Icons';
+import Pagination from '../widgets/Pagination';
 
-export default class HistoryScreen extends React.PureComponent {
+import * as actions from '../../state/history/actions';
+
+export class HistoryScreen extends React.PureComponent {
     render () {
+        const loadMoreVisible = !this.props.loadInProgress && this.props.thereIsMore;
+        const loadingSpinnerVisible = this.props.loadInProgress;
         return (
             <Screen>
                 <Header title="BUILD HISTORY" subTitle={`Last build on ${new Date()}`} />
                 <div className="scroll-horizontal">
-                    <table className="wide">
+                    <table className="wide big-shadow">
                         <thead>
                             <tr>
                                 <th>IMAGE NAME</th>
@@ -20,31 +30,41 @@ export default class HistoryScreen extends React.PureComponent {
                             </tr>
                         </thead>
                         <tbody>
-                            {builds.map(build =>
-                                <tr key={images[key].name}>
-                                    <td>
-                                        <Link className="table-link" to={`/images/${images[key].name}`}><Icon name={Icons.images} /> {images[key].name}</Link>
-                                    </td>
-                                    <td>{images[key].provider}</td>
-                                    <td>{images[key].organisation}/{images[key].repository}</td>
-                                    <td>{images[key].builds.map(build => build.tag || build.name).join(', ')}</td>
-                                    <td width="100"><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, key)} /></td>
+                            {this.props.lastBuilds.map(build =>
+                                <tr key={build.imageName}>
+                                    <td>{build.imageName}</td>
+                                    <td>{build.date.toString()}</td>
+                                    <td>{build.tag}</td>
+                                    <td>{build.status}</td>
                                 </tr>
                             )}
+                            { (loadMoreVisible || loadingSpinnerVisible) &&
+                                <tr className="load-more">
+                                    <td colSpan="4">
+                                        { loadMoreVisible && 
+                                        <Button onClick={ this.props.onLoadMore } text="LOAD MORE" /> }
+                                        { loadingSpinnerVisible &&
+                                        <Icon spin name={ Icons.loadingSpinner } /> }
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
-                <Pagination
-                    className="big-shadow"
-                    currentPage={this.props.currentPage}
-                    totalPages={this.props.totalPages}
-                    onChangePage={this.props.onShowPage}
-                    itemPerPage={10}
-                    totalItems={this.props.totalImages} />
-
-                <Route path="/images/:imageName" component={ImageDetailModal} />
             </Screen>
-        )
+        );
     }
 }
 
+const mapStateToProps = (state) => {
+    return state.history;
+};
+
+const mapDispatchToProps = (dispatch) => {
+    return {
+        onGotoPage: (pageNumber) => dispatch(actions.gotoPage(pageNumber)),
+        onLoadMore: () => dispatch(actions.loadMore())
+    };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(HistoryScreen);

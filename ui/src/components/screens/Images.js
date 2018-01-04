@@ -38,7 +38,7 @@ export class ImagesScreen extends React.PureComponent {
                 <Header title="IMAGES" subTitle={`${this.props.totalImages} images found...`} actions={this.actions} />
                 <Notification id="images-create" />
                 <div className="scroll-horizontal">
-                    <table className="wide">
+                    <table className="wide big-shadow">
                         <thead>
                             <tr>
                                 <th>IMAGE NAME</th>
@@ -60,16 +60,20 @@ export class ImagesScreen extends React.PureComponent {
                                     <td width="100"><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, key)} /></td>
                                 </tr>
                             )}
+
+                            <tr>
+                                <td colSpan="5">
+                                    <Pagination
+                                        currentPage={this.props.currentPage}
+                                        totalPages={this.props.totalPages}
+                                        onChangePage={this.props.onShowPage}
+                                        itemPerPage={10}
+                                        totalItems={this.props.totalImages} />
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                <Pagination
-                    className="big-shadow"
-                    currentPage={this.props.currentPage}
-                    totalPages={this.props.totalPages}
-                    onChangePage={this.props.onShowPage}
-                    itemPerPage={10}
-                    totalItems={this.props.totalImages} />
 
                 <Route path="/images/:imageName" component={ImageDetailModal} />
             </Screen>

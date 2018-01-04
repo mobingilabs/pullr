@@ -38,10 +38,20 @@ button {
 
 .scroll-horizontal {
     overflow-x: auto;
+    flex-grow: 1;
 }
 
-.big-shadow {
-    box-shadow: 0 15px 32px 0 rgba(0,0,0,0.15), 0 4px 6px 0 rgba(0,0,0,0.17), 0 1px 0 0 #CFCFCF;
+.load-more {
+    background: #fff;
+    border-top: 1px solid #dedede;
+    text-align: center;
+    padding: 12px 16px;
+
+    button {
+        background: none;
+        color: #6CB2F9;
+        text-align: center;
+    }
 }
 
 @import './flex.scss';
