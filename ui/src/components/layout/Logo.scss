@@ -1,0 +1,13 @@
+.logo {
+    width: 139px;
+    height: 28px;
+    background-size: 139px 28px;
+
+    &.white {
+        background-image: url('../../images/logo_white.png');
+    }
+
+    &.dark {
+        background-image: url('../../images/logo_dark.png');
+    }
+}

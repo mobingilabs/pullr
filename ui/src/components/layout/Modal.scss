@@ -1,0 +1,123 @@
+.modalboundary {
+    position: fixed;
+    overflow: hidden;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.modal-backdrop {
+    pointer-events: all;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.47);
+
+    display: flex;
+    overflow-y: auto;
+    padding: 20px 0;
+    backdrop-filter: blur(50px);
+}
+
+.modal {
+    margin: auto;
+    background: #57B3FF;
+    box-shadow: 0 12px 30px 0 rgba(0,0,0,0.19), 0 4px 8px 0 rgba(0,0,0,0.17);
+    border-radius: 4px;
+    padding: 40px;
+
+    min-width: 512px;
+
+    color: #fff;
+}
+
+.modal-title {
+    margin-top: 5px;
+    font-size: 24px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.modal-close-btn {
+    background: none;
+    border: 0;
+    font-size: 22px;
+    color: #fff;
+}
+
+.modal-actions {
+    padding-top: 22px;
+    display: flex;
+    justify-content: flex-end;
+
+    .button {
+        height: 36px;
+        border-radius: 18px;
+        line-height: 32px;
+        font-size: 14px;
+        padding: 0 20px;
+        background: #fff;
+        color: #333;
+        border: 2px solid #fff;
+        margin-left: 16px;
+    }
+
+    .button.button-secondary {
+        background: none;
+        color: #fff;
+        border: 2px solid #57B3FF;
+
+        &:hover, &:active {
+            border-color: #fff;
+        }
+    }
+}
+
+.modal-content {
+    padding-top: 40px;
+}
+
+.modal .detail-field {
+    color: #fff;
+
+    .detail-label {
+        color: #296EA7;
+    }
+
+    .detail-value {
+        font-size: 18px;
+        font-weight: 200;
+    }
+}
+
+.modal table {
+    border-color: #3D97E0;
+
+    thead {
+        background: #3D97E0;
+        height: 42px;
+        
+        th { 
+            border-bottom: 0;
+            color: #A3D6FF;
+            font-size: 14px;
+            font-weight: 600; 
+        }
+    }
+
+    tbody {
+        tr {
+            height: 42px;
+            color: #fff;
+
+            td {
+                border-bottom: 1px solid #45A1EC;
+            }
+        }
+        tr:nth-child(even) { background: #63B9FF; }
+    }
+}

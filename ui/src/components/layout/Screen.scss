@@ -1,0 +1,13 @@
+.screen {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    align-items: stretch; /* align items in Cross Axis */
+    align-content: stretch; /* Extra space in Cross Axis */
+    overflow-y: auto;
+
+    .content {
+        padding: 36px 42px 0;
+    }
+}
+

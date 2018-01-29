@@ -1,0 +1,23 @@
+.flex {
+    display: flex;
+}
+
+.flex-h {
+    flex-direction: row;
+}
+
+.flex-v {
+    flex-direction: column;
+}
+
+.flex-shrink {
+    flex-shrink: 1;
+}
+
+.flex-grow {
+    flex-grow: 1;
+}
+
+.flex-align-bottom {
+    align-self: flex-end;
+}
