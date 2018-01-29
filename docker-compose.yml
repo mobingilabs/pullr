@@ -38,3 +38,9 @@ services:
     depends_on:
     - tokenserver
     - apiserver
+  mqueue:
+    container_name: mqueue
+    image: rabbitmq
+    ports:
+    - "5672:5672"
+    - "15672:15672"
