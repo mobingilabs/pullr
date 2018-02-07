@@ -9,9 +9,11 @@ import (
 // User defines both user authentication and relation
 type User struct {
 	// Username is unique by user
-	Username string `json:"username" bson:"username"`
+	Username string `json:"username" bson:"username,omitempty"`
 	// Password is hash of the user's password
-	Password []byte `json:"password,omitempty" bson:"password"`
+	Password []byte `json:"password,omitempty" bson:"password,omitempty"`
+	// Tokens are 3rd party service provider tokens
+	Tokens map[string]string `json:"tokens" bson:"tokens,omitempty"`
 }
 
 func (u User) SetPassword(password string) error {

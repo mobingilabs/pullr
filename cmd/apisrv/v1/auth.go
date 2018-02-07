@@ -2,9 +2,11 @@ package v1
 
 import (
 	"net/http"
-	"time"
+	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
+	"github.com/mobingilabs/pullr/cmd/apisrv/perrors"
 	"github.com/mobingilabs/pullr/pkg/auth"
 )
 
@@ -14,39 +16,30 @@ type creds struct {
 }
 
 type authenticatedHandlerFunc func(user string, c echo.Context) error
+type tokenKind int
 
 const (
-	authCookieName    = "AuthToken"
-	refreshCookieName = "RefreshToken"
-	csrfHeaderName    = "X-CSRF-TOKEN"
+	HeaderAuthToken    = "X-Auth-Token"
+	HeaderRefreshToken = "X-Refresh-Token"
+
+	TokenAuth tokenKind = iota
+	TokenRefresh
 )
 
 func (a *apiv1) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		authCookie, err := c.Cookie(authCookieName)
-		if err != nil {
-			if err != http.ErrNoCookie {
-				return err
-			}
-
+		authToken := c.Request().Header.Get(echo.HeaderAuthorization)
+		authToken = strings.TrimPrefix(authToken, "Bearer ")
+		if authToken == "" {
 			return auth.ErrCredentials
 		}
 
-		refreshCookie, err := c.Cookie(refreshCookieName)
-		if err != nil {
-			if err != http.ErrNoCookie {
-				return err
-			}
-
+		refreshToken := c.Request().Header.Get(HeaderRefreshToken)
+		if refreshToken == "" {
 			return auth.ErrCredentials
 		}
 
-		csrf := c.Request().Header.Get(csrfHeaderName)
-		if csrf == "" {
-			return auth.ErrCredentials
-		}
-
-		newSecrets, user, err := a.Auth.Validate(csrf, authCookie.Value, refreshCookie.Value)
+		newSecrets, user, err := a.Auth.Validate(authToken, refreshToken)
 		if err != nil {
 			return err
 		}
@@ -56,9 +49,26 @@ func (a *apiv1) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
 	}
 }
 
+func (a *apiv1) getToken(c echo.Context, kind tokenKind) (*jwt.Token, *jwt.StandardClaims, error) {
+	switch kind {
+	case TokenAuth:
+		bearer := c.Request().Header.Get(echo.HeaderAuthorization)
+		bearer = strings.TrimPrefix(bearer, "Bearer ")
+		claims := new(jwt.StandardClaims)
+		token, err := a.Auth.ParseToken(bearer, claims)
+		return token, claims, err
+	case TokenRefresh:
+		tokenStr := c.Request().Header.Get(HeaderRefreshToken)
+		claims := new(jwt.StandardClaims)
+		token, err := a.Auth.ParseToken(tokenStr, claims)
+		return token, claims, err
+	}
+
+	return nil, nil, perrors.NewErr("ERR_INTERNAL", http.StatusInternalServerError, "An unexpected error happened")
+}
+
 func (a *apiv1) login(c echo.Context) error {
 	credentials := new(creds)
-
 	if err := c.Bind(credentials); err != nil {
 		return err
 	}
@@ -74,7 +84,6 @@ func (a *apiv1) login(c echo.Context) error {
 
 func (a *apiv1) register(c echo.Context) error {
 	credentials := new(creds)
-
 	if err := c.Bind(credentials); err != nil {
 		return err
 	}
@@ -90,45 +99,7 @@ func (a *apiv1) register(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (a *apiv1) logout(c echo.Context) error {
-	nullifyAuthSecrets(c)
-	return c.NoContent(http.StatusOK)
-}
-
 func setAuthSecrets(c echo.Context, secrets *auth.Secrets) {
-	authCookie := &http.Cookie{
-		Name:     authCookieName,
-		Value:    secrets.AuthToken,
-		HttpOnly: true,
-	}
-
-	refreshCookie := &http.Cookie{
-		Name:     refreshCookieName,
-		Value:    secrets.RefreshToken,
-		HttpOnly: true,
-	}
-
-	c.SetCookie(authCookie)
-	c.SetCookie(refreshCookie)
-	c.Response().Header().Add(csrfHeaderName, secrets.Csrf)
-}
-
-func nullifyAuthSecrets(c echo.Context) {
-	authCookie := &http.Cookie{
-		Name:     authCookieName,
-		Value:    "",
-		Expires:  time.Now().Add(time.Hour * -1000),
-		HttpOnly: true,
-	}
-
-	refreshToken := &http.Cookie{
-		Name:     refreshCookieName,
-		Value:    "",
-		Expires:  time.Now().Add(time.Hour * -1000),
-		HttpOnly: true,
-	}
-
-	c.SetCookie(authCookie)
-	c.SetCookie(refreshToken)
-	c.Response().Header().Add(csrfHeaderName, "")
+	c.Response().Header().Add(HeaderAuthToken, secrets.AuthToken)
+	c.Response().Header().Add(HeaderRefreshToken, secrets.RefreshToken)
 }

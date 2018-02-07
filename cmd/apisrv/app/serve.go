@@ -4,12 +4,13 @@ import (
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/golang/glog"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/mobingilabs/pullr/cmd/apisrv/oauth"
 	"github.com/mobingilabs/pullr/cmd/apisrv/v1"
 	"github.com/mobingilabs/pullr/pkg/auth/local"
 	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage/mongodb"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"gopkg.in/mgo.v2"
 )
 
@@ -31,18 +32,17 @@ func ServeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&port, "port", "8080", "server port")
 	cmd.Flags().StringVar(&region, "aws-region", "ap-northeast-1", "aws region to access region")
 	cmd.Flags().StringVar(&bucket, "token-bucket", "authd", "s3 bucket that contains our key files")
+	viper.BindPFlags(cmd.Flags())
 	return cmd
 }
 
 func serve(cmd *cobra.Command, args []string) {
+	conf := v1.ParseConfig()
+
 	e := echo.New()
 
 	// time in, should be the first middleware
 	e.Use(srv.ElapsedMiddleware())
-
-	e.Use(middleware.CORS())
-
-	// add server name in response header
 	e.Use(srv.ServerHeaderMiddleware("apisrv", version))
 
 	e.GET("/", srv.CopyrightHandler())
@@ -68,12 +68,13 @@ func serve(cmd *cobra.Command, args []string) {
 	defer storage.Close()
 
 	// routes
-	v1.NewApiV1(e, authenticator, storage)
+	oauthProviders := map[string]oauth.Client{
+		"github": oauth.NewGithub(conf.GithubClientId, conf.GithubSecret),
+	}
+	v1.NewApiV1(e, oauthProviders, authenticator, storage, conf)
 
 	// serve
 	glog.Infof("serving on :%v", port)
 	e.Server.Addr = ":" + port
-	if err := gracehttp.Serve(e.Server); err != nil {
-		glog.Fatal(err)
-	}
+	e.Logger.Fatal(gracehttp.Serve(e.Server))
 }

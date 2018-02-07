@@ -2,6 +2,7 @@ package vcs
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -18,6 +19,25 @@ const (
 const (
 	PushEvent = "push"
 )
+
+type OAuthPerm int
+
+// OAuth permissions
+const (
+	PermReadRepos OAuthPerm = iota
+	PermListOrgs
+	PermAdminRepoHooks
+)
+
+var (
+	ErrAuthRequired   = errors.New("vcs client needs to authenticate")
+	ErrOAuthInvalidCb = errors.New("invalid oauth cb url provided")
+)
+
+type OAuthSecrets struct {
+	ClientId     string
+	ClientSecret string
+}
 
 type WebhookRequest struct {
 	Event string
@@ -38,7 +58,9 @@ type Vcs interface {
 	ParseWebhookRequest(r *http.Request) (*WebhookRequest, error)
 }
 
-type VcsClient interface {
-	CheckFileExists(ctx context.Context, repository *domain.Repository, path string, ref string) (bool, error)
-	CloneRepository(ctx context.Context, repository *domain.Repository, clonePath string, ref string) error
+type Client interface {
+	ListOrganisations(ctx context.Context) ([]string, error)
+	CheckFileExists(ctx context.Context, repository domain.Repository, path string, ref string) (bool, error)
+	CloneRepository(ctx context.Context, repository domain.Repository, clonePath string, ref string) ([]byte, error)
+	ListRepositories(ctx context.Context, organisation string) ([]string, error)
 }

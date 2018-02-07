@@ -2,14 +2,42 @@ package v1
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
-func (a *apiv1) imagesIndex(user string, c echo.Context) error {
-	images, err := a.Storage.FindAllImages(user)
+func (a *apiv1) imagesGet(user string, c echo.Context) error {
+	key := c.Param("key")
+	if key == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	image, err := a.Storage.FindImageByKey(key)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, image)
+}
+
+func (a *apiv1) imagesIndex(username string, c echo.Context) (err error) {
+	var images []domain.Image
+	if sinceQuery := c.QueryParam("since"); sinceQuery != "" {
+		i, err := strconv.ParseInt(sinceQuery, 10, 64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid time format"})
+		}
+
+		since := time.Unix(i, 0)
+		images, err = a.Storage.FindAllImagesSince(username, since)
+	} else {
+		images, err = a.Storage.FindAllImages(username)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -22,29 +50,20 @@ func (a *apiv1) imagesIndex(user string, c echo.Context) error {
 }
 
 func (a *apiv1) imagesCreate(user string, c echo.Context) error {
-	type createPayload struct {
-		domain.Image
-		Tags []domain.ImageTag `json:"tags"`
-	}
-
-	payload := new(createPayload)
+	payload := new(domain.Image)
 	if err := c.Bind(payload); err != nil {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	payload.Image.Owner = user
-	if err := a.Storage.CreateImage(payload.Image); err != nil {
+	payload.Owner = user
+	payload.CreatedAt = time.Now()
+	payload.UpdatedAt = payload.CreatedAt
+	imageKey, err := a.Storage.CreateImage(*payload)
+	if err != nil {
 		return err
 	}
 
-	imageKey := domain.ImageKey(payload.Image.Repository)
-	for _, tag := range payload.Tags {
-		if err := a.Storage.CreateImageTag(imageKey, tag); err != nil {
-			return err
-		}
-	}
-
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusCreated, map[string]string{"key": imageKey})
 }
 
 func (a *apiv1) imagesDelete(user string, c echo.Context) error {
@@ -70,25 +89,22 @@ func (a *apiv1) imagesDelete(user string, c echo.Context) error {
 }
 
 func (a *apiv1) imagesUpdate(user string, c echo.Context) error {
-	type updatePayload struct {
-		domain.Image
-		Tags []domain.ImageTag `json:"tags"`
-	}
-
 	key := strings.TrimSpace(c.Param("key"))
 	if key == "" {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	payload := new(updatePayload)
+	payload := new(domain.Image)
 	if err := c.Bind(payload); err != nil {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	a.Storage.UpdateImage(key, payload.Image)
+	payload.UpdatedAt = time.Now()
+	payload.CreatedAt = time.Time{} // don't allow payload to update creation time
+	newKey, err := a.Storage.UpdateImage(key, *payload)
+	if err != nil {
+		return err
+	}
 
-	newImageKey := domain.ImageKey(payload.Image.Repository)
-	return c.JSON(http.StatusOK, struct {
-		ImageKey string `json:"image_key"`
-	}{newImageKey})
+	return c.JSON(http.StatusOK, map[string]string{"key": newKey})
 }

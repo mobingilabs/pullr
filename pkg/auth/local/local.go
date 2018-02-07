@@ -9,6 +9,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mobingilabs/pullr/pkg/auth"
+	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -33,9 +34,11 @@ type User struct {
 
 const (
 	day                       = time.Hour * 24
-	AuthTokenValidDuration    = time.Minute * 15
-	RefreshTokenValidDuration = day * 5
+	authTokenValidDuration    = time.Minute * 15
+	refreshTokenValidDuration = day * 5
 )
+
+var signingMethod = jwt.SigningMethodRS256
 
 // New creates a new Authenticator instance with given mongodb connection,
 // mongodb connection should be unique to the authenticator, make sure the
@@ -72,51 +75,36 @@ func (a *Authenticator) Close() {
 
 // Validate reports back the extracted username from the JWT token if the token
 // is valid.
-func (a *Authenticator) Validate(csrf, refreshToken, authToken string) (*auth.Secrets, string, error) {
-	if csrf == "" || refreshToken == "" || authToken == "" {
+func (a *Authenticator) Validate(refreshToken, authToken string) (*auth.Secrets, string, error) {
+	if refreshToken == "" || authToken == "" {
 		return nil, "", auth.ErrUnauthenticated
 	}
 
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		return a.verifyKey, nil
-	}
-
-	authJwt, authParseErr := jwt.ParseWithClaims(authToken, &auth.TokenClaims{}, keyFunc)
-	if authParseErr != nil {
-		return nil, "", authParseErr
-	}
-
-	refreshJwt, refreshParseErr := jwt.ParseWithClaims(refreshToken, &auth.TokenClaims{}, keyFunc)
+	claims := new(jwt.StandardClaims)
+	authJwt, authParseErr := jwt.ParseWithClaims(authToken, claims, a.keyFunc)
+	refreshJwt, refreshParseErr := jwt.ParseWithClaims(refreshToken, &jwt.StandardClaims{}, a.keyFunc)
 	if refreshParseErr != nil {
 		return nil, "", refreshParseErr
 	}
 
-	authClaims, ok := authJwt.Claims.(*auth.TokenClaims)
-	if !ok {
-		return nil, "", auth.ErrInvalidToken
-	}
-
-	if csrf != authClaims.Csrf {
-		return nil, "", auth.ErrUnauthenticated
-	}
-
 	var err error
 	newAuthToken := authToken
-	newCsrf := csrf
 	newRefreshToken := ""
 
 	if !authJwt.Valid {
-		if !isTokenExpireErr(authParseErr) {
+		ve, ok := authParseErr.(*jwt.ValidationError)
+		expireErr := ok && ve.Errors&jwt.ValidationErrorExpired != 0
+		if !expireErr {
 			return nil, "", auth.ErrUnauthenticated
 		}
 
-		newAuthToken, newCsrf, err = a.updateAuthToken(refreshJwt, authJwt)
+		newAuthToken, err = a.updateAuthToken(refreshJwt, authJwt)
 		if err != nil {
 			return nil, "", err
 		}
 	}
 
-	newRefreshToken, err = a.updateRefreshToken(refreshJwt, newCsrf)
+	newRefreshToken, err = a.updateRefreshToken(refreshJwt)
 	if err != nil {
 		return nil, "", err
 	}
@@ -124,10 +112,9 @@ func (a *Authenticator) Validate(csrf, refreshToken, authToken string) (*auth.Se
 	secrets := &auth.Secrets{
 		AuthToken:    newAuthToken,
 		RefreshToken: newRefreshToken,
-		Csrf:         newCsrf,
 	}
 
-	return secrets, authClaims.Subject, nil
+	return secrets, claims.Subject, nil
 }
 
 // Login will generate a new JWT token for the given user
@@ -147,17 +134,12 @@ func (a *Authenticator) Login(username, password string) (*auth.Secrets, error) 
 		return nil, auth.ErrCredentials
 	}
 
-	csrf, err := randomString(32)
+	authToken, err := a.createAuthToken(username)
 	if err != nil {
 		return nil, err
 	}
 
-	authToken, err := a.createAuthToken(username, csrf)
-	if err != nil {
-		return nil, err
-	}
-
-	refreshToken, err := a.createRefreshToken(username, csrf)
+	refreshToken, err := a.createRefreshToken(username)
 	if err != nil {
 		return nil, err
 	}
@@ -165,14 +147,12 @@ func (a *Authenticator) Login(username, password string) (*auth.Secrets, error) 
 	secrets := &auth.Secrets{
 		RefreshToken: refreshToken,
 		AuthToken:    authToken,
-		Csrf:         csrf,
 	}
 
 	return secrets, nil
 }
 
 func (a *Authenticator) Register(username, password string) error {
-	// TODO: Look example to implement register
 	users := a.db.C("users")
 	numUsers, err := users.Find(bson.M{"username": username}).Count()
 	if err != nil {
@@ -191,11 +171,57 @@ func (a *Authenticator) Register(username, password string) error {
 	return nil
 }
 
-func (a *Authenticator) Sign(token *jwt.Token) (string, error) {
+func (a *Authenticator) ParseToken(token string, claims jwt.Claims) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(token, claims, a.keyFunc)
+}
+
+func (a *Authenticator) SignToken(token *jwt.Token) (string, error) {
 	return token.SignedString(a.signKey)
 }
 
-func (a *Authenticator) createRefreshToken(username, csrf string) (string, error) {
+func (a *Authenticator) NewToken(claims jwt.Claims) *jwt.Token {
+	return jwt.NewWithClaims(signingMethod, claims)
+}
+
+// NewOAuthCbIdentifier generates an identifier for the given user to use with
+// oauth providers login mechanism
+func (a *Authenticator) NewOAuthCbIdentifier(username, provider, redirectUri string) (auth.OAuthCbIdentifier, error) {
+	ids := a.db.C("oauth_ids")
+	newId := uuid.NewV1().String()
+	cbIdentifier := auth.OAuthCbIdentifier{
+		Provider:    provider,
+		Username:    username,
+		Uuid:        newId,
+		RedirectUri: redirectUri,
+	}
+
+	return cbIdentifier, ids.Insert(cbIdentifier)
+}
+
+// OAuthUserFromIdentifier reports back the user identity from given oauth
+// identifier
+func (a *Authenticator) OAuthCbIdentifier(uuid string) (*auth.OAuthCbIdentifier, error) {
+	ids := a.db.C("oauth_ids")
+	var cbIdentifier auth.OAuthCbIdentifier
+
+	err := ids.Find(bson.M{"uuid": uuid}).One(&cbIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cbIdentifier, nil
+}
+
+func (a *Authenticator) RemoveOAuthCbIdentifier(uuid string) error {
+	ids := a.db.C("oauth_ids")
+	return ids.Remove(bson.M{"uuid": uuid})
+}
+
+func (a *Authenticator) keyFunc(token *jwt.Token) (interface{}, error) {
+	return a.verifyKey, nil
+}
+
+func (a *Authenticator) createRefreshToken(username string) (string, error) {
 	jti, err := randomString(32)
 	if err != nil {
 		return "", err
@@ -206,57 +232,48 @@ func (a *Authenticator) createRefreshToken(username, csrf string) (string, error
 		return "", err
 	}
 
-	tokenExp := time.Now().Add(RefreshTokenValidDuration).Unix()
+	tokenExp := time.Now().Add(refreshTokenValidDuration).Unix()
 
-	claims := auth.TokenClaims{
-		StandardClaims: jwt.StandardClaims{
-			Id:        jti,
-			Subject:   username,
-			ExpiresAt: tokenExp,
-		},
-		Csrf: csrf,
+	claims := &jwt.StandardClaims{
+		Id:        jti,
+		Subject:   username,
+		ExpiresAt: tokenExp,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	return a.Sign(token)
+	token := jwt.NewWithClaims(signingMethod, claims)
+	return a.SignToken(token)
 }
 
-func (a *Authenticator) updateRefreshToken(oldToken *jwt.Token, csrf string) (string, error) {
-	oldClaims, ok := oldToken.Claims.(*auth.TokenClaims)
+func (a *Authenticator) updateRefreshToken(oldToken *jwt.Token) (string, error) {
+	oldClaims, ok := oldToken.Claims.(*jwt.StandardClaims)
 	if !ok {
 		return "", auth.ErrInvalidToken
 	}
 
-	expire := time.Now().Add(RefreshTokenValidDuration).Unix()
-	newClaims := auth.TokenClaims{
-		StandardClaims: jwt.StandardClaims{
-			Id:        oldClaims.Id,
-			Subject:   oldClaims.Subject,
-			ExpiresAt: expire,
-		},
-		Csrf: csrf,
+	expire := time.Now().Add(refreshTokenValidDuration).Unix()
+	newClaims := &jwt.StandardClaims{
+		Id:        oldClaims.Id,
+		Subject:   oldClaims.Subject,
+		ExpiresAt: expire,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, newClaims)
-	return a.Sign(token)
+	token := jwt.NewWithClaims(signingMethod, newClaims)
+	return a.SignToken(token)
 }
 
-func (a *Authenticator) createAuthToken(username string, csrf string) (string, error) {
-	tokenExp := time.Now().Add(AuthTokenValidDuration).Unix()
-	claims := auth.TokenClaims{
-		StandardClaims: jwt.StandardClaims{
-			Subject:   username,
-			ExpiresAt: tokenExp,
-		},
-		Csrf: csrf,
+func (a *Authenticator) createAuthToken(username string) (string, error) {
+	tokenExp := time.Now().Add(authTokenValidDuration).Unix()
+	claims := &jwt.StandardClaims{
+		Subject:   username,
+		ExpiresAt: tokenExp,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	return a.Sign(token)
+	token := jwt.NewWithClaims(signingMethod, claims)
+	return a.SignToken(token)
 }
 
-func (a *Authenticator) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt.Token) (newToken, csrf string, err error) {
-	refreshTokenClaims, ok := refreshToken.Claims.(*auth.TokenClaims)
+func (a *Authenticator) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt.Token) (newToken string, err error) {
+	refreshTokenClaims, ok := refreshToken.Claims.(*jwt.StandardClaims)
 	if !ok {
 		err = auth.ErrInvalidToken
 		return
@@ -272,18 +289,13 @@ func (a *Authenticator) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *j
 		return
 	}
 
-	authTokenClaims, ok := oldAuthToken.Claims.(*auth.TokenClaims)
+	authTokenClaims, ok := oldAuthToken.Claims.(*jwt.StandardClaims)
 	if !ok {
 		err = auth.ErrInvalidToken
 		return
 	}
 
-	csrf, err = randomString(32)
-	if err != nil {
-		return
-	}
-
-	newToken, err = a.createAuthToken(authTokenClaims.Subject, authTokenClaims.Csrf)
+	newToken, err = a.createAuthToken(authTokenClaims.Subject)
 	return
 }
 
@@ -298,11 +310,6 @@ func (a *Authenticator) checkRefreshToken(tokenId string) error {
 	}
 
 	return nil
-}
-
-func isTokenExpireErr(err error) bool {
-	ve, ok := err.(*jwt.ValidationError)
-	return ok && ve.Errors&jwt.ValidationErrorExpired != 0
 }
 
 func randomString(numBytes uint8) (string, error) {

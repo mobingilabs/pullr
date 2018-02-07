@@ -1,7 +1,8 @@
 package mongodb
 
 import (
-	"github.com/golang/glog"
+	"time"
+
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	"gopkg.in/mgo.v2"
@@ -9,10 +10,9 @@ import (
 )
 
 const (
-	usersC     = "users"
-	imagesC    = "images"
-	imageTagsC = "imageTags"
-	historyC   = "history"
+	usersC   = "users"
+	imagesC  = "images"
+	historyC = "history"
 )
 
 // MongoDB is a `pullr.Storage` implementation for MongoDB
@@ -36,6 +36,7 @@ func Dial(servers string) (*MongoDB, error) {
 	return mongodb, nil
 }
 
+// Close closes the storage session, in this case connection to mongodb
 func (s *MongoDB) Close() error {
 	s.Session.Close()
 	return nil
@@ -57,96 +58,68 @@ func (s *MongoDB) FindAllImages(username string) ([]domain.Image, error) {
 
 	var images []domain.Image
 	query := bson.M{"owner": username}
-	err := col.Find(query).All(&images)
+	err := col.Find(query).Sort("-created_at").All(&images)
 
 	return images, toStorageErr(err)
 }
 
-// FindImageTags implements Storage.FindImageTags
-func (s *MongoDB) FindImageTags(imageKey string) ([]domain.ImageTag, error) {
-	col := s.Db.C(imageTagsC)
+// FindAllImagesSince implements Storage.FindAllImagesSince
+func (s *MongoDB) FindAllImagesSince(username string, since time.Time) ([]domain.Image, error) {
+	col := s.Db.C(imagesC)
 
-	var tags []domain.ImageTag
-	err := col.Find(bson.M{"image_key": imageKey}).All(&tags)
-	return tags, toStorageErr(err)
+	var images []domain.Image
+	query := bson.M{"owner": username, "created_at": bson.M{"$gt": since}}
+	err := col.Find(query).Sort("-created_at").All(&images)
+
+	return images, err
 }
 
+// FindUser finds a user records by uts username
 func (s *MongoDB) FindUser(username string) (domain.User, error) {
 	col := s.Db.C(usersC)
 
 	var user domain.User
 	err := col.Find(bson.M{"username": username}).One(&user)
-	if err != nil {
-		glog.Errorf("[ERROR] MongoDB.FindUser, %s", err)
-	}
 	return user, toStorageErr(err)
 }
 
+// PutUserToken puts inserts given token to user's token list
+func (s *MongoDB) PutUserToken(username, provider, token string) error {
+	usr, err := s.FindUser(username)
+	if err != nil {
+		return err
+	}
+
+	if usr.Tokens == nil {
+		usr.Tokens = make(map[string]string)
+	}
+
+	usr.Tokens[provider] = token
+	return s.UpdateUser(username, usr)
+}
+
 // CreateImage implements Storage.CreateImage
-func (s *MongoDB) CreateImage(image domain.Image) error {
+func (s *MongoDB) CreateImage(image domain.Image) (string, error) {
 	image.Key = domain.ImageKey(image.Repository)
 	err := s.Db.C(imagesC).Insert(image)
-	return toStorageErr(err)
+	return image.Key, toStorageErr(err)
 }
 
 // UpdateImage implements Storage.UpdateImage
-func (s *MongoDB) UpdateImage(oldKey string, image domain.Image) error {
+func (s *MongoDB) UpdateImage(oldKey string, image domain.Image) (string, error) {
 	newKey := domain.ImageKey(image.Repository)
+	if newKey == "" {
+		newKey = oldKey
+	}
+
 	image.Key = newKey
-	if err := s.Db.C(imagesC).Update(bson.M{"key": oldKey}, image); err != nil {
-		return toStorageErr(err)
-	}
-
-	if oldKey == newKey {
-		return nil
-	}
-
-	// If image key is changed also update image_key fields of image tags
-	tags, err := s.FindImageTags(oldKey)
-	if err != nil {
-		return toStorageErr(err)
-	}
-
-	for _, tag := range tags {
-		tag.ImageKey = newKey
-		if err := s.UpdateImageTag(oldKey, tag.Name, tag); err != nil {
-			return toStorageErr(err)
-		}
-	}
-
-	return toStorageErr(err)
+	err := s.Db.C(imagesC).Update(bson.M{"key": oldKey}, bson.M{"$set": image})
+	return newKey, toStorageErr(err)
 }
 
 // DeleteImage implements Storage.DeleteImage
 func (s *MongoDB) DeleteImage(imageKey string) error {
-	if err := s.Db.C(imagesC).Remove(bson.M{"key": imageKey}); err != nil {
-		return err
-	}
-
-	err := s.Db.C(imageTagsC).Remove(bson.M{"image_key": imageKey})
-	if err == mgo.ErrNotFound {
-		return nil
-	}
-
-	return toStorageErr(err)
-}
-
-// CreateImageTag implements Storage.CreateImageTag
-func (s *MongoDB) CreateImageTag(imageKey string, tag domain.ImageTag) error {
-	tag.ImageKey = imageKey
-	err := s.Db.C(imageTagsC).Insert(tag)
-	return toStorageErr(err)
-}
-
-// UpdateImageTag implements Storage.UpdateImageTag
-func (s *MongoDB) UpdateImageTag(imageKey string, tagName string, tag domain.ImageTag) error {
-	err := s.Db.C(imageTagsC).Update(bson.M{"image_key": imageKey, "name": tagName}, tag)
-	return toStorageErr(err)
-}
-
-// DeleteImageTag implements Storage.DeleteImageTag
-func (s *MongoDB) DeleteImageTag(imageKey string, tagName string) error {
-	err := s.Db.C(imageTagsC).Remove(bson.M{"image_key": imageKey, "name": tagName})
+	err := s.Db.C(imagesC).Remove(bson.M{"key": imageKey})
 	return toStorageErr(err)
 }
 

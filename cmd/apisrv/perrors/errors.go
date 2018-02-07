@@ -1,4 +1,4 @@
-package errors
+package perrors
 
 import (
 	"fmt"
@@ -9,42 +9,42 @@ import (
 	"github.com/mobingilabs/pullr/pkg/storage"
 )
 
-type errMsg struct {
+type ErrMsg struct {
 	Kind   string `json:"kind"`
 	Status int    `json:"status"`
 	Msg    string `json:"msg,omitempty"`
 }
 
-func newErr(kind string, status int, msg string) errMsg {
-	return errMsg{kind, status, msg}
+func NewErr(kind string, status int, msg string) ErrMsg {
+	return ErrMsg{kind, status, msg}
 }
 
-func newErrMissingParam(param string) errMsg {
+func NewErrMissingParam(param string) ErrMsg {
 	msg := fmt.Sprintf("Query parameter '%s' is missing", param)
-	return newErr("ERR_MISSING_PARAM", http.StatusBadRequest, msg)
+	return NewErr("ERR_MISSING_PARAM", http.StatusBadRequest, msg)
 }
 
-func newErrBadValue(param, value string) errMsg {
+func NewErrBadValue(param, value string) ErrMsg {
 	msg := fmt.Sprintf("Bad value '%s' for param '%s'", param, value)
-	return newErr("ERR_BAD_VALUE", http.StatusBadRequest, msg)
+	return NewErr("ERR_BAD_VALUE", http.StatusBadRequest, msg)
 }
 
-func (e errMsg) Error() string {
+func (e ErrMsg) Error() string {
 	return e.Msg
 }
 
-func errorHandler(next echo.HandlerFunc) echo.HandlerFunc {
+func ErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		err := next(c)
 		if err == nil {
 			return nil
 		}
 
-		if e, ok := err.(errMsg); ok {
+		if e, ok := err.(ErrMsg); ok {
 			return c.JSON(e.Status, e)
 		}
 
-		e := errMsg{}
+		e := ErrMsg{}
 
 		switch err {
 
@@ -67,12 +67,6 @@ func errorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 			e.Kind = "ERR_RESOURCE_NOTFOUND"
 			e.Status = http.StatusNotFound
 			e.Msg = "Resource not found"
-
-		// OAuth errors
-		case ErrUnsupportedOAuthProvider:
-			e.Kind = "ERR_OAUTH_UNSUPPORTEDPROVIDER"
-			e.Status = http.StatusBadRequest
-			e.Msg = "OAuth provider not supported"
 
 		default:
 			return err
