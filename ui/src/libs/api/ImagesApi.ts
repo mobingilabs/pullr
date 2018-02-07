@@ -1,11 +1,6 @@
+import * as Promise from 'bluebird';
 import ApiClient from "./ApiClient";
-import Pagination from '../../state/models/Pagination';
-import Image from '../../state/models/Image';
-
-interface LoadImagesResponse {
-    images: Array<Image>;
-    pagination: Pagination;
-}
+import Image, { IImage } from '../../state/models/Image';
 
 export default class ImagesApi {
     apiClient: ApiClient;
@@ -14,34 +9,28 @@ export default class ImagesApi {
         this.apiClient = apiClient;
     }
 
-    loadImages(): Promise<LoadImagesResponse> {
-        //TODO: ImagesApi::loadImages do real http request
-
-        // FIXME: Delete me
-        let images = [];
-        try { images = JSON.parse(localStorage.getItem('images')) }
-        catch (e) {}
-
-        return Promise.resolve({
-            images: [],
-            pagination: new Pagination({
-                itemsPerPage: 10,
-                currentPage: 0,
-                totalItems: 0
-            })
-        });
+    get(key: string): Promise<IImage> {
+        return this.apiClient.json('get', `/images/${key}`);
     }
 
-    loadImagesPage(pageNumber: number): Promise<Array<Image>> {
-        // TODO: ImagesApi::loadImagesPage do real http request
-
-        // FIXME: Delete me
-        let images = [];
-        if (pageNumber > 0) {
-            try { images = JSON.parse(localStorage.getItem('images')) }
-            catch (e) { }
+    getImages(since?: Date): Promise<IImage[]> {
+        const params: { [key: string]: string } = {};
+        if (since) {
+            params['since'] = (since.getTime() / 1000).toFixed(0)
         }
 
-        return Promise.resolve([]);
+        return this.apiClient.json('get', '/images', params);
+    }
+
+    create(image: Image): Promise<Image> {
+        const body = JSON.stringify(image.toJS());
+        return this.apiClient.json('post', '/images', null, { body })
+            .tap(({ key }) => image.key = key)
+            .then(() => image);
+    }
+
+    update(key: string, image: Image): Promise<{ key: string }> {
+        const body = JSON.stringify(image.toJS());
+        return this.apiClient.json('post', `/images/${key}`, null, { body });
     }
 }

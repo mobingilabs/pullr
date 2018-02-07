@@ -1,26 +1,26 @@
 import * as React from 'react';
-import { withRouter } from "react-router-dom";
+import { withRouter, RouteComponentProps } from "react-router-dom";
+import { inject } from 'mobx-react';
 
 import Logo from './Logo';
 import MenuItem from './MenuItem';
 import Icons from './Icons';
 import './SideBar.scss';
+import RootStore from '../../state/RootStore';
 
-interface Props {
+interface Props extends RouteComponentProps<{}> {
     wide?: boolean;
+    store?: RootStore;
 }
 
 @withRouter
-export default class SideBar extends React.PureComponent<Props> {
+@inject('store')
+export default class SideBar extends React.Component<Props> {
     static defaultProps = {
         wide: true
     }
 
-    logout = () => {
-
-    }
-
-    render () {
+    render() {
         const classes = ['sidebar'].concat(
             this.props.wide ? ['wide'] : []
         ).join(" ");
@@ -34,7 +34,7 @@ export default class SideBar extends React.PureComponent<Props> {
                 </ul>
                 <ul className="secondary-navigation">
                     <MenuItem icon={Icons.settings} path="/settings" text="Settings" />
-                    <MenuItem icon={Icons.logout} text="Logout" onClick={ this.logout } />
+                    <MenuItem icon={Icons.logout} text="Logout" onClick={this.props.store.auth.logout.bind(null, this.props.history)} />
                 </ul>
             </div>
         );

@@ -1,31 +1,36 @@
 import { observable } from "mobx";
 
-export interface IImageBuild {
-    type: string;
+export interface IImageTag {
+    ref_type: string;
+    ref_test: string;
     name: string;
-    tag: string;
 }
 
-export class ImageBuild implements IImageBuild {
-    @observable type: string;
+export class ImageTag implements IImageTag {
+    @observable ref_type: string;
+    @observable ref_test: string;
     @observable name: string;
-    @observable tag: string;
 
-    constructor(json: IImageBuild) {
-        this.type = json.type;
+    constructor(json: IImageTag) {
+        this.ref_type = json.ref_type;
+        this.ref_test = json.ref_test;
         this.name = json.name;
-        this.tag = json.tag;
     }
 
-    static create(): ImageBuild {
-        return new ImageBuild({ type: 'branch', name: '', tag: ''});
+    static create(): ImageTag {
+        return new ImageTag({ ref_type: 'branch', name: '', ref_test: '' });
     }
 
-    clone(): ImageBuild {
-        return new ImageBuild({
-            type: this.type,
+    clone(): ImageTag {
+        return new ImageTag({
+            ref_type: this.ref_type,
+            ref_test: this.ref_test,
             name: this.name,
-            tag: this.tag
         });
+    }
+
+    toJS(): IImageTag {
+        const { ref_type, ref_test, name } = this;
+        return { ref_type, ref_test, name };
     }
 }

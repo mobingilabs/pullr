@@ -42,13 +42,13 @@ export default class ImageDetailModal extends React.Component<Props> {
             return null;
         }
 
-        return(
+        return (
             <Modal onClose={this.close}>
                 <ModalHeader title={image.name} subTitle="Image Details" onClose={this.close} />
                 <ModalContent>
-                    <DetailInfo label="Source Provider:">{image.sourceProvider}</DetailInfo>
-                    <DetailInfo label="Repository:">{image.sourceOwner}/{image.sourceRepository}</DetailInfo>
-                    <DetailInfo label="Dockerfile Path:">{image.dockerfilePath}</DetailInfo>
+                    <DetailInfo label="Source Provider:">{image.repository.provider}</DetailInfo>
+                    <DetailInfo label="Repository:">{image.repository.owner}/{image.repository.name}</DetailInfo>
+                    <DetailInfo label="Dockerfile Path:">{image.dockerfile_path}</DetailInfo>
                     <DetailInfo label="Builds:">
                         <table className="table-inline">
                             <thead>
@@ -59,11 +59,11 @@ export default class ImageDetailModal extends React.Component<Props> {
                                 </tr>
                             </thead>
                             <tbody>
-                                {image.builds.map(build =>
-                                    <tr key={build.tag || build.name}>
-                                        <td>{build.type}</td>
-                                        <td>{build.name}</td>
-                                        <td>{build.tag || 'Same as git tag'}</td>
+                                {image.tags.map(tag =>
+                                    <tr key={tag.ref_test || tag.name}>
+                                        <td>{tag.ref_type}</td>
+                                        <td>{tag.ref_test}</td>
+                                        <td>{tag.name || 'Same as git tag'}</td>
                                     </tr>
                                 )}
                             </tbody>

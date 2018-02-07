@@ -1,90 +1,95 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-import { observable, action } from 'mobx';
+import { observable, action, transaction } from 'mobx';
 import { observer, inject } from 'mobx-react';
 
 import Button from '../../layout/Button';
 import Image from '../../../state/models/Image';
 import WizardStep from '../../widgets/wizard/WizardStep';
-import SourceApi from '../../../libs/api/SourceApi';
+import RootStore from '../../../state/RootStore';
 
 import './ChooseRepository.scss';
 
 interface Props {
     image: Image;
     next: Function;
-    sourceApi?: SourceApi;
+    store?: RootStore;
 }
 
-@inject('sourceApi')
+@inject('store')
 @observer
 export default class ChooseRepository extends React.Component<Props> {
-    @observable sourceOwners: Array<string> = [];
-    @observable sourceRepositories: Array<string> = [];
+    searchInput: HTMLInputElement;
 
     componentWillMount() {
-        this.props.sourceApi.getOwners(this.props.image.sourceProvider)
-            .then(this.setSourceOwners);
+        this.props.store.sources.selectProvider(this.props.image.repository.provider);
+        this.props.store.sources.loadOrganisations.run().done(this.handleOrganisationsLoaded);
+    }
+
+    handleOrganisationsLoaded = () => {
+        transaction(() => {
+            this.props.image.repository.owner = this.props.store.sources.currentOrganisations[0];
+            this.props.store.sources.selectOrganisation(this.props.store.sources.currentOrganisations[0]);
+            this.props.store.sources.loadRepositories.run();
+        })
+    }
+
+    handleFilterChanged = () => {
+        this.props.store.sources.repositoryFilter = this.searchInput.value;
     }
 
     selectSourceOwner = (sourceOwner: string) => {
-        this.props.image.sourceOwner = sourceOwner;
-        this.props.sourceApi.getRepositories(this.props.image.sourceProvider, this.props.image.sourceOwner)
-            .then(this.setSourceRepositories);
+        transaction(() => {
+            this.props.image.repository.owner = sourceOwner;
+            this.props.store.sources.selectOrganisation(sourceOwner);
+            if (this.props.store.sources.currentRepositories.length === 0) {
+                this.props.store.sources.loadRepositories.run();
+            }
+        })
     }
 
     selectSourceRepository = (repository: string) => {
-        this.props.image.sourceRepository = repository;
+        this.props.image.repository.name = repository;
         this.props.next();
     }
 
-    @action.bound
-    setSourceOwners(owners: Array<string>) {
-        this.sourceOwners = owners;
-    }
-
-    @action.bound
-    setSourceRepositories(repositories: Array<string>) {
-        this.sourceRepositories = repositories;
-    }
-
     renderSourceOwner = (sourceOwner: string) => {
-        const classes = this.props.image.sourceOwner === sourceOwner ? 'active' : '';
+        const classes = this.props.image.repository.owner === sourceOwner ? 'active' : '';
         return (
-            <div className="list-item" key={ sourceOwner }>
-                <a className={ classes } onClick={ () => this.selectSourceOwner(sourceOwner) }>
-                    { sourceOwner }
+            <div className="list-item" key={sourceOwner}>
+                <a className={classes} onClick={() => this.selectSourceOwner(sourceOwner)}>
+                    {sourceOwner}
                 </a>
             </div>
         );
-    } 
+    }
 
     renderSourceRepository = (sourceRepository: string) => {
         return (
-            <div className="list-item" key={ sourceRepository }>
-                <div className="repository-name">{ sourceRepository }</div>
-                <Button size="small" text="Select" onClick={ () => this.selectSourceRepository(sourceRepository) } />
+            <div className="list-item" key={sourceRepository}>
+                <div className="repository-name">{sourceRepository}</div>
+                <Button size="small" text="Select" onClick={() => this.selectSourceRepository(sourceRepository)} />
             </div>
-        ) 
+        )
     }
 
-    render () {
+    render() {
         return (
             <WizardStep title="Choose a repository from Github">
                 <div className="step-choose-repository">
                     <div className="organisation-selection">
                         <div className="list-header">ORGANISATION</div>
                         <div className="list">
-                            { this.sourceOwners.map(this.renderSourceOwner) }
+                            {this.props.store.sources.currentOrganisations.map(this.renderSourceOwner)}
                         </div>
                     </div>
                     <div className="repository-selection">
                         <div className="list-header">REPOSITORIES</div>
                         <div className="searchbar">
-                            <input type="search" placeholder="Search" />
+                            <input type="search" placeholder="Search" value={this.props.store.sources.repositoryFilter} ref={e => this.searchInput = e} onChange={this.handleFilterChanged} />
                         </div>
                         <div className="list">
-                            { this.sourceRepositories.map(this.renderSourceRepository) }
+                            {this.props.store.sources.currentRepositories.map(this.renderSourceRepository)}
                         </div>
                     </div>
                 </div>

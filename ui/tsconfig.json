@@ -5,14 +5,13 @@
         "noImplicitAny": true,
         "noImplicitReturns": true,
         "experimentalDecorators": true,
+        "sourceMap": true,
         "jsx": "react",
         "allowJs": true
     },
-
     "include": [
         "src/**/*"
     ],
-
     "exclude": [
         "node_modules"
     ]

@@ -14,6 +14,8 @@ import Notification from '../widgets/Notification';
 import Syncing from '../widgets/Syncing';
 import ImageDetailModal from './ImageDetailModal';
 import RootStore from '../../state/RootStore';
+import ApiError from '../../libs/api/ApiError';
+import Alert from '../widgets/Alert';
 
 interface RouteParams {
     imageName?: string;
@@ -23,11 +25,14 @@ interface Props extends RouteComponentProps<RouteParams> {
     store?: RootStore
 }
 
+interface State {
+    showLoadErr: boolean;
+}
 
 @withRouter
 @inject('store')
 @observer
-export default class ImagesScreen extends React.Component<Props> {
+export default class ImagesScreen extends React.Component<Props, State> {
     actions: [any];
     constructor(props: Props) {
         super(props);
@@ -35,6 +40,18 @@ export default class ImagesScreen extends React.Component<Props> {
         this.actions = [
             { text: 'Add Image', icon: 'plus', handler: this.handleAddImage }
         ];
+    }
+
+    componentDidMount() {
+        this.props.store.images.fetchImages.run();
+    }
+
+    handleLoadSuccess = () => {
+        this.setState({ showLoadErr: false })
+    }
+
+    handleLoadFail = (err: ApiError) => {
+        this.setState({ showLoadErr: true });
     }
 
     handleAddImage = () => {
@@ -47,43 +64,40 @@ export default class ImagesScreen extends React.Component<Props> {
 
     render() {
         const { store } = this.props;
+        const showLoadErr = !!store.images.fetchImages.err;
         return (
             <Screen>
-                <Header title="IMAGES" subTitle={`${store.images.images.length} images found...`} actions={this.actions} />
+                <Header title="IMAGES" subTitle={!showLoadErr && `${store.images.images.length} images found...`} actions={this.actions} />
                 <Notification id="images-create" />
-                <div className="scroll-horizontal">
-                    <table className="wide big-shadow">
-                        <thead>
-                            <tr>
-                                <th>IMAGE NAME</th>
-                                <th>SOURCE PROVIDER</th>
-                                <th>REPOSITORY</th>
-                                <th>TAGS</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {store.images.images.map(image =>
-                                <tr key={image.name}>
-                                    <td>
-                                        <Link className="table-link" to={`/images/${image.name}`}><Icon name={Icons.images} /> {image.name}</Link>
-                                    </td>
-                                    <td>{image.sourceProvider}</td>
-                                    <td>{image.sourceOwner}/{image.sourceRepository}</td>
-                                    <td>{image.builds.map(build => build.tag || build.name).join(', ')}</td>
-                                    <td width="100"><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.name)} /></td>
+                {showLoadErr && <Alert message="An error occured while loading images, please try again later." />}
+                {!showLoadErr &&
+                    <div className="scroll-horizontal">
+                        <table className="wide big-shadow">
+                            <thead>
+                                <tr>
+                                    <th>IMAGE NAME</th>
+                                    <th>SOURCE PROVIDER</th>
+                                    <th>REPOSITORY</th>
+                                    <th>TAGS</th>
+                                    <th></th>
                                 </tr>
-                            )}
-
-                            <tr>
-                                <td colSpan={5}>
-                                    <Pagination pagination={store.images.pagination}/>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
+                            </thead>
+                            <tbody>
+                                {store.images.images.map(image =>
+                                    <tr key={image.name}>
+                                        <td>
+                                            <Link className="table-link" to={`/images/${image.name}`}><Icon name={Icons.images} /> {image.name}</Link>
+                                        </td>
+                                        <td>{image.repository.provider}</td>
+                                        <td>{image.repository.owner}/{image.repository.name}</td>
+                                        <td>{image.tags.map(tag => tag.ref_test || tag.name).join(', ')}</td>
+                                        <td width={100}><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.name)} /></td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                }
                 <Route path="/images/:imageName" exact strict component={ImageDetailModal} />
             </Screen>
         )

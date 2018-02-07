@@ -16,19 +16,23 @@ interface Props {
 @observer
 export default class ImageEditor extends React.Component<Props> {
     removeBuild = (buildIndex: number) => {
-        this.props.image.removeBuild(buildIndex);
+        this.props.image.removeTag(buildIndex);
     }
 
     addBuild = () => {
-        this.props.image.addBuild();
+        this.props.image.addTag();
     }
 
-    bindInputValue = (field: string) => (e: any) => {
+    bindInputVal = (field: string) => (e: any) => {
         (this.props.image as any)[field] = e.target.value;
     }
 
-    bindBuildInputValue = (buildIndex: number, field: string) => (e: any) => {
-        (this.props.image.builds[buildIndex] as any)[field] = e.target.value;
+    bindRepoInVal = (field: string) => (e: any) => {
+        (this.props.image.repository as any)[field] = e.target.value;
+    }
+
+    bindTagInVal = (tagIndex: number, field: string) => (e: any) => {
+        (this.props.image.tags[tagIndex] as any)[field] = e.target.value;
     }
 
     render() {
@@ -37,20 +41,20 @@ export default class ImageEditor extends React.Component<Props> {
                 <div className="form">
                     <div className="entry entry-half">
                         <label htmlFor="sourceOwner">Source user:</label>
-                        <input type="text" id="sourceOwner" value={this.props.image.sourceOwner} onChange={this.bindInputValue('sourceOwner')} />
+                        <input type="text" id="sourceOwner" value={this.props.image.repository.owner} onChange={this.bindRepoInVal('owner')} />
                     </div>
                     <div className="entry entry-half">
                         <label htmlFor="sourceRepository">Repository:</label>
-                        <input type="text" id="sourceRepository" value={this.props.image.sourceRepository} onChange={this.bindInputValue('sourceRepository')} />
+                        <input type="text" id="sourceRepository" value={this.props.image.repository.name} onChange={this.bindRepoInVal('name')} />
                     </div>
                     <div className="entry">
                         <label htmlFor="imageName">Image name:</label>
-                        <input type="text" id="imageName" value={this.props.image.name} onChange={this.bindInputValue('name')}/>
+                        <input type="text" id="imageName" value={this.props.image.name} onChange={this.bindInputVal('name')}/>
                     </div>
                     <div className="entry">
                         <label htmlFor="dockerfilePath">Dockerfile path:</label>
                         <span className="entry-help">Please enter Dockerfile’s path relative to the repository root</span>
-                        <input type="text" id="dockerfilePath" placeholder="e.g. docker/Dockerfile" value={this.props.image.dockerfilePath} onChange={this.bindInputValue('dockerfilePath')} />
+                        <input type="text" id="dockerfilePath" placeholder="e.g. docker/Dockerfile" value={this.props.image.dockerfile_path} onChange={this.bindInputVal('dockerfilePath')} />
                     </div>
                     <div className="entry">
                         <label>Configure build tags</label>
@@ -65,10 +69,10 @@ export default class ImageEditor extends React.Component<Props> {
                                 </tr>
                             </thead>
                             <tbody>
-                                {this.props.image.builds.map((build, buildIndex) => 
-                                    <tr key={buildIndex}>
+                                {this.props.image.tags.map((tag, tagIndex) => 
+                                    <tr key={tagIndex}>
                                         <td>
-                                            <select value={build.type} onChange={this.bindBuildInputValue(buildIndex, 'type')}>
+                                            <select value={tag.ref_type} onChange={this.bindTagInVal(tagIndex, 'type')}>
                                                 <option value="branch">Branch</option>
                                                 <option value="tag">Tag</option>
                                             </select>
@@ -76,19 +80,19 @@ export default class ImageEditor extends React.Component<Props> {
                                         <td>
                                             <input
                                                 type="text"
-                                                placeholder={build.type === 'branch' ? 'e.g. master' : '/.*/ This targets all tags'}
-                                                value={build.name}
-                                                onChange={this.bindBuildInputValue(buildIndex, 'name')} />
+                                                placeholder={tag.ref_type === 'branch' ? 'e.g. master' : '/.*/ This targets all tags'}
+                                                value={tag.name}
+                                                onChange={this.bindTagInVal(tagIndex, 'name')} />
                                         </td>
                                         <td>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. latest"
-                                                defaultValue={build.tag}
-                                                onChange={this.bindBuildInputValue(buildIndex, 'tag')} />
+                                                defaultValue={tag.ref_test}
+                                                onChange={this.bindTagInVal(tagIndex, 'tag')} />
                                         </td>
                                         <td>
-                                            {buildIndex > 0 && <Button icon={Icons.trash} size="small" onClick={ () => this.removeBuild(buildIndex) } />}
+                                            {tagIndex > 0 && <Button icon={Icons.trash} size="small" onClick={ () => this.removeBuild(tagIndex) } />}
                                         </td>
                                     </tr>
                                 )}

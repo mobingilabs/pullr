@@ -1,61 +1,71 @@
 import { observable, computed } from "mobx";
-import { IImageBuild, ImageBuild } from "./ImageBuild";
+import { IImageTag, ImageTag } from "./ImageBuild";
+import { IRepository, Repository } from "./Repository";
 
 export interface IImage {
+    key?: string;
     name: string;
-    sourceProvider: string;
-    sourceOwner: string;
-    sourceRepository: string;
-    dockerfilePath: string;
-    builds: Array<IImageBuild>
+    repository: IRepository;
+    tags: IImageTag[];
+    dockerfile_path: string;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export default class Image implements IImage {
+    @observable key: string;
     @observable name: string;
-    @observable sourceProvider: string;
-    @observable sourceOwner: string;
-    @observable sourceRepository: string;
-    @observable dockerfilePath: string;
-    @observable builds: Array<ImageBuild>;
+    @observable repository: Repository;
+    @observable dockerfile_path: string;
+    @observable tags: ImageTag[];
+    @observable created_at: Date;
+    @observable updated_at: Date;
 
     constructor(json: IImage) {
+        this.key = json.key;
         this.name = json.name;
-        this.sourceProvider = json.sourceProvider;
-        this.sourceOwner = json.sourceOwner;
-        this.sourceRepository = json.sourceRepository;
-        this.dockerfilePath = json.dockerfilePath;
-        this.builds = json.builds.map(build => new ImageBuild(build));
+        this.repository = new Repository(json.repository);
+        this.tags = json.tags.map(t => new ImageTag(t));
+        this.dockerfile_path = json.dockerfile_path;
     }
 
-    addBuild() {
-        this.builds.push(ImageBuild.create());
+    addTag() {
+        this.tags.push(ImageTag.create());
     }
 
-    removeBuild(buildIndex: number) {
-        this.builds.splice(buildIndex, 1);
+    removeTag(buildIndex: number) {
+        this.tags.splice(buildIndex, 1);
     }
 
     clone(): Image {
         return new Image({
             name: this.name,
-            sourceProvider: this.sourceProvider,
-            sourceOwner: this.sourceOwner,
-            sourceRepository: this.sourceRepository,
-            dockerfilePath: this.dockerfilePath,
-            builds: this.builds.map(build => build.clone())
+            repository: this.repository.clone(),
+            dockerfile_path: this.dockerfile_path,
+            tags: this.tags.map(t => t.clone()),
+            created_at: this.created_at,
+            updated_at: this.updated_at
         });
+    }
+
+    toJS(): IImage {
+        const { key, name, repository, dockerfile_path, tags, created_at, updated_at } = this;
+        const jsTags = tags.map(tag => tag.toJS());
+        const jsRepository = repository.toJS();
+
+        return { key, name, repository: jsRepository, dockerfile_path, tags: jsTags, created_at, updated_at };
     }
 
     static create(): Image {
         return new Image({
             name: '',
-            sourceProvider: '',
-            sourceOwner: '',
-            sourceRepository: '',
-            dockerfilePath: 'Dockerfile',
-            builds: [
-                new ImageBuild({ type: 'branch', name: 'master', tag: 'latest' })
-            ]
+            repository: Repository.create(),
+            dockerfile_path: './Dockerfile',
+            tags: [
+                new ImageTag({ ref_type: 'branch', name: 'master', ref_test: 'latest' })
+            ],
+            created_at: new Date(),
+            updated_at: new Date()
         });
     }
 }
