@@ -17,6 +17,7 @@ interface Props {
     title: string;
     subTitle?: string;
     back?: boolean;
+    onBack?: () => any;
     actions?: Array<Action>
 }
 
@@ -28,25 +29,33 @@ export default class Header extends React.PureComponent<Props & Partial<RouteCom
         back: false
     }
 
-    render () {
+    handleBack = () => {
+        if (this.props.onBack) {
+            this.props.onBack();
+        } else {
+            this.props.history.goBack();
+        }
+    }
+
+    render() {
         const classes = ['screen-header'].concat([
             this.props.back ? 'has-breadcrumb' : ''
         ]).join(' ');
 
         return (
-            <div className={ classes }>
+            <div className={classes}>
                 <div className="titlewrapper">
-                    { this.props.back &&
-                            <a className="header-backbutton" onClick={ this.props.history.goBack }>
-                                <Icon name={ Icons.back } /> BACK
+                    {this.props.back &&
+                        <a className="header-backbutton" onClick={this.handleBack}>
+                            <Icon name={Icons.back} /> BACK
                             </a>
                     }
-                    <h1 className="title">{ this.props.title }</h1>
-                    <div className="subtitle">{ this.props.subTitle }</div>
+                    <h1 className="title">{this.props.title}</h1>
+                    <div className="subtitle">{this.props.subTitle}</div>
                 </div>
-                { this.props.actions &&
+                {this.props.actions &&
                     <div className="actions">
-                        { this.props.actions.map((action, i) => 
+                        {this.props.actions.map((action, i) =>
                             <Button key={i}
                                 className="button-header"
                                 text={action.text}

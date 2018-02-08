@@ -1,21 +1,22 @@
 import * as React from 'react';
-import { inject } from 'mobx-react';
+import { inject, observer } from 'mobx-react';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
-import RootStore from '../../state/RootStore';
+import AuthStore from '../../state/AuthStore';
 
 interface Props extends RouteComponentProps<{}> {
-    store?: RootStore;
+    auth?: AuthStore;
 }
 
 @withRouter
-@inject('store')
+@inject('auth')
+@observer
 export default class LoginScreen extends React.Component<Props> {
     usernameIn: HTMLInputElement;
     passwordIn: HTMLInputElement;
 
     submit = (e: any) => {
         e.preventDefault();
-        this.props.store.auth.login.run(this.usernameIn.value, this.passwordIn.value)
+        this.props.auth.login.run(this.usernameIn.value, this.passwordIn.value)
             .then(this.redirectToImages)
             .catch(this.handleErr);
     }

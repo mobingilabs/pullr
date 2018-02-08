@@ -13,6 +13,15 @@
         border-bottom: 1px solid #e4e4e4;
     }
 
+    .list-item.loading {
+        text-align: center;
+        color: #aaa;
+
+        .loading-spinner {
+            line-height: 38px;
+        }
+    }
+
     .organisation-selection {
         min-width: 210px;
         border-right: 1px solid #e4e4e4;

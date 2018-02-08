@@ -1,24 +1,33 @@
 import * as Promise from 'bluebird';
-import { observable, computed, action, runInAction, IObservableArray } from "mobx";
-import Image, { IImage } from "./models/Image";
-import Pagination from "./models/Pagination";
+import { observable, observe, computed, action, runInAction, transaction, IObservableArray, IObjectChange } from "mobx";
 import ImagesApi from '../libs/api/ImagesApi';
 import AsyncCmd from '../libs/asyncCmd';
 import ApiError from '../libs/api/ApiError';
+import ListOptions from './models/ListOptions';
+import Image, { IImage } from "./models/Image";
+import Pagination, { PageOutOfRangeException } from "./models/Pagination";
 
 export default class ImageStore {
     imagesApi: ImagesApi;
-    lastImageCreation: Date;
+    lastFetchedAt: Date;
 
-    @observable readonly images = observable<Image>([]);
-    @observable readonly fetchImages: AsyncCmd<void>;
-    @observable readonly saveImage: AsyncCmd<void>;
+    @observable readonly images: IObservableArray<Image> = [] as IObservableArray<Image>;
+    readonly listOptions: ListOptions;
+    readonly fetchImages: AsyncCmd<void, ApiError>;
+    readonly saveImage: AsyncCmd<void, ApiError, Image>;
+    readonly updateImage: AsyncCmd<void, ApiError, string, Image>;
+    readonly pagination: Pagination = new Pagination();
+
+    readonly disposeListOptions: () => any;
 
     constructor(imagesApi: ImagesApi) {
         this.imagesApi = imagesApi;
-        this.images = observable([]);
         this.fetchImages = new AsyncCmd(this.fetchImagesImpl);
         this.saveImage = new AsyncCmd(this.saveImageImpl);
+        this.updateImage = new AsyncCmd(this.updateImageImpl);
+        this.listOptions = new ListOptions();
+
+        this.disposeListOptions = observe(this.listOptions, this.handleListOptionsChange);
     }
 
     findByName(imageName: string): Image {
@@ -26,38 +35,68 @@ export default class ImageStore {
     }
 
     @action.bound
-    fetchImagesImpl(): Promise<void> {
-        return this.imagesApi.getImages(this.lastImageCreation)
-            .then(images => images.map((i: IImage) => new Image(i)))
-            .tap(this.setImages)
-            .then(() => { });
-    }
-
-    @action.bound
     setImages(images: Image[]) {
-        if (this.lastImageCreation != null) {
+        if (this.lastFetchedAt != null) {
             this.images.unshift(...images);
         } else {
             this.images.replace(images);
         }
 
-        this.lastImageCreation = images[0].created_at;
+        this.lastFetchedAt = new Date();
     }
 
     @action.bound
-    saveImageImpl(image: Image): Promise<void> {
+    setPagination(pagination: Pagination) {
+        this.pagination.current = pagination.current;
+        this.pagination.next = pagination.next;
+        this.pagination.last = pagination.last;
+        this.pagination.total = pagination.total;
+        this.pagination.per_page = pagination.per_page;
+    }
+
+    @action.bound
+    fetchImagesAtPage(page: number) {
+        this.listOptions.page = page;
+        this.fetchImages.run().done();
+    }
+
+    @action.bound
+    private handleListOptionsChange(change: IObjectChange) {
+        if (change.name == 'page') {
+            return;
+        }
+
+        this.lastFetchedAt = null;
+        this.fetchImages.run().done();
+    }
+
+
+    private fetchImagesImpl = (): Promise<void> => {
+        return this.imagesApi.getImages(this.listOptions, this.lastFetchedAt)
+            .then(({ images, pagination }) => {
+                const newImages = images.map((i: IImage) => new Image(i))
+                const newPagination = new Pagination(pagination)
+
+                transaction(() => {
+                    this.setImages(newImages);
+                    this.setPagination(newPagination);
+                });
+            })
+            .then(() => { });
+    }
+
+
+    private saveImageImpl(image: Image): Promise<void> {
         return this.imagesApi.create(image).then(() => { });
     }
 
-    @action.bound
-    updateImage(key: string, image: Image): Promise<void> {
+    private updateImageImpl(key: string, image: Image): Promise<void> {
         return this.imagesApi.update(key, image)
             .then(this.refreshImage.bind(key))
             .then(() => { });
     }
 
-    @action.bound
-    refreshImage(oldKey: string, key: string): Promise<Image> {
+    private refreshImage(oldKey: string, key: string): Promise<Image> {
         return this.imagesApi.get(key)
             .then(this.updateImageByKey.bind(null, oldKey))
     }

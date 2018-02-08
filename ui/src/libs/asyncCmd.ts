@@ -1,5 +1,5 @@
 import * as Promise from 'bluebird';
-import { observable, action, runInAction } from 'mobx';
+import { observable, action, transaction } from 'mobx';
 
 import ApiError from './api/ApiError';
 
@@ -18,20 +18,37 @@ export default class AsyncCmd<T, E = ApiError, A1 = never, A2 = never, A3 = neve
         this.handler = handler;
 
         this.run = (a1, a2, a3, a4, a5, a6, a7, a8, a9): Promise<void> => {
-            if (this.canceler) {
-                this.canceler();
-            }
-
-            this.inProgress = true;
             let canceled = false;
-            this.canceler = () => canceled = true;
+            transaction(() => {
+                if (this.canceler) {
+                    this.canceler();
+                }
+
+                this.startProsessing();
+            });
+
+            this.canceler = () => {
+                canceled = true;
+                this.stopProcessing();
+            };
+
             return this.handler(a1, a2, a3, a4, a5, a6, a7, a8, a9)
                 .then((val: T) => {
                     if (!canceled) this.handleSuccess(val);
                 })
                 .catch((err: E) => !canceled && this.handleFailure(err))
-                .finally(() => this.handleFinish());
+                .finally(() => !canceled && this.handleFinish());
         }
+    }
+
+    @action.bound
+    private startProsessing() {
+        this.inProgress = true;
+    }
+
+    @action.bound
+    private stopProcessing() {
+        this.inProgress = false;
     }
 
     @action.bound
@@ -46,11 +63,6 @@ export default class AsyncCmd<T, E = ApiError, A1 = never, A2 = never, A3 = neve
 
     @action.bound
     handleFinish() {
-        this.inProgress = false;
-    }
-
-    @action.bound
-    private finish() {
         this.inProgress = false;
     }
 }

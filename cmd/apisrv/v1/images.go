@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/storage"
 )
 
 func (a *apiv1) imagesGet(user string, c echo.Context) error {
@@ -26,6 +27,7 @@ func (a *apiv1) imagesGet(user string, c echo.Context) error {
 
 func (a *apiv1) imagesIndex(username string, c echo.Context) (err error) {
 	var images []domain.Image
+	var pagination storage.Pagination
 	if sinceQuery := c.QueryParam("since"); sinceQuery != "" {
 		i, err := strconv.ParseInt(sinceQuery, 10, 64)
 		if err != nil {
@@ -35,7 +37,12 @@ func (a *apiv1) imagesIndex(username string, c echo.Context) (err error) {
 		since := time.Unix(i, 0)
 		images, err = a.Storage.FindAllImagesSince(username, since)
 	} else {
-		images, err = a.Storage.FindAllImages(username)
+		listOpts := new(storage.ListOptions)
+		if err := c.Bind(listOpts); err != nil {
+			listOpts = nil
+		}
+
+		images, pagination, err = a.Storage.FindAllImages(username, listOpts)
 	}
 
 	if err != nil {
@@ -43,10 +50,15 @@ func (a *apiv1) imagesIndex(username string, c echo.Context) (err error) {
 	}
 
 	if images == nil {
-		return c.JSON(http.StatusOK, []domain.Image{})
+		images = []domain.Image{}
 	}
 
-	return c.JSON(http.StatusOK, images)
+	res := struct {
+		Images     []domain.Image     `json:"images"`
+		Pagination storage.Pagination `json:"pagination"`
+	}{images, pagination}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (a *apiv1) imagesCreate(user string, c echo.Context) error {

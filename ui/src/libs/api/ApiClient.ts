@@ -39,6 +39,12 @@ export default class ApiClient {
         return Promise.resolve(fetch(url, newOpts)).then(this.checkStatus).then(this.afterReq);
     }
 
+    encodeParams(params: { [key: string]: any }): string {
+        return Object.keys(params || {})
+            .map(name => `${name}=${encodeURIComponent(params[name].toString())}`)
+            .join('&');
+    }
+
     private hasTokens(): boolean {
         return this.authToken && this.authToken.length > 0 && this.refreshToken && this.refreshToken.length > 0;
     }
@@ -57,10 +63,7 @@ export default class ApiClient {
     }
 
     private prepareUrl(path: string, params: { [key: string]: string }): string {
-        const encodedParams = Object.keys(params || {})
-            .map(name => `${name}=${encodeURIComponent(params[name])}`)
-            .join('&');
-
+        const encodedParams = this.encodeParams(params);
         return `${this.baseUrl}${path}${encodedParams.length > 0 ? '?' : ''}${encodedParams}`;
     }
 
@@ -80,7 +83,7 @@ export default class ApiClient {
 
     private checkStatus = (res: Response): Promise<Response> => {
         if (res.status >= 400 && res.status < 600) {
-            return res.json().then((err: any) => {
+            return Promise.resolve(res.json()).then((err: any) => {
                 throw new ApiError(err.kind, res.status);
             });
         }

@@ -4,6 +4,7 @@ import { Icon } from 'react-fa';
 import { observer, inject } from 'mobx-react';
 import { Route, Link, withRouter, RouteComponentProps } from 'react-router-dom';
 
+import ImagesStore from '../../state/ImagesStore';
 
 import Screen from '../layout/Screen';
 import Header from '../layout/Header';
@@ -13,16 +14,16 @@ import Pagination from '../widgets/Pagination';
 import Notification from '../widgets/Notification';
 import Syncing from '../widgets/Syncing';
 import ImageDetailModal from './ImageDetailModal';
-import RootStore from '../../state/RootStore';
 import ApiError from '../../libs/api/ApiError';
 import Alert from '../widgets/Alert';
+import TableActionsMenu from '../widgets/TableActionsMenu';
 
 interface RouteParams {
     imageName?: string;
 }
 
 interface Props extends RouteComponentProps<RouteParams> {
-    store?: RootStore
+    images?: ImagesStore;
 }
 
 interface State {
@@ -30,28 +31,22 @@ interface State {
 }
 
 @withRouter
-@inject('store')
+@inject('images')
 @observer
 export default class ImagesScreen extends React.Component<Props, State> {
     actions: [any];
+    popoverPortal: HTMLElement;
     constructor(props: Props) {
         super(props);
 
+        this.popoverPortal = document.getElementById('popover');
         this.actions = [
             { text: 'Add Image', icon: 'plus', handler: this.handleAddImage }
         ];
     }
 
     componentDidMount() {
-        this.props.store.images.fetchImages.run();
-    }
-
-    handleLoadSuccess = () => {
-        this.setState({ showLoadErr: false })
-    }
-
-    handleLoadFail = (err: ApiError) => {
-        this.setState({ showLoadErr: true });
+        this.props.images.fetchImages.run().done();
     }
 
     handleAddImage = () => {
@@ -62,12 +57,15 @@ export default class ImagesScreen extends React.Component<Props, State> {
         this.props.history.push(`/images/${imageName}/edit`);
     }
 
+    handleGotoPage = (page: number) => {
+        this.props.images.fetchImagesAtPage(page);
+    }
+
     render() {
-        const { store } = this.props;
-        const showLoadErr = !!store.images.fetchImages.err;
+        const showLoadErr = !!this.props.images.fetchImages.err;
         return (
             <Screen>
-                <Header title="IMAGES" subTitle={!showLoadErr && `${store.images.images.length} images found...`} actions={this.actions} />
+                <Header title="IMAGES" subTitle={!showLoadErr && `${this.props.images.images.length} images found...`} actions={this.actions} />
                 <Notification id="images-create" />
                 {showLoadErr && <Alert message="An error occured while loading images, please try again later." />}
                 {!showLoadErr &&
@@ -79,11 +77,11 @@ export default class ImagesScreen extends React.Component<Props, State> {
                                     <th>SOURCE PROVIDER</th>
                                     <th>REPOSITORY</th>
                                     <th>TAGS</th>
-                                    <th></th>
+                                    <th><TableActionsMenu listOptions={this.props.images.listOptions} portal={this.popoverPortal} /></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {store.images.images.map(image =>
+                                {this.props.images.images.map(image =>
                                     <tr key={image.name}>
                                         <td>
                                             <Link className="table-link" to={`/images/${image.name}`}><Icon name={Icons.images} /> {image.name}</Link>
@@ -94,6 +92,13 @@ export default class ImagesScreen extends React.Component<Props, State> {
                                         <td width={100}><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.name)} /></td>
                                     </tr>
                                 )}
+                                {this.props.images.pagination.last != 0 &&
+                                    <tr>
+                                        <td colSpan={5}>
+                                            <Pagination onGotoPage={this.handleGotoPage} pagination={this.props.images.pagination} />
+                                        </td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>

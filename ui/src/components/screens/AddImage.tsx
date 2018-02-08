@@ -3,15 +3,15 @@ import { observable, action } from 'mobx';
 import { observer, inject } from 'mobx-react';
 import { withRouter, RouteComponentProps } from "react-router-dom";
 
+import ImagesStore from '../../state/ImagesStore';
+
 import Screen from '../layout/Screen';
 import Header from '../layout/Header';
 import Icons from '../layout/Icons';
-
 import Wizard from '../widgets/wizard/Wizard';
 import ChooseProvider from './AddImageSteps/ChooseProvider';
 import ChooseRepository from './AddImageSteps/ChooseRepository';
 import ConfigureImage from './AddImageSteps/ConfigureImage';
-import RootStore from '../../state/RootStore';
 import Image from '../../state/models/Image';
 
 enum Steps {
@@ -21,11 +21,11 @@ enum Steps {
 }
 
 interface Props extends RouteComponentProps<{}> {
-    store?: RootStore;
+    images?: ImagesStore;
 }
 
 @withRouter
-@inject('store')
+@inject('images')
 @observer
 export default class AddImageScreen extends React.Component<Props> {
     @observable step: Steps;
@@ -37,15 +37,18 @@ export default class AddImageScreen extends React.Component<Props> {
         this.newImage = Image.create();
     }
 
-    @action showChooseRepository = () => {
+    @action.bound
+    showChooseRepository() {
         this.step = Steps.ChooseRepository;
     }
 
-    @action showConfigureImage = () => {
+    @action.bound
+    showConfigureImage() {
         this.step = Steps.ConfigureImage;
     }
 
-    @action onChangeDockerfilePath = (e: any) => {
+    @action.bound
+    onChangeDockerfilePath(e: any) {
         this.newImage.dockerfile_path = e.target.value;
     }
 
@@ -53,20 +56,36 @@ export default class AddImageScreen extends React.Component<Props> {
         this.props.history.push('/images');
     }
 
-    @action saveImage = () => {
-        this.props.store.images.saveImage(this.newImage);
+    @action.bound
+    saveImage() {
+        this.props.images.saveImage.run(this.newImage)
+            .then(this.handleSaveImageSuccessful)
+            .catch(() => { });
+    }
+
+    @action.bound
+    handleSaveImageSuccessful() {
         this.newImage = Image.create();
         this.props.history.push('/images');
+    }
+
+    @action.bound
+    handleBack() {
+        if (this.step > 0) {
+            this.step -= 1;
+        } else {
+            this.props.history.goBack();
+        }
     }
 
     render() {
         return (
             <Screen className="screen-addimage">
-                <Header back={true} title="ADD IMAGE" subTitle="Source Provider ..." />
+                <Header back={true} onBack={this.handleBack} title="ADD IMAGE" subTitle="Source Provider ..." />
                 <Wizard step={this.step}>
                     <ChooseProvider image={this.newImage} next={this.showChooseRepository} />
                     <ChooseRepository image={this.newImage} next={this.showConfigureImage} />
-                    <ConfigureImage image={this.newImage} onFinish={this.saveImage} onCancel={this.cancel} />
+                    <ConfigureImage image={this.newImage} saveCmd={this.props.images.saveImage} onFinish={this.saveImage} onCancel={this.cancel} />
                 </Wizard>
             </Screen>
         );

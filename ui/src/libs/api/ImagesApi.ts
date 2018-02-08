@@ -1,6 +1,8 @@
 import * as Promise from 'bluebird';
 import ApiClient from "./ApiClient";
 import Image, { IImage } from '../../state/models/Image';
+import Pagination from '../../state/models/Pagination';
+import ListOptions from '../../state/models/ListOptions';
 
 export default class ImagesApi {
     apiClient: ApiClient;
@@ -13,13 +15,15 @@ export default class ImagesApi {
         return this.apiClient.json('get', `/images/${key}`);
     }
 
-    getImages(since?: Date): Promise<IImage[]> {
-        const params: { [key: string]: string } = {};
+    getImages(opts: ListOptions, since?: Date): Promise<{ images: IImage[], pagination: Partial<Pagination> }> {
+        let params: { [key: string]: string } = {};
         if (since) {
             params['since'] = (since.getTime() / 1000).toFixed(0)
         }
 
-        return this.apiClient.json('get', '/images', params);
+        params = Object.assign({}, params, opts.toJS())
+
+        return this.apiClient.json('get', '/images', params)
     }
 
     create(image: Image): Promise<Image> {

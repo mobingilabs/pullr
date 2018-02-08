@@ -1,33 +1,28 @@
 import * as React from 'react';
 import { observer, inject } from 'mobx-react';
 
+import AuthStore from '../../../state/AuthStore';
+
 import WizardStep from '../../widgets/wizard/WizardStep';
 import Button from '../../layout/Button';
 import Card from '../../widgets/Card';
 import Icons from '../../layout/Icons';
-
 import Image from '../../../state/models/Image';
-import RootStore from '../../../state/RootStore';
-import ApiError from '../../../libs/api/ApiError';
 
 import './ChooseProvider.scss';
 
 interface Props {
     image: Image;
     next: Function;
-    store?: RootStore;
+    auth?: AuthStore;
 }
 
-interface State {
-    err: ApiError;
-}
-
-@inject('store')
+@inject('auth')
 @observer
-export default class ChooseProvider extends React.Component<Props, State> {
+export default class ChooseProvider extends React.Component<Props> {
     componentDidMount() {
-        if (!this.props.store.auth.user.tokens.has('github')) {
-            this.props.store.auth.getLoginUrl('github').run();
+        if (!this.props.auth.user.tokens.has('github')) {
+            this.props.auth.getLoginUrl('github').run();
         }
 
         // Trigger other oauth providers here
@@ -39,11 +34,11 @@ export default class ChooseProvider extends React.Component<Props, State> {
     }
 
     renderProviderButton(provider: string) {
-        if (this.props.store.auth.user.tokens.has(provider)) {
+        if (this.props.auth.user.tokens.has(provider)) {
             return <Button text="Select" onClick={this.selectProvider.bind(null, provider)} />;
         }
 
-        const loadUrlCmd = this.props.store.auth.getLoginUrl(provider);
+        const loadUrlCmd = this.props.auth.getLoginUrl(provider);
         if (loadUrlCmd.inProgress) {
             return <Button disabled text="" onClick={() => { }} icon={Icons.loadingSpinner} />
         }
@@ -52,8 +47,8 @@ export default class ChooseProvider extends React.Component<Props, State> {
             return 'Not available for now';
         }
 
-        const tokens = this.props.store.auth.user.tokens;
-        return <Button aslink popup text="Link Account & Use" href={loadUrlCmd.value} onClick={() => this.props.store.auth.oauthStart(provider)} />;
+        const tokens = this.props.auth.user.tokens;
+        return <Button aslink popup text="Link Account & Use" href={loadUrlCmd.value} onClick={() => this.props.auth.oauthStart(provider)} />;
     }
 
     render() {

@@ -34,7 +34,7 @@ const rootStore = new RootStore(imagesApi, authApi, oauthApi, sourceApi);
 
 const modalRoot = document.getElementById('modal-root');
 ReactDOM.render(
-    <Provider store={rootStore} sourceApi={sourceApi}>
+    <Provider store={rootStore} images={rootStore.images} auth={rootStore.auth} sources={rootStore.sources}>
         <Router>
             <ModalBoundary modalRoot={modalRoot}>
                 <App />

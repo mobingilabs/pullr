@@ -1,6 +1,8 @@
 package mongodb
 
 import (
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/mobingilabs/pullr/pkg/domain"
@@ -53,14 +55,36 @@ func (s *MongoDB) FindImageByKey(key string) (domain.Image, error) {
 }
 
 // FindAllImages implements Storage.FindAllImages
-func (s *MongoDB) FindAllImages(username string) ([]domain.Image, error) {
+func (s *MongoDB) FindAllImages(username string, opts *storage.ListOptions) ([]domain.Image, storage.Pagination, error) {
 	col := s.Db.C(imagesC)
 
-	var images []domain.Image
-	query := bson.M{"owner": username}
-	err := col.Find(query).Sort("-created_at").All(&images)
+	var pagination storage.Pagination
 
-	return images, toStorageErr(err)
+	query := bson.M{"owner": username}
+	count, err := col.Find(query).Count()
+
+	page := opts.GetPage()
+	perPage := opts.GetPerPage()
+	if count > perPage {
+		pagination.Last = int(math.Max(math.Ceil(float64(count)/float64(perPage)), 1)) - 1
+	} else {
+		pagination.Last = 0
+	}
+
+	if page < pagination.Last {
+		pagination.Next = page + 1
+	} else {
+		pagination.Next = page
+	}
+
+	pagination.PerPage = perPage
+	pagination.Current = page
+	pagination.Total = count
+
+	var images []domain.Image
+	err = col.Find(query).Sort(optsToMongoSort(opts)).Limit(perPage).Skip(perPage * page).All(&images)
+
+	return images, pagination, toStorageErr(err)
 }
 
 // FindAllImagesSince implements Storage.FindAllImagesSince
@@ -68,8 +92,14 @@ func (s *MongoDB) FindAllImagesSince(username string, since time.Time) ([]domain
 	col := s.Db.C(imagesC)
 
 	var images []domain.Image
-	query := bson.M{"owner": username, "created_at": bson.M{"$gt": since}}
-	err := col.Find(query).Sort("-created_at").All(&images)
+	query := bson.M{
+		"owner": username,
+		"$or": []bson.M{
+			{"updated_at": bson.M{"$gt": since}},
+			{"created_at": bson.M{"$gt": since}},
+		},
+	}
+	err := col.Find(query).Sort("name").All(&images)
 
 	return images, err
 }
@@ -142,4 +172,18 @@ func toStorageErr(err error) error {
 	default:
 		return err
 	}
+}
+
+func optsToMongoSort(opts *storage.ListOptions) string {
+	s := opts.GetSortBy()
+	if s == "" {
+		return "$natural"
+	}
+
+	dirSign := "-"
+	if opts.GetSortDirection() == storage.Asc {
+		dirSign = "+"
+	}
+
+	return fmt.Sprintf("%s%s", dirSign, s)
 }

@@ -9,5 +9,6 @@ export default {
     back: 'angle-left',
     close: 'times',
     rightArrow: 'angle-right',
-    loadingSpinner: 'circle-o-notch'
+    loadingSpinner: 'circle-o-notch',
+    menu: 'ellipsis-v'
 };

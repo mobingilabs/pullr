@@ -8,23 +8,19 @@ import './Pagination.scss';
 interface Props {
     pagination: PaginationModel;
     maxNumbers?: number;
-    store?: RootStore;
+    className?: string;
+    onGotoPage: (page: number) => any;
 }
 
-@inject('store')
 @observer
 export default class Pagination extends React.Component<Props> {
     static defaultProps: Partial<Props> = {
         maxNumbers: 10
     }
 
-    handlePageNumberClick = (pageNumber: number) => {
-        this.props.store.images.loadPage(pageNumber);
-    }
-
     renderPageNumber = (number: number) => {
-        const disabled = number === (this.props.pagination.currentPage + 1);
-        return <a onClick={() => !disabled && this.handlePageNumberClick(number - 1)} key={number} className="pagination-page-number" disabled={disabled}>{number}</a>;
+        const disabled = number === (this.props.pagination.current + 1);
+        return <a onClick={() => !disabled && this.props.onGotoPage(number - 1)} key={number} className="pagination-page-number">{number}</a>;
     }
 
     renderPageNumbers() {
@@ -33,7 +29,7 @@ export default class Pagination extends React.Component<Props> {
         const numSurroundings = surroundingPages.length;
 
         const addFirstPage = surroundingPages[0] != 0;
-        const addLastPage = surroundingPages[numSurroundings - 1] != pagination.totalPages - 1;
+        const addLastPage = surroundingPages[numSurroundings - 1] != pagination.last - 1;
 
         const numberElements = surroundingPages.map(i => this.renderPageNumber(i + 1));
 
@@ -51,11 +47,11 @@ export default class Pagination extends React.Component<Props> {
         }
 
         if (addLastPage) {
-            if (surroundingPages[numSurroundings - 1] == pagination.totalPages - 2) {
-                numberElements.push(this.renderPageNumber(pagination.totalPages));
+            if (surroundingPages[numSurroundings - 1] == pagination.last - 2) {
+                numberElements.push(this.renderPageNumber(pagination.last));
             } else {
                 numberElements.push(<span key="dots-1" className="pagination-dots">...</span>);
-                numberElements.push(this.renderPageNumber(pagination.totalPages));
+                numberElements.push(this.renderPageNumber(pagination.last));
             }
         }
 
