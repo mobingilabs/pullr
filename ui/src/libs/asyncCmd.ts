@@ -53,6 +53,7 @@ export default class AsyncCmd<T, E = ApiError, A1 = never, A2 = never, A3 = neve
 
     @action.bound
     handleSuccess(val: T) {
+        this.err = null;
         this.value = val;
     }
 

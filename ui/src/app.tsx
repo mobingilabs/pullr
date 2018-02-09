@@ -25,17 +25,13 @@ interface Props extends RouteComponentProps<{}> {
 @observer
 export default class App extends React.Component<Props> {
     componentWillMount() {
-        this.props.store.init.run().finally(this.checkUser);
+        this.props.store.init.run().finally(this.checkUser).done();
     }
 
     checkUser = () => {
-        if (this.props.store.init.inProgress) {
-            return;
-        }
-
-        if (!this.props.store.auth.loggedIn) {
-            this.props.history.replace('/login');
-        } else if (this.props.history.location.pathname === '/') {
+        const path = this.props.history.location.pathname;
+        console.log(`PATH: ${path}`);
+        if (!this.props.store.init.err && (path === '/login' || path === '/')) {
             this.props.history.push('/images');
         }
     }
@@ -45,16 +41,20 @@ export default class App extends React.Component<Props> {
             return <InitScreen />;
         }
 
-        const showAuth = !this.props.store.auth.loggedIn || this.props.history.location.pathname === '/oauth';
+        if (!this.props.store.auth.loggedIn) {
+            return (
+                <Switch>
+                    <Route path="/login" exact component={LoginScreen} />
+                </Switch>
+            );
+        }
 
         return [
-            showAuth ? null : <SideBar key="sidebar" />,
+            <SideBar key="sidebar" />,
             <Switch key="switch">
                 <Route path="/oauth" exact component={OAuthScreen} />
-                <Route path="/login" exact component={LoginScreen} />
-
                 <Route path="/images/add" exact component={AddImageScreen} />
-                <Route path="/images/:imageName/edit" exact component={EditImageScreen} />
+                <Route path="/images/:imageKey/edit" exact component={EditImageScreen} />
                 <Route path="/images" component={ImagesScreen} />
                 <Route path="/history" component={HistoryScreen} />
             </Switch>

@@ -1,54 +1,69 @@
 import * as React from 'react';
+import { observable } from 'mobx';
 import { observer, inject } from 'mobx-react';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
+
+import Image from '../../state/models/Image';
+import ImageStore from '../../state/ImagesStore';
 
 import { Modal, ModalHeader, ModalContent, ModalActions } from '../layout/Modal';
 import Button from '../layout/Button';
 import DetailInfo from '../layout/DetailInfo';
 import Icons from '../layout/Icons';
 
-import RootStore from '../../state/RootStore';
-import Image from '../../state/models/Image';
 
 interface RouteParams {
-    imageName: string;
+    imageKey: string;
 }
 
 interface Props extends RouteComponentProps<RouteParams> {
-    store: RootStore
+    images: ImageStore
 }
 
 @withRouter
-@inject('store')
+@inject('images')
 @observer
 export default class ImageDetailModal extends React.Component<Props> {
+    @observable image: Image;
+
+    componentWillMount() {
+        this.props.images.findByKey.run(this.props.match.params.imageKey).finally(this.afterImageFind).done();
+    }
+
     close = () => {
         this.props.history.goBack();
     }
 
+    afterImageFind = () => {
+        if (this.props.images.findByKey.err) {
+            console.warn(`Image not found by key: ${this.props.match.params.imageKey}`);
+            this.props.history.replace('/images');
+            return;
+        }
+
+        this.image = this.props.images.findByKey.value;
+    }
+
     showBuildHistory = () => {
-        this.props.history.push(`/history/${this.props.match.params.imageName}`);
+        this.props.history.push(`/history/${this.props.match.params.imageKey}`);
     }
 
     edit = () => {
-        this.props.history.push(`/images/${this.props.match.params.imageName}/edit`);
+        this.props.history.push(`/images/${this.props.match.params.imageKey}/edit`);
     }
 
     render() {
-        const { store, match } = this.props;
-        const image = store.images.findByName(this.props.match.params.imageName);
-        if (!image) {
-            this.props.history.push('/images');
+        if (!this.image) {
             return null;
         }
 
         return (
             <Modal onClose={this.close}>
-                <ModalHeader title={image.name} subTitle="Image Details" onClose={this.close} />
+                <ModalHeader title={this.image.name} subTitle="Image Details" onClose={this.close} />
                 <ModalContent>
-                    <DetailInfo label="Source Provider:">{image.repository.provider}</DetailInfo>
-                    <DetailInfo label="Repository:">{image.repository.owner}/{image.repository.name}</DetailInfo>
-                    <DetailInfo label="Dockerfile Path:">{image.dockerfile_path}</DetailInfo>
+                    <DetailInfo label="Source Provider:">{this.image.repository.provider}</DetailInfo>
+                    <DetailInfo label="Repository:">{this.image.repository.owner}/{this.image.repository.name}</DetailInfo>
+                    <DetailInfo label="Dockerfile Path:">{this.image.dockerfile_path}</DetailInfo>
                     <DetailInfo label="Builds:">
                         <table className="table-inline">
                             <thead>
@@ -59,7 +74,7 @@ export default class ImageDetailModal extends React.Component<Props> {
                                 </tr>
                             </thead>
                             <tbody>
-                                {image.tags.map(tag =>
+                                {this.image.tags.map(tag =>
                                     <tr key={tag.ref_test || tag.name}>
                                         <td>{tag.ref_type}</td>
                                         <td>{tag.ref_test}</td>

@@ -49,7 +49,7 @@ export default class ImageEditor extends React.Component<Props> {
                     </div>
                     <div className="entry">
                         <label htmlFor="imageName">Image name:</label>
-                        <input type="text" id="imageName" value={this.props.image.name} onChange={this.bindInputVal('name')}/>
+                        <input type="text" id="imageName" value={this.props.image.name} onChange={this.bindInputVal('name')} />
                     </div>
                     <div className="entry">
                         <label htmlFor="dockerfilePath">Dockerfile path:</label>
@@ -69,10 +69,10 @@ export default class ImageEditor extends React.Component<Props> {
                                 </tr>
                             </thead>
                             <tbody>
-                                {this.props.image.tags.map((tag, tagIndex) => 
+                                {this.props.image.tags.map((tag, tagIndex) =>
                                     <tr key={tagIndex}>
                                         <td>
-                                            <select value={tag.ref_type} onChange={this.bindTagInVal(tagIndex, 'type')}>
+                                            <select value={tag.ref_type} onChange={this.bindTagInVal(tagIndex, 'ref_type')}>
                                                 <option value="branch">Branch</option>
                                                 <option value="tag">Tag</option>
                                             </select>
@@ -81,30 +81,30 @@ export default class ImageEditor extends React.Component<Props> {
                                             <input
                                                 type="text"
                                                 placeholder={tag.ref_type === 'branch' ? 'e.g. master' : '/.*/ This targets all tags'}
-                                                value={tag.name}
-                                                onChange={this.bindTagInVal(tagIndex, 'name')} />
+                                                value={tag.ref_test}
+                                                onChange={this.bindTagInVal(tagIndex, 'ref_test')} />
                                         </td>
                                         <td>
                                             <input
                                                 type="text"
-                                                placeholder="e.g. latest"
-                                                defaultValue={tag.ref_test}
-                                                onChange={this.bindTagInVal(tagIndex, 'tag')} />
+                                                placeholder={tag.ref_type === 'branch' ? 'e.g. latest' : 'Leave empty to match tag name'}
+                                                defaultValue={tag.name}
+                                                onChange={this.bindTagInVal(tagIndex, 'name')} />
                                         </td>
                                         <td>
-                                            {tagIndex > 0 && <Button icon={Icons.trash} size="small" onClick={ () => this.removeBuild(tagIndex) } />}
+                                            {tagIndex > 0 && <Button icon={Icons.trash} size="small" onClick={() => this.removeBuild(tagIndex)} />}
                                         </td>
                                     </tr>
                                 )}
                                 <tr className="table-footer">
                                     <td colSpan={4}>
-                                        <Button size="small" text="Add Build" onClick={ this.addBuild } />
+                                        <Button size="small" text="Add Build" onClick={this.addBuild} />
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    { this.props.children }
+                    {this.props.children}
                 </div>
             </div>
         );

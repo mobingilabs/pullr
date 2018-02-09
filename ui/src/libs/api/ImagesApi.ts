@@ -33,8 +33,8 @@ export default class ImagesApi {
             .then(() => image);
     }
 
-    update(key: string, image: Image): Promise<{ key: string }> {
+    update(key: string, image: Image): Promise<string> {
         const body = JSON.stringify(image.toJS());
-        return this.apiClient.json('post', `/images/${key}`, null, { body });
+        return this.apiClient.json('post', `/images/${key}`, null, { body }).then(({ key }) => key);
     }
 }

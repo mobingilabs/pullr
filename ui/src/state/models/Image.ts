@@ -1,4 +1,4 @@
-import { observable, computed } from "mobx";
+import { observable, computed, action } from "mobx";
 import { IImageTag, ImageTag } from "./ImageBuild";
 import { IRepository, Repository } from "./Repository";
 
@@ -29,6 +29,7 @@ export default class Image implements IImage {
         this.dockerfile_path = json.dockerfile_path;
     }
 
+    @action.bound
     addTag() {
         this.tags.push(ImageTag.create());
     }

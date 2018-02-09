@@ -33,7 +33,7 @@ export default class OAuthScreen extends React.PureComponent<{}> {
         const { err_kind, err_status, provider } = this.params;
         const failed = err_kind || err_status;
 
-        const opener = window.opener ? window.opener : window.dialogArguments;
+        const opener = window.opener ? window.opener : (window as any)['dialogArguments'];
 
         if (failed) {
             opener.postMessage('ERROR', location.origin);

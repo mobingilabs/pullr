@@ -57,14 +57,7 @@ export default class AddImageScreen extends React.Component<Props> {
     }
 
     @action.bound
-    saveImage() {
-        this.props.images.saveImage.run(this.newImage)
-            .then(this.handleSaveImageSuccessful)
-            .catch(() => { });
-    }
-
-    @action.bound
-    handleSaveImageSuccessful() {
+    afterCreate() {
         this.newImage = Image.create();
         this.props.history.push('/images');
     }
@@ -85,7 +78,7 @@ export default class AddImageScreen extends React.Component<Props> {
                 <Wizard step={this.step}>
                     <ChooseProvider image={this.newImage} next={this.showChooseRepository} />
                     <ChooseRepository image={this.newImage} next={this.showConfigureImage} />
-                    <ConfigureImage image={this.newImage} saveCmd={this.props.images.saveImage} onFinish={this.saveImage} onCancel={this.cancel} />
+                    <ConfigureImage image={this.newImage} saveCmd={this.props.images.saveImage} onFinish={this.afterCreate} onCancel={this.cancel} />
                 </Wizard>
             </Screen>
         );

@@ -1,10 +1,9 @@
 import * as Promise from 'bluebird';
 import { observable, ObservableMap, computed, action } from "mobx";
+import * as fuzzysearch from 'fuzzysearch';
 import SourceApi from '../libs/api/SourceApi';
 import AsyncCmd from "../libs/asyncCmd";
 import ApiError from "../libs/api/ApiError";
-
-const fuzzysearch = require('fuzzysearch');
 
 export default class SourceStore {
     @observable organisations: ObservableMap<string[]>;
@@ -98,5 +97,6 @@ export default class SourceStore {
     resetSelections() {
         this.selectedProvider = null;
         this.selectedOrganisation = null;
+        this.repositoryFilter = '';
     }
 }

@@ -27,6 +27,6 @@ export default class RootStore {
     }
 
     initImpl = (): Promise<void> => {
-        return this.auth.loadProfile.run();
+        return this.auth.loadProfileImpl();
     }
 }

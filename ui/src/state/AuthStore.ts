@@ -8,7 +8,7 @@ import ApiError from '../libs/api/ApiError';
 import OAuthApi from '../libs/api/OAuthApi';
 
 export default class AuthStore {
-    @observable user = observable<User>(null);
+    @observable user: User;
     @observable readonly loginUrls: ObservableMap<string>;
     @observable readonly loadProfile: AsyncCmd<void>;
     @observable readonly login: AsyncCmd<void, ApiError, string, string>;

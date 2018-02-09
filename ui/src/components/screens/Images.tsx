@@ -1,10 +1,14 @@
 import * as React from 'react';
 import * as moment from 'moment';
 import { Icon } from 'react-fa';
+import { computed } from 'mobx';
 import { observer, inject } from 'mobx-react';
 import { Route, Link, withRouter, RouteComponentProps } from 'react-router-dom';
+import * as fuzzysearch from 'fuzzysearch';
 
+import Image from '../../state/models/Image';
 import ImagesStore from '../../state/ImagesStore';
+import TableOptions from '../../state/models/TableOptions';
 
 import Screen from '../layout/Screen';
 import Header from '../layout/Header';
@@ -17,6 +21,8 @@ import ImageDetailModal from './ImageDetailModal';
 import ApiError from '../../libs/api/ApiError';
 import Alert from '../widgets/Alert';
 import TableActionsMenu from '../widgets/TableActionsMenu';
+import InProgress from '../widgets/InProgress';
+import LoadingSpinner from '../widgets/LoadingSpinner';
 
 interface RouteParams {
     imageName?: string;
@@ -36,13 +42,26 @@ interface State {
 export default class ImagesScreen extends React.Component<Props, State> {
     actions: [any];
     popoverPortal: HTMLElement;
+
+    options: TableOptions;
+
     constructor(props: Props) {
         super(props);
 
+        this.options = new TableOptions();
         this.popoverPortal = document.getElementById('popover');
         this.actions = [
             { text: 'Add Image', icon: 'plus', handler: this.handleAddImage }
         ];
+    }
+
+    @computed
+    get images(): Image[] {
+        if (this.options.query.length > 0) {
+            return this.props.images.images.filter(img => fuzzysearch(this.options.query, img.name))
+        }
+
+        return this.props.images.images;
     }
 
     componentDidMount() {
@@ -77,19 +96,32 @@ export default class ImagesScreen extends React.Component<Props, State> {
                                     <th>SOURCE PROVIDER</th>
                                     <th>REPOSITORY</th>
                                     <th>TAGS</th>
-                                    <th><TableActionsMenu listOptions={this.props.images.listOptions} portal={this.popoverPortal} /></th>
+                                    <th className="table-actions-column">
+                                        <TableActionsMenu
+                                            tableOptions={this.options}
+                                            listOptions={this.props.images.listOptions}
+                                            sortableFields={{ name: 'Name', created_at: 'Created At' }}
+                                            portal={this.popoverPortal} />
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {this.props.images.images.map(image =>
+                                <InProgress cmd={this.props.images.fetchImages}>
+                                    <tr>
+                                        <td colSpan={5} className="table-loading-row">
+                                            <LoadingSpinner /> Loading images...
+                                        </td>
+                                    </tr>
+                                </InProgress>
+                                {this.images.map(image =>
                                     <tr key={image.name}>
                                         <td>
-                                            <Link className="table-link" to={`/images/${image.name}`}><Icon name={Icons.images} /> {image.name}</Link>
+                                            <Link className="table-link" to={`/images/${image.key}`}><Icon name={Icons.images} /> {image.name}</Link>
                                         </td>
                                         <td>{image.repository.provider}</td>
                                         <td>{image.repository.owner}/{image.repository.name}</td>
                                         <td>{image.tags.map(tag => tag.ref_test || tag.name).join(', ')}</td>
-                                        <td width={100}><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.name)} /></td>
+                                        <td width={100}><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.key)} /></td>
                                     </tr>
                                 )}
                                 {this.props.images.pagination.last != 0 &&
@@ -103,7 +135,7 @@ export default class ImagesScreen extends React.Component<Props, State> {
                         </table>
                     </div>
                 }
-                <Route path="/images/:imageName" exact strict component={ImageDetailModal} />
+                <Route path="/images/:imageKey" exact strict component={ImageDetailModal} />
             </Screen>
         )
     }

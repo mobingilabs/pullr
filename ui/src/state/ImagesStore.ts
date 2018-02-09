@@ -1,8 +1,11 @@
 import * as Promise from 'bluebird';
 import { observable, observe, computed, action, runInAction, transaction, IObservableArray, IObjectChange } from "mobx";
+
 import ImagesApi from '../libs/api/ImagesApi';
 import AsyncCmd from '../libs/asyncCmd';
 import ApiError from '../libs/api/ApiError';
+import debounce from '../libs/debounce';
+
 import ListOptions from './models/ListOptions';
 import Image, { IImage } from "./models/Image";
 import Pagination, { PageOutOfRangeException } from "./models/Pagination";
@@ -15,7 +18,8 @@ export default class ImageStore {
     readonly listOptions: ListOptions;
     readonly fetchImages: AsyncCmd<void, ApiError>;
     readonly saveImage: AsyncCmd<void, ApiError, Image>;
-    readonly updateImage: AsyncCmd<void, ApiError, string, Image>;
+    readonly updateImage: AsyncCmd<Image, ApiError, string, Image>;
+    readonly findByKey: AsyncCmd<Image, ApiError, string>;
     readonly pagination: Pagination = new Pagination();
 
     readonly disposeListOptions: () => any;
@@ -25,13 +29,10 @@ export default class ImageStore {
         this.fetchImages = new AsyncCmd(this.fetchImagesImpl);
         this.saveImage = new AsyncCmd(this.saveImageImpl);
         this.updateImage = new AsyncCmd(this.updateImageImpl);
+        this.findByKey = new AsyncCmd(this.findByKeyImpl);
         this.listOptions = new ListOptions();
 
-        this.disposeListOptions = observe(this.listOptions, this.handleListOptionsChange);
-    }
-
-    findByName(imageName: string): Image {
-        return this.images.find(image => image.name == imageName);
+        this.disposeListOptions = observe(this.listOptions, debounce(300, this.handleListOptionsChange));
     }
 
     @action.bound
@@ -70,10 +71,18 @@ export default class ImageStore {
         this.fetchImages.run().done();
     }
 
+    private findByKeyImpl = (key: string): Promise<Image> => {
+        const image = this.images.find(image => image.key == key);
+        if (image) {
+            return Promise.resolve(image);
+        }
+
+        return this.imagesApi.get(key).then(img => new Image(img));
+    }
 
     private fetchImagesImpl = (): Promise<void> => {
         return this.imagesApi.getImages(this.listOptions, this.lastFetchedAt)
-            .then(({ images, pagination }) => {
+            .tap(({ images, pagination }) => {
                 const newImages = images.map((i: IImage) => new Image(i))
                 const newPagination = new Pagination(pagination)
 
@@ -86,30 +95,28 @@ export default class ImageStore {
     }
 
 
-    private saveImageImpl(image: Image): Promise<void> {
+    private saveImageImpl = (image: Image): Promise<void> => {
         return this.imagesApi.create(image).then(() => { });
     }
 
-    private updateImageImpl(key: string, image: Image): Promise<void> {
+    private updateImageImpl = (key: string, image: Image): Promise<Image> => {
         return this.imagesApi.update(key, image)
-            .then(this.refreshImage.bind(key))
-            .then(() => { });
+            .then(this.refreshImage.bind(null, key))
     }
 
-    private refreshImage(oldKey: string, key: string): Promise<Image> {
+    private refreshImage = (oldKey: string, key: string): Promise<Image> => {
         return this.imagesApi.get(key)
-            .then(this.updateImageByKey.bind(null, oldKey))
+            .then(img => new Image(img))
+            .tap(this.updateImageByKey.bind(null, oldKey));
     }
 
     @action.bound
     private updateImageByKey(oldKey: string, image: Image) {
         const imageIdx = this.images.findIndex(i => i.key === oldKey);
         if (imageIdx < 0) {
-            console.warn(`Update image failed: image with key '${oldKey}' not found`);
-            return image;
+            this.images.unshift(image);
         }
 
         this.images[imageIdx] = image;
-        return image;
     }
 }

@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { inject, observer } from 'mobx-react';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
+
+import { ERR_CREDENTIALS } from '../../libs/api/ApiError';
 import AuthStore from '../../state/AuthStore';
+
+import Alert from '../widgets/Alert';
 
 interface Props extends RouteComponentProps<{}> {
     auth?: AuthStore;
@@ -17,21 +21,35 @@ export default class LoginScreen extends React.Component<Props> {
     submit = (e: any) => {
         e.preventDefault();
         this.props.auth.login.run(this.usernameIn.value, this.passwordIn.value)
-            .then(this.redirectToImages)
-            .catch(this.handleErr);
+            .finally(this.afterLoginAttempt)
     }
 
-    redirectToImages = () => {
-        this.props.history.replace('/images');
+    afterLoginAttempt = () => {
+        if (!this.props.auth.login.err) {
+            this.props.history.replace('/images');
+        }
     }
 
-    handleErr = (err: any) => {
-        console.error(err);
+    renderLoginErr() {
+        let msg;
+
+        switch (this.props.auth.login.err.kind) {
+            case ERR_CREDENTIALS:
+                msg = `Username or password is wrong. Please try again`;
+                break;
+            default:
+                msg = `Failed to authenticate for an unknown reason, we're sorry. Please try again later`;
+        }
+
+        return (
+            <Alert message={msg} />
+        );
     }
 
     render() {
         return (
             <div className="login-screen">
+                {this.props.auth.login.err && this.renderLoginErr()}
                 <form onSubmit={this.submit}>
                     <div>
                         <label>Username:</label>
