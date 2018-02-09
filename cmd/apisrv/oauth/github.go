@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/mobingilabs/pullr/cmd/apisrv/perrors"
+	"github.com/mobingilabs/pullr/pkg/srv"
 )
 
 type Github struct {
@@ -39,7 +39,7 @@ func (g *Github) LoginUrl(cbUrl string) string {
 func (g *Github) HandleCb(c echo.Context) (string, error) {
 	code := c.QueryParam("code")
 	if code == "" || strings.TrimSpace(code) == "" {
-		return "", perrors.NewErrMissingParam("code")
+		return "", srv.NewErrMissingParam("code")
 	}
 	params := url.Values{
 		"client_id":     {g.clientId},

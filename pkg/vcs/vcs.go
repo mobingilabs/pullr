@@ -22,16 +22,8 @@ const (
 
 type OAuthPerm int
 
-// OAuth permissions
-const (
-	PermReadRepos OAuthPerm = iota
-	PermListOrgs
-	PermAdminRepoHooks
-)
-
 var (
-	ErrAuthRequired   = errors.New("vcs client needs to authenticate")
-	ErrOAuthInvalidCb = errors.New("invalid oauth cb url provided")
+	ErrAuthRequired = errors.New("vcs client needs to authenticate")
 )
 
 type OAuthSecrets struct {

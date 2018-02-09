@@ -1,6 +1,7 @@
 package comm
 
 import (
+	"context"
 	"io"
 )
 
@@ -17,22 +18,18 @@ type Job interface {
 // JobTransporter manages distribution and consumption of the jobs between
 // the services.
 type JobTransporter interface {
-	// Close the connection to the queue system
-	Close()
-
+	io.Closer
 	// Put a job to the queue. Content should be a valid json structure.
-	Put(queue string, content io.Reader) (int, error)
+	Put(queue string, content io.Reader) error
 
 	// Listen creates a QueueListener on the given queue
-	Listen(queue string) (*QueueListener, error)
+	Listen(queue string) (QueueListener, error)
 }
 
 // QueueListener is an abstraction over readonly asynchronous message channels
 // to support both long-pooling and sockets.
 type QueueListener interface {
-	// Close will stop listening
-	Close() error
-
+	io.Closer
 	// Get a job from the channel. This is a blocking operation.
-	Get() (*Job, error)
+	Get(ctx context.Context) (Job, error)
 }

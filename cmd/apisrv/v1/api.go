@@ -9,8 +9,8 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mobingilabs/pullr/cmd/apisrv/oauth"
-	"github.com/mobingilabs/pullr/cmd/apisrv/perrors"
 	"github.com/mobingilabs/pullr/pkg/auth"
+	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
 )
 
@@ -91,7 +91,7 @@ func NewApiV1(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticato
 		OAuthProviders: oauthProviders,
 	}
 
-	g.Use(perrors.ErrorHandler)
+	g.Use(srv.ErrorHandler)
 	g.GET("/test", api.test)
 	g.POST("/login", api.login)
 	g.POST("/register", api.register)

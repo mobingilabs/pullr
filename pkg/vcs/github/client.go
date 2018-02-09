@@ -127,36 +127,33 @@ func (g *Client) ListRepositories(ctx context.Context, organisation string) ([]s
 		return nil, err
 	}
 
-	// If requested organisation is same as github username return user repos
-	if organisation == usr.GetLogin() {
-		gRepos, _, err := client.Repositories.List(ctx, "", &github.RepositoryListOptions{
-			Sort:        "name",
-			Affiliation: "owner",
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		repos := make([]string, len(gRepos))
-		for i, r := range gRepos {
-			repos[i] = r.GetName()
-		}
-
-		return repos, nil
-	}
-
 	// Otherwise try to get organisation repositories
 	var repos []string
 	page := 0
 	lastPage := 100
 	for page <= lastPage {
-		gRepos, res, err := client.Repositories.ListByOrg(ctx, organisation, &github.RepositoryListByOrgOptions{
-			Type: "member",
-			ListOptions: github.ListOptions{
-				PerPage: 100,
-				Page:    page,
-			},
-		})
+		var gRepos []*github.Repository
+		var res *github.Response
+		var err error
+
+		if organisation == usr.GetLogin() {
+			gRepos, res, err = client.Repositories.List(ctx, "", &github.RepositoryListOptions{
+				Sort:        "name",
+				Affiliation: "owner",
+				ListOptions: github.ListOptions{
+					PerPage: 100,
+					Page:    page,
+				},
+			})
+		} else {
+			gRepos, res, err = client.Repositories.ListByOrg(ctx, organisation, &github.RepositoryListByOrgOptions{
+				Type: "member",
+				ListOptions: github.ListOptions{
+					PerPage: 100,
+					Page:    page,
+				},
+			})
+		}
 		if err != nil {
 			return nil, err
 		}

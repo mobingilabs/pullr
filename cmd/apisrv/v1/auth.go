@@ -6,8 +6,8 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
-	"github.com/mobingilabs/pullr/cmd/apisrv/perrors"
 	"github.com/mobingilabs/pullr/pkg/auth"
+	"github.com/mobingilabs/pullr/pkg/srv"
 )
 
 type creds struct {
@@ -64,7 +64,7 @@ func (a *apiv1) getToken(c echo.Context, kind tokenKind) (*jwt.Token, *jwt.Stand
 		return token, claims, err
 	}
 
-	return nil, nil, perrors.NewErr("ERR_INTERNAL", http.StatusInternalServerError, "An unexpected error happened")
+	return nil, nil, srv.NewErr("ERR_INTERNAL", http.StatusInternalServerError, "An unexpected error happened")
 }
 
 func (a *apiv1) login(c echo.Context) error {

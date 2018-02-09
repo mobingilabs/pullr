@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/labstack/echo"
-	"github.com/mobingilabs/pullr/cmd/apisrv/perrors"
+	"github.com/mobingilabs/pullr/pkg/srv"
 )
 
 // OAuthLoginUrl reports OAuth authorization url for the requested oauth
@@ -20,7 +20,7 @@ func (a *apiv1) OAuthLoginUrl(username string, c echo.Context) error {
 	if !ok {
 		msg := fmt.Sprintf("Unsupported oauth provider: '%s'", c.Param("provider"))
 		glog.Errorf(msg)
-		return perrors.NewErr("ERR_UNSUPPORTED_OAUTHPROVIDER", http.StatusBadRequest, msg)
+		return srv.NewErr("ERR_UNSUPPORTED_OAUTHPROVIDER", http.StatusBadRequest, msg)
 	}
 
 	clientUri := c.QueryParam("cb")
@@ -33,7 +33,7 @@ func (a *apiv1) OAuthLoginUrl(username string, c echo.Context) error {
 	}
 	if !clientUriTrusted {
 		glog.Error("Untrusted uri is given for redirect, ignoring")
-		return perrors.NewErrBadValue("cb", clientUri)
+		return srv.NewErrBadValue("cb", clientUri)
 	}
 
 	id, err := a.Auth.NewOAuthCbIdentifier(username, p.Name(), clientUri)
@@ -56,10 +56,10 @@ func (a *apiv1) OAuthCb(c echo.Context) (err error) {
 	p, ok := a.OAuthProviders[c.Param("provider")]
 	if !ok {
 		msg := fmt.Sprintf("Unsupported oauth provider: '%s'", c.Param("provider"))
-		return perrors.NewErr("ERR_UNSUPPORTED_OAUTHPROVIDER", http.StatusBadRequest, msg)
+		return srv.NewErr("ERR_UNSUPPORTED_OAUTHPROVIDER", http.StatusBadRequest, msg)
 	}
 
-	authErr := perrors.NewErr("ERR_OAUTH_FAIL", http.StatusUnauthorized, "Failed to authenticate with %s")
+	authErr := srv.NewErr("ERR_OAUTH_FAIL", http.StatusUnauthorized, "Failed to authenticate with %s")
 	errParams := errToQueryParams(authErr)
 
 	id := c.Param("id")
@@ -83,7 +83,7 @@ func (a *apiv1) OAuthCb(c echo.Context) (err error) {
 	err = a.Storage.PutUserToken(cbId.Username, p.Name(), oauthToken)
 	if err != nil {
 		glog.Errorln("OAuth callback failed to put the token into storage")
-		params := errToQueryParams(perrors.NewErr("ERR_INTERNAL", http.StatusInternalServerError, "Internal server error"))
+		params := errToQueryParams(srv.NewErr("ERR_INTERNAL", http.StatusInternalServerError, "Internal server error"))
 		return redirect(c, cbId.RedirectUri, p.Name(), params)
 	}
 
@@ -100,7 +100,7 @@ func appendQueryParams(uri string, params url.Values) string {
 	return fmt.Sprintf("%s%s%s", uri, queryPrefix, query)
 }
 
-func errToQueryParams(err perrors.ErrMsg) url.Values {
+func errToQueryParams(err srv.ErrMsg) url.Values {
 	return url.Values{
 		"err_kind":   {err.Kind},
 		"err_status": {strconv.FormatInt(int64(err.Status), 10)},

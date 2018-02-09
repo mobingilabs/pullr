@@ -1,4 +1,4 @@
-package perrors
+package srv
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/auth"
 	"github.com/mobingilabs/pullr/pkg/storage"
+	"github.com/mobingilabs/pullr/pkg/vcs"
 )
 
 type ErrMsg struct {
@@ -17,6 +18,10 @@ type ErrMsg struct {
 
 func NewErr(kind string, status int, msg string) ErrMsg {
 	return ErrMsg{kind, status, msg}
+}
+
+func NewErrInternal() ErrMsg {
+	return ErrMsg{"ERR_INTERNAL", http.StatusInternalServerError, "Unexpected error happened"}
 }
 
 func NewErrMissingParam(param string) ErrMsg {
@@ -67,6 +72,12 @@ func ErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 			e.Kind = "ERR_RESOURCE_NOTFOUND"
 			e.Status = http.StatusNotFound
 			e.Msg = "Resource not found"
+
+		// Vcs errors
+		case vcs.ErrInvalidWebhook, vcs.ErrInvalidWebhookPayload:
+			e.Kind = "ERR_INVALID_WEBHOOK"
+			e.Status = http.StatusBadRequest
+			e.Msg = "Invalid webhook request"
 
 		default:
 			return err

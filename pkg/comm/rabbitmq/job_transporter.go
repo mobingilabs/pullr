@@ -2,13 +2,17 @@ package rabbitmq
 
 import (
 	"io"
+	"io/ioutil"
 
+	"github.com/mobingilabs/pullr/pkg/comm"
 	"github.com/streadway/amqp"
 )
 
 // JobTransporter implements JobTransporter interface
 type JobTransporter struct {
-	conn *amqp.Connection
+	conn     *amqp.Connection
+	channels map[string]*amqp.Channel
+	queues   map[string]amqp.Queue
 }
 
 // Dial creates a JobTransporter instance by connecting to a rabbitmq instance
@@ -27,29 +31,33 @@ func (r *JobTransporter) Close() error {
 }
 
 // Put a job to JobQueue. Implements JobQueue
-func (r *JobTransporter) Put(queue string, content io.Reader) error {
-	// TODO: Maybe cache those channels?
-	ch, err := r.conn.Channel()
+func (r *JobTransporter) Put(queue string, content io.Reader) (err error) {
+	ch, ok := r.channels[queue]
+	if !ok {
+		ch, err = r.conn.Channel()
+	}
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
 
 	// TODO: Maybe cache those queues?
-	q, err := ch.QueueDeclare(
-		queue, // name
-		true,  // durable, if true messages will be safe even JobTransporter crashes
-		false, // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // args
-	)
+	q, ok := r.queues[queue]
+	if !ok {
+		q, err = ch.QueueDeclare(
+			queue, // name
+			true,  // durable, if true messages will be safe even JobTransporter crashes
+			false, // delete when unused
+			false, // exclusive
+			false, // no-wait
+			nil,   // args
+		)
+	}
 	if err != nil {
 		return err
 	}
 
-	var bytes []byte
-	if _, err = content.Read(bytes); err != nil {
+	bytes, err := ioutil.ReadAll(content)
+	if err != nil {
 		return err
 	}
 
@@ -67,7 +75,7 @@ func (r *JobTransporter) Put(queue string, content io.Reader) error {
 }
 
 // Listen creates queue channel to listen messages on
-func (r *JobTransporter) Listen(queue string) (*QueueListener, error) {
+func (r *JobTransporter) Listen(queue string) (comm.QueueListener, error) {
 	ch, err := r.conn.Channel()
 	if err != nil {
 		return nil, err

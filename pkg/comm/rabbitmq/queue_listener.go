@@ -1,6 +1,11 @@
 package rabbitmq
 
-import "github.com/streadway/amqp"
+import (
+	"context"
+
+	"github.com/mobingilabs/pullr/pkg/comm"
+	"github.com/streadway/amqp"
+)
 
 // QueueListener implements comm.Listener interface by encapsulating rabbitmq
 // consumer channels.
@@ -15,7 +20,11 @@ func (c *QueueListener) Close() error {
 }
 
 // Get a job from the queue in valid json format
-func (c *QueueListener) Get() (*Job, error) {
-	delivery := <-c.msgs
-	return &Job{msg: delivery}, nil
+func (c *QueueListener) Get(ctx context.Context) (comm.Job, error) {
+	select {
+	case delivery := <-c.msgs:
+		return &Job{msg: delivery}, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
