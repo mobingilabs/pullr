@@ -63,7 +63,7 @@ export default class Image implements IImage {
             repository: Repository.create(),
             dockerfile_path: './Dockerfile',
             tags: [
-                new ImageTag({ ref_type: 'branch', name: 'master', ref_test: 'latest' })
+                new ImageTag({ ref_type: 'branch', ref_test: 'master', name: 'latest' })
             ],
             created_at: new Date(),
             updated_at: new Date()
