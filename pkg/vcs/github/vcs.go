@@ -12,17 +12,14 @@ import (
 	"github.com/mobingilabs/pullr/pkg/vcs"
 )
 
-// Github provides Vcs functionality
-type Github struct{}
+type githubVcs struct{}
 
-// New creates a Github instance
-func New() *Github {
-	return &Github{}
+// New creates github specific VCS implementation
+func New() vcs.Vcs {
+	return &githubVcs{}
 }
 
-// ExtractCommitInfo parses the given WebhookRequest and reports back the
-// commit info.
-func (*Github) ExtractCommitInfo(r *vcs.WebhookRequest) (*vcs.CommitInfo, error) {
+func (*githubVcs) ExtractCommitInfo(r *vcs.WebhookRequest) (*vcs.CommitInfo, error) {
 	switch r.Event {
 	case vcs.PushEvent:
 		return extractCommitInfoPushPayload(r)
@@ -31,13 +28,12 @@ func (*Github) ExtractCommitInfo(r *vcs.WebhookRequest) (*vcs.CommitInfo, error)
 	}
 }
 
-// ParseWebhookRequest tries to parse given webhook http request
-func (*Github) ParseWebhookRequest(r *http.Request) (*vcs.WebhookRequest, error) {
+func (*githubVcs) ParseWebhookRequest(r *http.Request) (*vcs.WebhookRequest, error) {
 	if !strings.HasPrefix(r.Header.Get("User-Agent"), "GitHub-Hookshot") {
 		return nil, vcs.ErrInvalidWebhook
 	}
 
-	event := r.Header.Get("X-Github-Event")
+	event := r.Header.Get("X-githubVcs-Event")
 	if event == "" {
 		return nil, vcs.ErrInvalidWebhook
 	}

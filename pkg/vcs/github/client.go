@@ -14,20 +14,18 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
-// Client encapsulates authenticated GithubAPI requests
-type Client struct {
-	Username string
-	Token    string
+type githubClient struct {
+	username string
+	token    string
 }
 
-// NewClientWithToken creates an authenticated GithubAPI client
-func NewClientWithToken(username, token string) *Client {
-	return &Client{Username: username, Token: token}
+// NewClientWithToken creates an authenticated github specific vcs client
+func NewClientWithToken(username, token string) vcs.Client {
+	return &githubClient{username: username, token: token}
 }
 
-// CheckFileExists checks a repository if the given file path exists or not
-func (g *Client) CheckFileExists(ctx context.Context, repository domain.Repository, path string, ref string) (bool, error) {
-	cl := newAuthenticatedClient(ctx, g.Token)
+func (g *githubClient) CheckFileExists(ctx context.Context, repository domain.Repository, path string, ref string) (bool, error) {
+	cl := newAuthenticatedClient(ctx, g.token)
 	reader, err := cl.Repositories.DownloadContents(ctx, repository.Owner, repository.Name, path, &github.RepositoryContentGetOptions{Ref: ref})
 	if err != nil {
 		return false, nil
@@ -36,12 +34,11 @@ func (g *Client) CheckFileExists(ctx context.Context, repository domain.Reposito
 	return true, nil
 }
 
-// CloneRepository clones the repository content to given path
-func (g *Client) CloneRepository(ctx context.Context, repository domain.Repository, clonePath string, ref string) error {
+func (g *githubClient) CloneRepository(ctx context.Context, repository domain.Repository, clonePath string, ref string) error {
 	repo, err := git.PlainClone(clonePath, false, &git.CloneOptions{
 		Auth: &http.BasicAuth{
-			Username: g.Username,
-			Password: g.Token,
+			Username: g.username,
+			Password: g.token,
 		},
 	})
 	if err != nil {
@@ -56,13 +53,12 @@ func (g *Client) CloneRepository(ctx context.Context, repository domain.Reposito
 	return wt.Checkout(&git.CheckoutOptions{Hash: plumbing.NewHash(ref)})
 }
 
-// ListOrganisations fetches authenticated user's organisations
-func (g *Client) ListOrganisations(ctx context.Context) ([]string, error) {
-	if g.Token == "" {
+func (g *githubClient) ListOrganisations(ctx context.Context) ([]string, error) {
+	if g.token == "" {
 		return nil, vcs.ErrAuthRequired
 	}
 
-	client := newAuthenticatedClient(ctx, g.Token)
+	client := newAuthenticatedClient(ctx, g.token)
 	usr, _, err := client.Users.Get(ctx, "")
 	if err != nil {
 		return nil, err
@@ -88,13 +84,12 @@ func (g *Client) ListOrganisations(ctx context.Context) ([]string, error) {
 	return orgNames, nil
 }
 
-// ListRepositories fetches authenticated user's repositories
-func (g *Client) ListRepositories(ctx context.Context, organisation string) ([]string, error) {
-	if g.Token == "" {
+func (g *githubClient) ListRepositories(ctx context.Context, organisation string) ([]string, error) {
+	if g.token == "" {
 		return nil, vcs.ErrAuthRequired
 	}
 
-	client := newAuthenticatedClient(ctx, g.Token)
+	client := newAuthenticatedClient(ctx, g.token)
 	usr, _, err := client.Users.Get(ctx, "")
 	if err != nil {
 		return nil, err
