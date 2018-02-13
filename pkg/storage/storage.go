@@ -8,19 +8,13 @@ import (
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
-// Directions
-const (
-	Asc  Direction = "asc"
-	Desc           = "desc"
-)
-
-// Storage errors
+// Storage service errors
 var (
 	ErrNotFound = errors.New("not found")
 )
 
-// Storage represents different kind operations on the database
-type Storage interface {
+// Service is responsible for persisting records
+type Service interface {
 	io.Closer
 
 	// FindImageByKey finds an image by its key
@@ -53,17 +47,6 @@ type Storage interface {
 	UpdateUser(username string, user domain.User) error
 }
 
-// Direction defines ordering/sorting direction
-type Direction string
-
-// ListOptions is used for queries expected to report multiple records
-type ListOptions struct {
-	PerPage       int       `query:"per_page"`
-	Page          int       `query:"page"`
-	SortBy        string    `query:"sort_by"`
-	SortDirection Direction `query:"sort_dir"`
-}
-
 // Pagination contains pagination meta data about query
 type Pagination struct {
 	Total   int `json:"total"`
@@ -73,9 +56,21 @@ type Pagination struct {
 	PerPage int `json:"per_page"`
 }
 
-// NewListOptions creates a new list options object
-func NewListOptions(perPage, page int, sortBy string, sortDirection Direction) *ListOptions {
-	return &ListOptions{perPage, page, sortBy, sortDirection}
+// Direction defines ordering/sorting direction
+type Direction string
+
+// Directions
+const (
+	Asc  Direction = "asc"
+	Desc           = "desc"
+)
+
+// ListOptions is used for queries expected to report multiple records
+type ListOptions struct {
+	PerPage       int       `query:"per_page"`
+	Page          int       `query:"page"`
+	SortBy        string    `query:"sort_by"`
+	SortDirection Direction `query:"sort_dir"`
 }
 
 // GetPerPage reports items per page for listing default value is 20

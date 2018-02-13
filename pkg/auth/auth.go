@@ -22,12 +22,12 @@ type Secrets struct {
 	AuthToken    string
 }
 
-// Authenticator handles token based authentication.
+// Service handles token based authentication.
 //
 // By default Pullr assumes tokens are JWTs and will be sent to the client in
 // the response, please keep that in mind and never expose any user secrets
 // with the token.
-type Authenticator interface {
+type Service interface {
 	io.Closer
 
 	// Validate checks if the given tokens are valid and then updates the tokens
@@ -60,14 +60,6 @@ type Authenticator interface {
 
 	// RemoveOAuthCbIdentitifer remove identifier record
 	RemoveOAuthCbIdentifier(uuid string) error
-}
-
-// Token describes the information kept in the generated token
-type Token struct {
-	// Valid is true if the parsed token is validated
-	Valid bool
-	// Username is empty if the token is not valid
-	Username string
 }
 
 // OAuthCbIdentifier is used for identifying incoming oauth provider callbacks

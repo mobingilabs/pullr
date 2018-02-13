@@ -2,21 +2,20 @@ package app
 
 import (
 	"fmt"
-	"io"
 	"path"
 
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/labstack/echo"
-	"github.com/mobingilabs/pullr/cmd/apisrv/oauth"
 	"github.com/mobingilabs/pullr/cmd/apisrv/v1"
-	authlocal "github.com/mobingilabs/pullr/pkg/auth/local"
+	authMongo "github.com/mobingilabs/pullr/pkg/auth/mongo"
 	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/oauth"
+	"github.com/mobingilabs/pullr/pkg/oauth/github"
 	"github.com/mobingilabs/pullr/pkg/srv"
-	"github.com/mobingilabs/pullr/pkg/storage/mongodb"
+	storageMongo "github.com/mobingilabs/pullr/pkg/storage/mongo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gopkg.in/mgo.v2"
 )
 
 // ServeCmd starts the server
@@ -24,8 +23,7 @@ func ServeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Run as an http server.",
-		Long:  `Run as an http server.`,
-		Run:   serve,
+		RunE:  serve,
 	}
 
 	cmd.Flags().SortFlags = false
@@ -38,42 +36,27 @@ func ServeCmd() *cobra.Command {
 	return cmd
 }
 
-func serve(cmd *cobra.Command, args []string) {
-	var closeList []io.Closer
-	showUsageErr := true
-	onExit := func() {
-		for _, c := range closeList {
-			errs.Log(c.Close())
-		}
-
-		if showUsageErr {
-			errs.Log(cmd.Usage())
-		}
-	}
-	defer onExit()
-
-	// Since deferred functions are not called when log.Fatal exit program
-	log.RegisterExitHandler(onExit)
-
+func serve(cmd *cobra.Command, args []string) error {
 	errs.Fatal(viper.BindPFlags(cmd.Flags()))
 	viper.AutomaticEnv()
 
 	conf := v1.ParseConfig()
 
 	// Dependencies
-	authStorageURI := viper.GetString("authstorage")
-	mongo, err := mgo.Dial(authStorageURI)
-	errs.Fatal(err)
-
+	authConnURI := viper.GetString("authstorage")
 	certsPath := viper.GetString("certs")
-	authenticator, err := authlocal.New(mongo, path.Join(certsPath, "auth.key"), path.Join(certsPath, "auth.crt"))
-	errs.Fatal(err)
-	closeList = append(closeList, authenticator)
+	auth, err := authMongo.New(authConnURI, path.Join(certsPath, "auth.key"), path.Join(certsPath, "auth.crt"))
+	if err != nil {
+		return err
+	}
+	defer errs.Log(auth.Close())
 
-	storageURI := viper.GetString("storage")
-	mongoStorage, err := mongodb.Dial(storageURI)
-	errs.Fatal(err)
-	closeList = append(closeList, mongoStorage)
+	storeConnURI := viper.GetString("storage")
+	storage, err := storageMongo.New(storeConnURI)
+	if err != nil {
+		return err
+	}
+	defer errs.Log(storage.Close())
 
 	// Configure the server
 	e := echo.New()
@@ -84,16 +67,14 @@ func serve(cmd *cobra.Command, args []string) {
 	e.GET("/version", srv.VersionHandler(version))
 
 	// routes
-	oauthProviders := map[string]oauth.Client{
-		"github": oauth.NewGithub(conf.GithubClientID, conf.GithubSecret),
-	}
-	v1.NewAPI(e, oauthProviders, authenticator, mongoStorage, conf)
+	providers := map[string]oauth.Client{}
+	providers["github"] = github.New(conf.GithubClientID, conf.GithubSecret)
+	v1.NewAPI(e, providers, auth, storage, conf)
 
 	// serve
 	port := viper.GetInt("port")
 	log.Infof("serving on :%d", port)
 	e.Server.Addr = fmt.Sprintf(":%d", port)
 
-	showUsageErr = false
-	log.Fatal(gracehttp.Serve(e.Server))
+	return gracehttp.Serve(e.Server)
 }

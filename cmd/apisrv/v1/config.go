@@ -21,8 +21,8 @@ type APIConfig struct {
 // values from commandline or environment
 func AddConfigFlags(set *pflag.FlagSet) {
 	set.StringSlice("redirect_whitelist", nil, "Whitelist of urls can be redirected after oauth login requests")
-	set.String("github_client", "", "Github client id")
-	set.String("github_secret", "", "Github secret")
+	set.String("github_client", "", "github client id")
+	set.String("github_secret", "", "github secret")
 	set.String("server_url", "", "This server's own url")
 	set.String("frontend_url", "", "Frontend url")
 }

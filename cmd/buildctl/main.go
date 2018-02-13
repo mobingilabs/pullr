@@ -13,12 +13,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/mobingilabs/pullr/pkg/comm"
-	"github.com/mobingilabs/pullr/pkg/comm/rabbitmq"
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/jobq"
+	"github.com/mobingilabs/pullr/pkg/jobq/rabbitmq"
 	"github.com/mobingilabs/pullr/pkg/storage"
-	"github.com/mobingilabs/pullr/pkg/storage/mongodb"
+	"github.com/mobingilabs/pullr/pkg/storage/mongo"
 	"github.com/mobingilabs/pullr/pkg/vcs"
 	"github.com/mobingilabs/pullr/pkg/vcs/github"
 	"github.com/pkg/errors"
@@ -41,9 +41,9 @@ var (
 		Run:    run,
 	}
 
-	mQueue    comm.JobTransporter
-	listener  comm.QueueListener
-	store     storage.Storage
+	mqueue    jobq.Service
+	listener  jobq.QueueListener
+	store     storage.Service
 	closeList []io.Closer
 
 	cloneDir    string
@@ -55,7 +55,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	rootCmd.Flags().SortFlags = false
-	rootCmd.Flags().String("amqp", "", "Connection url for message queue (e.g amqp://localhost)")
+	rootCmd.Flags().String("amqp", "", "Connection url for message mqueue (e.g amqp://localhost)")
 	rootCmd.Flags().String("storage", "", "Connection url for storage (e.g user:passw@localhost:port)")
 	rootCmd.Flags().String("clonedir", "./src", "A directory to clone source files")
 	rootCmd.Flags().String("registry", "http://registry", "Docker registry url")
@@ -88,10 +88,10 @@ func parseOpts(cmd *cobra.Command, args []string) {
 	errs.Fatal(viper.BindPFlags(cmd.Flags()))
 	viper.AutomaticEnv()
 
-	errs.Fatal(connectAmqp(viper.GetString("amqp")))
-	closeList = append(closeList, mQueue)
+	errs.Fatal(createJobQ(viper.GetString("amqp")))
+	closeList = append(closeList, mqueue)
 
-	errs.Fatal(connectStorage(viper.GetString("storage")))
+	errs.Fatal(createStorage(viper.GetString("storage")))
 	closeList = append(closeList, store)
 
 	errs.Fatal(createListener(domain.BuildQueue))
@@ -118,12 +118,11 @@ func parseOpts(cmd *cobra.Command, args []string) {
 	cancelLoginTimeout()
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(*cobra.Command, []string) {
 	mainCtx, cancel := context.WithCancel(context.Background())
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
 	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
 		<-c
 		log.Info("Program interrupted. Canceling jobs in progress.")
 		cancel()
@@ -134,19 +133,19 @@ func run(cmd *cobra.Command, args []string) {
 	errs.Fatal(listenJobs(mainCtx))
 }
 
-func connectAmqp(amqpURI string) (err error) {
-	mQueue, err = rabbitmq.Dial(amqpURI)
-	return errors.WithMessage(err, "failed to connect message queue")
+func createJobQ(amqpURI string) (err error) {
+	mqueue, err = rabbitmq.New(amqpURI)
+	return errors.WithMessage(err, "failed to connect message mqueue")
 }
 
-func connectStorage(storageURI string) (err error) {
-	store, err = mongodb.Dial(storageURI)
+func createStorage(storageURI string) (err error) {
+	store, err = mongo.New(storageURI)
 	return errors.WithMessage(err, "failed to connect storage")
 }
 
 func createListener(queue string) (err error) {
-	listener, err = mQueue.Listen(queue)
-	return errors.WithMessage(err, "failed to obtain a queue listener on the message queue")
+	listener, err = mqueue.Listen(queue)
+	return errors.WithMessage(err, "failed to obtain a mqueue listener on the message mqueue")
 }
 
 func dockerLogin(ctx context.Context, username, passwd string) (err error) {
@@ -202,7 +201,7 @@ func listenJobs(ctx context.Context) error {
 	return nil
 }
 
-func handleJob(ctx context.Context, job comm.Job) error {
+func handleJob(ctx context.Context, job jobq.Job) error {
 	buildJob, err := validateJob(job)
 	if err != nil {
 		return errors.WithMessage(err, "invalid job")
@@ -243,7 +242,7 @@ func handleJob(ctx context.Context, job comm.Job) error {
 	return nil
 }
 
-func validateJob(job comm.Job) (domain.BuildImageJob, error) {
+func validateJob(job jobq.Job) (domain.BuildImageJob, error) {
 	body := job.Body()
 
 	var buildJob domain.BuildImageJob

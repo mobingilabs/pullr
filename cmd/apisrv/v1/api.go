@@ -7,9 +7,9 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/mobingilabs/pullr/cmd/apisrv/oauth"
 	"github.com/mobingilabs/pullr/pkg/auth"
 	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/oauth"
 	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	log "github.com/sirupsen/logrus"
@@ -23,12 +23,12 @@ const (
 
 // API implements v1 endpoints
 type API struct {
-	e              *echo.Echo
-	Group          *echo.Group
-	Auth           auth.Authenticator
-	Storage        storage.Storage
-	Conf           *APIConfig
-	OAuthProviders map[string]oauth.Client
+	e            *echo.Echo
+	Group        *echo.Group
+	Auth         auth.Service
+	Storage      storage.Service
+	Conf         *APIConfig
+	OAuthClients map[string]oauth.Client
 }
 
 func (a *API) profile(username string, c echo.Context) error {
@@ -75,7 +75,7 @@ func (a *API) test(c echo.Context) error {
 }
 
 // NewAPI creates an apiV1 instance instance with given dependencies
-func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator auth.Authenticator, storage storage.Storage, conf *APIConfig) *API {
+func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator auth.Service, storage storage.Service, conf *APIConfig) *API {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowCredentials: true,
 		// TODO: make origins configurable
@@ -86,12 +86,12 @@ func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator 
 
 	g := e.Group("/api/v1")
 	api := &API{
-		e:              e,
-		Group:          g,
-		Auth:           authenticator,
-		Storage:        storage,
-		Conf:           conf,
-		OAuthProviders: oauthProviders,
+		e:            e,
+		Group:        g,
+		Auth:         authenticator,
+		Storage:      storage,
+		Conf:         conf,
+		OAuthClients: oauthProviders,
 	}
 
 	g.Use(srv.ErrorHandler)
@@ -101,8 +101,8 @@ func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator 
 	g.GET("/profile", api.authenticated(api.profile))
 
 	// OAuth
-	g.GET("/oauth/:provider/url", api.authenticated(api.OAuthLoginURL))
-	g.GET("/oauth/:provider/cb/:id", api.OAuthCb)
+	g.GET("/oauth/:provider/url", api.authenticated(api.oauthLoginURL))
+	g.GET("/oauth/:provider/cb/:id", api.oauthCb)
 
 	// VCS
 	g.GET("/vcs/:provider/organisations", api.authenticated(api.vcsOrganisations))

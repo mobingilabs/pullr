@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mobingilabs/pullr/pkg/comm"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/jobq"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	"github.com/mobingilabs/pullr/pkg/vcs/github"
 	log "github.com/sirupsen/logrus"
@@ -19,8 +19,8 @@ import (
 
 // APIV1 implements eventsrv api version 1
 type APIV1 struct {
-	Storage storage.Storage
-	Queue   comm.JobTransporter
+	Storage storage.Service
+	Queue   jobq.Service
 	Group   *echo.Group
 }
 
@@ -122,10 +122,9 @@ func getDockerTag(commit *vcs.CommitInfo, tags []domain.ImageTag) string {
 }
 
 // NewAPIV1 creates a v1 api instance with given dependencies
-func NewAPIV1(e *echo.Echo, storage storage.Storage, queue comm.JobTransporter) *APIV1 {
+func NewAPIV1(e *echo.Echo, storage storage.Service, queue jobq.Service) *APIV1 {
 	g := e.Group("/v1")
 
-	// TODO: Handle other storage options
 	api := &APIV1{
 		Group:   g,
 		Storage: storage,

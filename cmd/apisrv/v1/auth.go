@@ -15,7 +15,7 @@ type creds struct {
 
 type authenticatedHandlerFunc func(user string, c echo.Context) error
 
-func (a *API) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
+func (a *API) authenticated(handler authenticatedHandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		authToken := c.Request().Header.Get(echo.HeaderAuthorization)
 		authToken = strings.TrimPrefix(authToken, "Bearer ")
@@ -34,7 +34,7 @@ func (a *API) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
 		}
 
 		setAuthSecrets(c, newSecrets)
-		return h(user, c)
+		return handler(user, c)
 	}
 }
 

@@ -87,7 +87,7 @@ func ErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 			e.Status = http.StatusConflict
 			e.Msg = "Username is taken by another user"
 
-		// Storage errors
+		// Service errors
 		case storage.ErrNotFound:
 			e.Kind = "ERR_RESOURCE_NOTFOUND"
 			e.Status = http.StatusNotFound
