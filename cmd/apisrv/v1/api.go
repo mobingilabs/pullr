@@ -75,7 +75,7 @@ func (a *API) test(c echo.Context) error {
 }
 
 // NewAPI creates an apiV1 instance instance with given dependencies
-func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator auth.Service, storage storage.Service, conf *APIConfig) *API {
+func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authenticator auth.Service, storage storage.Service, conf *APIConfig) *API {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowCredentials: true,
 		// TODO: make origins configurable
@@ -91,7 +91,7 @@ func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator 
 		Auth:         authenticator,
 		Storage:      storage,
 		Conf:         conf,
-		OAuthClients: oauthProviders,
+		OAuthClients: oauthClients,
 	}
 
 	g.Use(srv.ErrorHandler)

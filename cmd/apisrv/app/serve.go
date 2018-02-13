@@ -66,10 +66,9 @@ func serve(cmd *cobra.Command, args []string) error {
 	e.GET("/", srv.CopyrightHandler())
 	e.GET("/version", srv.VersionHandler(version))
 
-	// routes
-	providers := map[string]oauth.Client{}
-	providers["github"] = github.New(conf.GithubClientID, conf.GithubSecret)
-	v1.NewAPI(e, providers, auth, storage, conf)
+	oauthClients := map[string]oauth.Client{}
+	oauthClients["github"] = github.New(conf.GithubClientID, conf.GithubSecret)
+	_ = v1.NewAPI(e, oauthClients, auth, storage, conf)
 
 	// serve
 	port := viper.GetInt("port")
