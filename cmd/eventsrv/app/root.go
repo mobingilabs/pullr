@@ -1,19 +1,13 @@
 package app
 
 import (
-	goflag "flag"
-
 	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 )
 
 var (
 	rootCmd = &cobra.Command{
 		Short: "Webhook server for pullr.io",
 		Long:  "Webhook server for pullr.io",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			goflag.Parse()
-		},
 	}
 )
 
@@ -23,9 +17,9 @@ func init() {
 		ServeCmd(),
 	)
 
-	flag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 }
 
+// Execute runs the application
 func Execute() error {
 	return rootCmd.Execute()
 }

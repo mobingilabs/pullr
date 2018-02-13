@@ -1,11 +1,10 @@
 package main
 
 import (
-	"github.com/golang/glog"
 	"github.com/mobingilabs/pullr/cmd/apisrv/app"
+	"github.com/mobingilabs/pullr/pkg/errs"
 )
 
 func main() {
-	glog.CopyStandardLogTo("INFO")
-	app.Execute()
+	errs.Fatal(app.Execute())
 }

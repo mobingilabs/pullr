@@ -11,6 +11,10 @@ type Job interface {
 	// persistent queue
 	Finish() error
 
+	// Reject tells JobTransporter something went wrong while processing the job
+	// so it can reschedule the job
+	Reject() error
+
 	// Body returns the actual job content, it is a valid json structure
 	Body() []byte
 }

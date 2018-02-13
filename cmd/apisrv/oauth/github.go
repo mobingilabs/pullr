@@ -11,44 +11,49 @@ import (
 	"github.com/mobingilabs/pullr/pkg/srv"
 )
 
+// Github is an OAuth provider
 type Github struct {
-	clientId string
+	clientID string
 	secret   string
 }
 
-func NewGithub(clientId, secret string) *Github {
-	return &Github{clientId, secret}
+// NewGithub creates a new github oauth implementation instance
+func NewGithub(clientID, secret string) *Github {
+	return &Github{clientID, secret}
 }
 
+// Name reports oauth provider's name
 func (g *Github) Name() string {
 	return "github"
 }
 
-func (g *Github) LoginUrl(cbUrl string) string {
+// LoginURL reports login url for the oauth provider instance
+func (g *Github) LoginURL(cbURL string) string {
 	scopes := []string{"admin:repo_hook", "read:org", "repo"}
 
 	params := url.Values{
-		"client_id":    {g.clientId},
+		"client_id":    {g.clientID},
 		"scope":        {strings.Join(scopes, " ")},
-		"redirect_uri": {cbUrl},
+		"redirect_uri": {cbURL},
 	}.Encode()
 
 	return fmt.Sprintf("https://github.com/login/oauth/authorize?%s", params)
 }
 
+// HandleCb is handles github's callback request to fetch oauth token
 func (g *Github) HandleCb(c echo.Context) (string, error) {
 	code := c.QueryParam("code")
 	if code == "" || strings.TrimSpace(code) == "" {
 		return "", srv.NewErrMissingParam("code")
 	}
 	params := url.Values{
-		"client_id":     {g.clientId},
+		"client_id":     {g.clientID},
 		"client_secret": {g.secret},
 		"code":          {code},
 	}.Encode()
 
-	reqUrl := fmt.Sprintf("https://github.com/login/oauth/access_token?%s", params)
-	req, err := http.NewRequest(http.MethodPost, reqUrl, nil)
+	reqURL := fmt.Sprintf("https://github.com/login/oauth/access_token?%s", params)
+	req, err := http.NewRequest(http.MethodPost, reqURL, nil)
 	if err != nil {
 		return "", err
 	}

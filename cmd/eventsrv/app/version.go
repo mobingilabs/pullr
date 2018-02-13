@@ -8,6 +8,7 @@ import (
 
 var version = "?"
 
+// VersionCmd creates the version command
 func VersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",

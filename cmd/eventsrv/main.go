@@ -2,13 +2,11 @@ package main
 
 import (
 	"github.com/mobingilabs/pullr/cmd/eventsrv/app"
+	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	app.Execute()
-
-	// r := mux.NewRouter()
-	// api := r.PathPrefix("/api").Subrouter()
-	// api.HandleFunc("/github", LogRequest("githubHandler", githubHandler)).Methods("POST")
-	// api.HandleFunc("/version", LogRequest("version", version))
+	errs.SetLogger(logrus.StandardLogger())
+	errs.Fatal(app.Execute())
 }

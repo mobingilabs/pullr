@@ -2,10 +2,12 @@ package auth
 
 import (
 	"errors"
+	"io"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
+// Authentication errors
 var (
 	ErrCredentials     = errors.New("credentials are not met")
 	ErrUsernameTaken   = errors.New("username has already taken")
@@ -26,6 +28,8 @@ type Secrets struct {
 // the response, please keep that in mind and never expose any user secrets
 // with the token.
 type Authenticator interface {
+	io.Closer
+
 	// Validate checks if the given tokens are valid and then updates the tokens
 	// for further requests and also returns token's subject
 	Validate(refreshToken, authToken string) (*Secrets, string, error)
@@ -48,7 +52,7 @@ type Authenticator interface {
 
 	// NewOAuthCbIdentifier generates an identifier for the given user to use with
 	// oauth providers login mechanism
-	NewOAuthCbIdentifier(username, provider, redirectUri string) (OAuthCbIdentifier, error)
+	NewOAuthCbIdentifier(username, provider, redirectURI string) (OAuthCbIdentifier, error)
 
 	// OAuthUserFromIdentifier reports back the user identity from given oauth
 	// identifier
@@ -70,6 +74,6 @@ type Token struct {
 type OAuthCbIdentifier struct {
 	Username    string `bson:"username"`
 	Provider    string `bson:"provider"`
-	Uuid        string `bson:"uuid"`
-	RedirectUri string `bson:"redirect_uri"`
+	UUID        string `bson:"uuid"`
+	RedirectURI string `bson:"redirect_uri"`
 }

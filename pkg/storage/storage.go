@@ -2,15 +2,26 @@ package storage
 
 import (
 	"errors"
+	"io"
 	"time"
 
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
+// Directions
+const (
+	Asc  Direction = "asc"
+	Desc           = "desc"
+)
+
+// Storage errors
+var (
+	ErrNotFound = errors.New("not found")
+)
+
 // Storage represents different kind operations on the database
 type Storage interface {
-	// Close will shutdown the connection to storage server if any exists
-	Close() error
+	io.Closer
 
 	// FindImageByKey finds an image by its key
 	FindImageByKey(key string) (domain.Image, error)
@@ -45,12 +56,6 @@ type Storage interface {
 // Direction defines ordering/sorting direction
 type Direction string
 
-// Directions
-const (
-	Asc  Direction = "asc"
-	Desc           = "desc"
-)
-
 // ListOptions is used for queries expected to report multiple records
 type ListOptions struct {
 	PerPage       int       `query:"per_page"`
@@ -68,16 +73,12 @@ type Pagination struct {
 	PerPage int `json:"per_page"`
 }
 
-var (
-	ErrNotFound = errors.New("not found")
-)
-
 // NewListOptions creates a new list options object
 func NewListOptions(perPage, page int, sortBy string, sortDirection Direction) *ListOptions {
 	return &ListOptions{perPage, page, sortBy, sortDirection}
 }
 
-// PerPage reports items per page for listing default value is 20
+// GetPerPage reports items per page for listing default value is 20
 func (o *ListOptions) GetPerPage() int {
 	if o == nil {
 		return 20
@@ -86,7 +87,7 @@ func (o *ListOptions) GetPerPage() int {
 	return o.PerPage
 }
 
-// Page reports current page for listing default value is 0
+// GetPage reports current page for listing default value is 0
 func (o *ListOptions) GetPage() int {
 	if o == nil {
 		return 0
@@ -95,7 +96,7 @@ func (o *ListOptions) GetPage() int {
 	return o.Page
 }
 
-// SortBy reports sorting column for listing default is empty string
+// GetSortBy reports sorting column for listing default is empty string
 func (o *ListOptions) GetSortBy() string {
 	if o == nil {
 		return ""
@@ -104,7 +105,7 @@ func (o *ListOptions) GetSortBy() string {
 	return o.SortBy
 }
 
-// SortDirection reports sorting direction for listing default is ascending
+// GetSortDirection reports sorting direction for listing default is ascending
 func (o *ListOptions) GetSortDirection() Direction {
 	if o == nil {
 		return Asc

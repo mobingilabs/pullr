@@ -1,24 +1,34 @@
 package domain
 
+// BuildQueue is the queue name for build jobs
 const BuildQueue = "pullr-image-build"
 
-type BaseImage struct {
-	Source string `json:"source"`
-	Action string `json:"action"`
+// BaseJob defines necessary information for all the jobs
+type BaseJob struct {
+	Source string `json:"source" valid:"required"`
+	Action string `json:"action" valid:"required"`
 }
 
+// BuildImageJob describes necessary information to build a docker image
 type BuildImageJob struct {
-	BaseImage
-	ImageKey string `json:"image_key"`
+	BaseJob
+	ImageKey   string `json:"image_key" valid:"required"`
+	DockerTag  string `json:"tag" valid:"required"`
+	CommitRef  string `json:"ref" valid:"required"`
+	CommitHash string `json:"hash" valid:"required"`
 }
 
-func NewBuildImageJob(source, imageKey string) BuildImageJob {
+// NewBuildImageJob creates a new job for building an image
+func NewBuildImageJob(source, imageKey, ref, hash, dockerTag string) BuildImageJob {
 	return BuildImageJob{
-		BaseImage: BaseImage{
+		BaseJob: BaseJob{
 			Source: source,
 			Action: "build",
 		},
 
-		ImageKey: imageKey,
+		ImageKey:   imageKey,
+		CommitRef:  ref,
+		DockerTag:  dockerTag,
+		CommitHash: hash,
 	}
 }

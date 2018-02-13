@@ -2,89 +2,61 @@ package github
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"os/exec"
 
 	"github.com/google/go-github/github"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/vcs"
 	"golang.org/x/oauth2"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
-// Client version control system
+// Client encapsulates authenticated GithubAPI requests
 type Client struct {
-	Token string
+	Username string
+	Token    string
 }
 
-// NewClient creates an unauthenticated Client
-func NewClient() *Client {
-	return &Client{}
+// NewClientWithToken creates an authenticated GithubAPI client
+func NewClientWithToken(username, token string) *Client {
+	return &Client{Username: username, Token: token}
 }
 
-// NewClientWithToken creates an authenticated Client
-func NewClientWithToken(token string) *Client {
-	return &Client{Token: token}
-}
-
-// CheckFileExists checks if the given path is exists on the repository
+// CheckFileExists checks a repository if the given file path exists or not
 func (g *Client) CheckFileExists(ctx context.Context, repository domain.Repository, path string, ref string) (bool, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", repository.Owner, repository.Name, path, ref)
-
-	request, err := http.NewRequest("HEAD", url, nil)
-	request = request.WithContext(ctx)
+	cl := newAuthenticatedClient(ctx, g.Token)
+	reader, err := cl.Repositories.DownloadContents(ctx, repository.Owner, repository.Name, path, &github.RepositoryContentGetOptions{Ref: ref})
 	if err != nil {
-		return false, err
+		return false, nil
 	}
-
-	if g.Token != "" {
-		request.Header.Add("Authorization", fmt.Sprintf("token %s", g.Token))
-	}
-
-	client := &http.Client{}
-	res, err := client.Do(request)
-	if err != nil {
-		return false, err
-	}
-	defer res.Body.Close()
-
-	// http status code 200 means the file is exists
-	return res.StatusCode == 200, nil
+	errs.Log(reader.Close())
+	return true, nil
 }
 
-// CloneRepository will clone repository on the disk in given path
-func (g *Client) CloneRepository(ctx context.Context, repository domain.Repository, clonePath string, ref string) ([]byte, error) {
-	// FIXME: This will save token to .git/config, possible security risk, altough we gonna remove the directory after build
-	var cloneURL string
-	if g.Token != "" {
-		cloneURL = fmt.Sprintf("https://%s@github.com/%s/%s.git", g.Token, repository.Owner, repository.Name)
-	} else {
-		cloneURL = fmt.Sprintf("https://git@github.com/%s/%s.git", repository.Owner, repository.Name)
-	}
-
-	cloneCmd := exec.Command("git", "clone", cloneURL, clonePath)
-	if err := cloneCmd.Run(); err != nil {
-		return nil, err
-	}
-
-	checkoutCmd := exec.CommandContext(ctx, "git", "checkout", ref)
-	checkoutCmd.Dir = clonePath
-
-	stdoutReader, err := checkoutCmd.StdoutPipe()
+// CloneRepository clones the repository content to given path
+func (g *Client) CloneRepository(ctx context.Context, repository domain.Repository, clonePath string, ref string) error {
+	repo, err := git.PlainClone(clonePath, false, &git.CloneOptions{
+		Auth: &http.BasicAuth{
+			Username: g.Username,
+			Password: g.Token,
+		},
+	})
 	if err != nil {
-		return nil, checkoutCmd.Run()
+		return err
 	}
 
-	cmdErr := checkoutCmd.Run()
-
-	var logBytes []byte
-	if _, err = stdoutReader.Read(logBytes); err != nil {
-		logBytes = nil
+	wt, err := repo.Worktree()
+	if err != nil {
+		return err
 	}
 
-	return logBytes, cmdErr
+	return wt.Checkout(&git.CheckoutOptions{Hash: plumbing.NewHash(ref)})
 }
 
+// ListOrganisations fetches authenticated user's organisations
 func (g *Client) ListOrganisations(ctx context.Context) ([]string, error) {
 	if g.Token == "" {
 		return nil, vcs.ErrAuthRequired
@@ -116,6 +88,7 @@ func (g *Client) ListOrganisations(ctx context.Context) ([]string, error) {
 	return orgNames, nil
 }
 
+// ListRepositories fetches authenticated user's repositories
 func (g *Client) ListRepositories(ctx context.Context, organisation string) ([]string, error) {
 	if g.Token == "" {
 		return nil, vcs.ErrAuthRequired

@@ -8,17 +8,20 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/vcs"
 )
 
 // Github provides Vcs functionality
 type Github struct{}
 
+// New creates a Github instance
 func New() *Github {
 	return &Github{}
 }
 
-// ExtractCommitInfo read webhook request payload and tries to extract commit info out of it
+// ExtractCommitInfo parses the given WebhookRequest and reports back the
+// commit info.
 func (*Github) ExtractCommitInfo(r *vcs.WebhookRequest) (*vcs.CommitInfo, error) {
 	switch r.Event {
 	case vcs.PushEvent:
@@ -40,10 +43,10 @@ func (*Github) ParseWebhookRequest(r *http.Request) (*vcs.WebhookRequest, error)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer errs.Log(r.Body.Close())
 
 	webhookRequest := &vcs.WebhookRequest{
 		Event: event,
@@ -60,18 +63,19 @@ func extractCommitInfoPushPayload(r *vcs.WebhookRequest) (*vcs.CommitInfo, error
 	}
 
 	// Parse push type
-	parts := strings.Split(event.GetRef(), "/")
-	refType := ""
-	refName := ""
-	if len(parts) == 3 {
-		if parts[1] == "tag" {
-			refType = vcs.Tag
-		} else {
-			refType = vcs.Branch
-		}
-
-		refName = parts[len(parts)-1]
+	refParts := strings.Split(event.GetRef(), "/")
+	if len(refParts) != 3 {
+		return nil, vcs.ErrInvalidWebhookPayload
 	}
+
+	var refType vcs.RefType
+	if refParts[1] == "tag" {
+		refType = vcs.Tag
+	} else {
+		refType = vcs.Branch
+	}
+
+	refName := refParts[len(refParts)-1]
 
 	commitInfo := &vcs.CommitInfo{
 		Author:    event.Commits[0].Author.GetName(),

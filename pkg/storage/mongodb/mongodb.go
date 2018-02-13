@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	usersC   = "users"
-	imagesC  = "images"
-	historyC = "history"
+	usersC  = "users"
+	imagesC = "images"
 )
 
 // MongoDB is a `pullr.Storage` implementation for MongoDB
@@ -44,7 +43,7 @@ func (s *MongoDB) Close() error {
 	return nil
 }
 
-// FindImageByRepository implements Storage.FindImageByRepository
+// FindImageByKey implements Storage.FindImageByRepository
 func (s *MongoDB) FindImageByKey(key string) (domain.Image, error) {
 	col := s.Db.C(imagesC)
 
@@ -62,6 +61,9 @@ func (s *MongoDB) FindAllImages(username string, opts *storage.ListOptions) ([]d
 
 	query := bson.M{"owner": username}
 	count, err := col.Find(query).Count()
+	if err != mgo.ErrNotFound {
+		return nil, pagination, err
+	}
 
 	page := opts.GetPage()
 	perPage := opts.GetPerPage()
@@ -121,10 +123,10 @@ func (s *MongoDB) PutUserToken(username, provider, token string) error {
 	}
 
 	if usr.Tokens == nil {
-		usr.Tokens = make(map[string]string)
+		usr.Tokens = make(map[string]domain.UserToken)
 	}
 
-	usr.Tokens[provider] = token
+	usr.PutToken(provider, username, token)
 	return s.UpdateUser(username, usr)
 }
 

@@ -1,34 +1,51 @@
 package domain
 
 import (
-	"log"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
+// UserToken represents acquired oauth tokens
+type UserToken struct {
+	ID       string `json:"-" bson:"_id"`
+	Username string `json:"username" bson:"username"`
+	Token    string `json:"token" bson:"password"`
+}
+
 // User defines both user authentication and relation
 type User struct {
-	// Username is unique by user
-	Username string `json:"username" bson:"username,omitempty"`
-	// Password is hash of the user's password
-	Password []byte `json:"password,omitempty" bson:"password,omitempty"`
-	// Tokens are 3rd party service provider tokens
-	Tokens map[string]string `json:"tokens" bson:"tokens,omitempty"`
+	Username       string               `json:"username" bson:"username,omitempty"`
+	HashedPassword []byte               `json:"password,omitempty" bson:"password,omitempty"`
+	Tokens         map[string]UserToken `json:"tokens" bson:"tokens,omitempty"`
 }
 
-func (u User) SetPassword(password string) error {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+// ComparePassword is the secure way to check if the given password is a match
+// with user's password.
+func (u User) ComparePassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword(u.HashedPassword, []byte(password))
+	return err == nil
+}
+
+// PutToken appends the given pair of username and oauth token to user's token
+// collection.
+func (u *User) PutToken(provider, username, token string) {
+	if u.Tokens == nil {
+		u.Tokens = make(map[string]UserToken)
 	}
 
-	u.Password = hash
-	return nil
+	u.Tokens[provider] = UserToken{Username: username, Token: token}
 }
 
-func (u User) ComparePassword(password string) bool {
-	pass, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	log.Printf("%s == %s", u.Password, pass)
-	err := bcrypt.CompareHashAndPassword(u.Password, []byte(password))
-	return err == nil
+// Token reports an oauth token by the given provider from user's token
+// collection
+func (u User) Token(provider string) *UserToken {
+	if u.Tokens == nil {
+		return nil
+	}
+
+	token, ok := u.Tokens[provider]
+	if !ok {
+		return nil
+	}
+
+	return &token
 }

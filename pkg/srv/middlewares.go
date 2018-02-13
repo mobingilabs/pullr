@@ -3,31 +3,27 @@ package srv
 import (
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/labstack/echo"
-	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
+// ElapsedMiddleware logs elapsed time while handling the request
 func ElapsedMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cid := uuid.NewV4().String()
-			c.Set("contextid", cid)
-			c.Set("starttime", time.Now())
+			startTime := time.Now()
 
-			// Helper func to print the elapsed time since this middleware. Good to call at end of
-			// request handlers, right before/after replying to caller.
-			c.Set("fnelapsed", func(ctx echo.Context) {
-				start := ctx.Get("starttime").(time.Time)
-				glog.Infof("<-- %v, delta: %v", ctx.Get("contextid"), time.Now().Sub(start))
-			})
+			res := next(c)
 
-			glog.Infof("--> %v", cid)
-			return next(c)
+			elapsed := time.Since(startTime)
+			log.Infof("%s %s %d took %s", c.Request().Method, c.Request().URL.Path, c.Response().Status, elapsed)
+
+			return res
 		}
 	}
 }
 
+// ServerHeaderMiddleware adds server name to response headers
 func ServerHeaderMiddleware(srvName string, version string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

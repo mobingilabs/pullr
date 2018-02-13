@@ -7,7 +7,7 @@ services:
     environment:
     - MONGO_DATA_DIR=/data/db
     volumes:
-    - "/var/tmp/pullr/mongodb:/data/db"
+    - "/Users/umurgdk/Work/mobingi/pullr/mongodb:/data/db"
     ports:
     - "27017:27017"
   tokenserver:
@@ -21,11 +21,49 @@ services:
     - "./registry/tokenserver:/config:ro"
     depends_on:
     - mongodb
-  apiserver:
-    container_name: apiserver
-    image: pullrapiserver
+  apisrv:
+    container_name: apisrv
+    image: pullr-apisrv:localdev
+    command: serve
+    volumes:
+    - "./certs:/certs:ro"
+    environment:
+    - PORT=8080
+    - AUTHSTORAGE=http://mongodb:27017
+    - STORAGE=http://mongodb:27017
+    - REDIRECT_WHITELIST=http://188.166.71.32
+    - SERVER_URL=http://188.166.71.32
+    - FRONTEND_URL=http://188.166.71.32
+    - GITHUB_CLIENT=3d80f42bb8bed7caa9de
+    - GITGUB_SECRET=4f8ce81cd83fee2c1ed7bef0a70f31bf3a46548c
+    - CERTS=/certs
     ports:
     - "8080:8080"
+    depends_on:
+    - mongodb
+  eventsrv:
+    container_name: eventsrv
+    image: pullr-eventsrv:localdev
+    command: serve
+    depends_on:
+    - mongodb
+    - mqueue
+  buildctl:
+    container_name: buildctl
+    image: pullr-buildctl:localdev
+    volumes:
+    - ./tmp/src:/data/src
+    environment:
+    - AMQP=amqp://mqueue:5672
+    - STORAGE=http://mongodb:27017
+    - CLONE_DIR=/data/src
+    - REG_USERNAME=$REG_USERNAME
+    - REG_PASSWORD=$REG_PASSWORD
+    - REGISTRY=http://registry:5000
+    depends_on:
+    - registry
+    - mqueue
+    - mongodb
   registry:
     container_name: registry2
     image: registry:2
@@ -37,7 +75,6 @@ services:
     - "/var/tmp/pullr/registry:/var/lib/registry:rw"
     depends_on:
     - tokenserver
-    - apiserver
   mqueue:
     container_name: mqueue
     image: rabbitmq

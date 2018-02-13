@@ -15,6 +15,12 @@ func (j *Job) Finish() error {
 	return j.msg.Ack(false)
 }
 
+// Reject tells JobTransporter something went wrong while processing the job
+// so it can reschedule the job
+func (j *Job) Reject() error {
+	return j.msg.Reject(true)
+}
+
 // Body reports the job's content. It is a valid json document
 func (j *Job) Body() []byte {
 	return j.msg.Body

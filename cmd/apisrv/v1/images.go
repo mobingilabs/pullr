@@ -11,7 +11,7 @@ import (
 	"github.com/mobingilabs/pullr/pkg/storage"
 )
 
-func (a *apiv1) imagesGet(user string, c echo.Context) error {
+func (a *API) imagesGet(user string, c echo.Context) error {
 	key := c.Param("key")
 	if key == "" {
 		return c.NoContent(http.StatusBadRequest)
@@ -25,9 +25,12 @@ func (a *apiv1) imagesGet(user string, c echo.Context) error {
 	return c.JSON(http.StatusOK, image)
 }
 
-func (a *apiv1) imagesIndex(username string, c echo.Context) (err error) {
-	var images []domain.Image
-	var pagination storage.Pagination
+type indexResponse struct {
+	Images     []domain.Image     `json:"images"`
+	Pagination storage.Pagination `json:"pagination"`
+}
+
+func (a *API) imagesIndex(username string, c echo.Context) error {
 	if sinceQuery := c.QueryParam("since"); sinceQuery != "" {
 		i, err := strconv.ParseInt(sinceQuery, 10, 64)
 		if err != nil {
@@ -35,33 +38,35 @@ func (a *apiv1) imagesIndex(username string, c echo.Context) (err error) {
 		}
 
 		since := time.Unix(i, 0)
-		images, err = a.Storage.FindAllImagesSince(username, since)
-	} else {
-		listOpts := new(storage.ListOptions)
-		if err := c.Bind(listOpts); err != nil {
-			listOpts = nil
+		images, err := a.Storage.FindAllImagesSince(username, since)
+		if err != nil {
+			return err
 		}
 
-		images, pagination, err = a.Storage.FindAllImages(username, listOpts)
+		// Make sure it is an empty array instead of nil
+		images = append([]domain.Image{}, images...)
+
+		return c.JSON(http.StatusOK, indexResponse{images, storage.Pagination{}})
+
 	}
 
+	listOpts := new(storage.ListOptions)
+	if err := c.Bind(listOpts); err != nil {
+		listOpts = nil
+	}
+
+	images, pagination, err := a.Storage.FindAllImages(username, listOpts)
 	if err != nil {
 		return err
 	}
 
-	if images == nil {
-		images = []domain.Image{}
-	}
+	// Make sure it is an empty array instead of nil
+	images = append([]domain.Image{}, images...)
 
-	res := struct {
-		Images     []domain.Image     `json:"images"`
-		Pagination storage.Pagination `json:"pagination"`
-	}{images, pagination}
-
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, indexResponse{images, pagination})
 }
 
-func (a *apiv1) imagesCreate(user string, c echo.Context) error {
+func (a *API) imagesCreate(user string, c echo.Context) error {
 	payload := new(domain.Image)
 	if err := c.Bind(payload); err != nil {
 		return c.NoContent(http.StatusBadRequest)
@@ -78,7 +83,7 @@ func (a *apiv1) imagesCreate(user string, c echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]string{"key": imageKey})
 }
 
-func (a *apiv1) imagesDelete(user string, c echo.Context) error {
+func (a *API) imagesDelete(user string, c echo.Context) error {
 	imageKey := strings.TrimSpace(c.Param("key"))
 	if imageKey == "" {
 		return c.NoContent(http.StatusNotFound)
@@ -100,7 +105,7 @@ func (a *apiv1) imagesDelete(user string, c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (a *apiv1) imagesUpdate(user string, c echo.Context) error {
+func (a *API) imagesUpdate(user string, c echo.Context) error {
 	key := strings.TrimSpace(c.Param("key"))
 	if key == "" {
 		return c.NoContent(http.StatusNotFound)

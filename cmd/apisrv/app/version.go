@@ -6,10 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "?"
+var (
+	version = "?"
+)
 
+// VersionCmd creates a command to print version of the application
 func VersionCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "version",
 		Short: "Print the version information.",
 		Long:  `Print the version information.`,
@@ -17,6 +20,4 @@ func VersionCmd() *cobra.Command {
 			fmt.Print(version)
 		},
 	}
-
-	return cmd
 }

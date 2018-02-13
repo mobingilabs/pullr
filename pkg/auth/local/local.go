@@ -9,6 +9,8 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/mobingilabs/pullr/pkg/auth"
+	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
@@ -23,13 +25,6 @@ type Authenticator struct {
 	// TODO: Is it safe to keep these keys in memory?
 	signKey   *rsa.PrivateKey
 	verifyKey *rsa.PublicKey
-}
-
-// User credentials for auth
-type User struct {
-	Id       bson.ObjectId `bson:"_id,omitempty"`
-	Username string        `bson:"username"`
-	Password string        `bson:"password"`
 }
 
 const (
@@ -69,8 +64,9 @@ func New(conn *mgo.Session, privKeyPath string, pubKeyPath string) (*Authenticat
 }
 
 // Close closes the mongodb connection
-func (a *Authenticator) Close() {
+func (a *Authenticator) Close() error {
 	a.conn.Close()
+	return nil
 }
 
 // Validate reports back the extracted username from the JWT token if the token
@@ -89,7 +85,6 @@ func (a *Authenticator) Validate(refreshToken, authToken string) (*auth.Secrets,
 
 	var err error
 	newAuthToken := authToken
-	newRefreshToken := ""
 
 	if !authJwt.Valid {
 		ve, ok := authParseErr.(*jwt.ValidationError)
@@ -104,7 +99,7 @@ func (a *Authenticator) Validate(refreshToken, authToken string) (*auth.Secrets,
 		}
 	}
 
-	newRefreshToken, err = a.updateRefreshToken(refreshJwt)
+	newRefreshToken, err := a.updateRefreshToken(refreshJwt)
 	if err != nil {
 		return nil, "", err
 	}
@@ -120,9 +115,8 @@ func (a *Authenticator) Validate(refreshToken, authToken string) (*auth.Secrets,
 // Login will generate a new JWT token for the given user
 func (a *Authenticator) Login(username, password string) (*auth.Secrets, error) {
 	col := a.db.C("users")
-	var user User
-	err := col.Find(bson.M{"username": username}).One(&user)
-	if err != nil {
+	usr := new(domain.User)
+	if err := col.Find(bson.M{"username": username}).One(usr); err != nil {
 		if err == mgo.ErrNotFound {
 			return nil, auth.ErrCredentials
 		}
@@ -130,7 +124,7 @@ func (a *Authenticator) Login(username, password string) (*auth.Secrets, error) 
 		return nil, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if !usr.ComparePassword(password) {
 		return nil, auth.ErrCredentials
 	}
 
@@ -152,6 +146,7 @@ func (a *Authenticator) Login(username, password string) (*auth.Secrets, error) 
 	return secrets, nil
 }
 
+// Register creates a user record
 func (a *Authenticator) Register(username, password string) error {
 	users := a.db.C("users")
 	numUsers, err := users.Find(bson.M{"username": username}).Count()
@@ -164,42 +159,44 @@ func (a *Authenticator) Register(username, password string) error {
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err := users.Insert(bson.M{"username": username, "password": hashedPassword}); err != nil {
+	if err != nil {
 		return err
 	}
 
-	return nil
+	return users.Insert(bson.M{"username": username, "password": hashedPassword})
 }
 
+// ParseToken parses given jwt token data
 func (a *Authenticator) ParseToken(token string, claims jwt.Claims) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(token, claims, a.keyFunc)
 }
 
+// SignToken signs the given jwt token
 func (a *Authenticator) SignToken(token *jwt.Token) (string, error) {
 	return token.SignedString(a.signKey)
 }
 
+// NewToken creates a new jwt token
 func (a *Authenticator) NewToken(claims jwt.Claims) *jwt.Token {
 	return jwt.NewWithClaims(signingMethod, claims)
 }
 
 // NewOAuthCbIdentifier generates an identifier for the given user to use with
 // oauth providers login mechanism
-func (a *Authenticator) NewOAuthCbIdentifier(username, provider, redirectUri string) (auth.OAuthCbIdentifier, error) {
+func (a *Authenticator) NewOAuthCbIdentifier(username, provider, redirectURI string) (auth.OAuthCbIdentifier, error) {
 	ids := a.db.C("oauth_ids")
-	newId := uuid.NewV1().String()
+	newUUID := uuid.NewV1().String()
 	cbIdentifier := auth.OAuthCbIdentifier{
 		Provider:    provider,
 		Username:    username,
-		Uuid:        newId,
-		RedirectUri: redirectUri,
+		UUID:        newUUID,
+		RedirectURI: redirectURI,
 	}
 
 	return cbIdentifier, ids.Insert(cbIdentifier)
 }
 
-// OAuthUserFromIdentifier reports back the user identity from given oauth
-// identifier
+// OAuthCbIdentifier finds an temporary oauth callback identifier
 func (a *Authenticator) OAuthCbIdentifier(uuid string) (*auth.OAuthCbIdentifier, error) {
 	ids := a.db.C("oauth_ids")
 	var cbIdentifier auth.OAuthCbIdentifier
@@ -212,6 +209,8 @@ func (a *Authenticator) OAuthCbIdentifier(uuid string) (*auth.OAuthCbIdentifier,
 	return &cbIdentifier, nil
 }
 
+// RemoveOAuthCbIdentifier removes temporary oauth callback record by the given
+// uuid.
 func (a *Authenticator) RemoveOAuthCbIdentifier(uuid string) error {
 	ids := a.db.C("oauth_ids")
 	return ids.Remove(bson.M{"uuid": uuid})
@@ -272,35 +271,32 @@ func (a *Authenticator) createAuthToken(username string) (string, error) {
 	return a.SignToken(token)
 }
 
-func (a *Authenticator) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt.Token) (newToken string, err error) {
+func (a *Authenticator) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt.Token) (string, error) {
 	refreshTokenClaims, ok := refreshToken.Claims.(*jwt.StandardClaims)
 	if !ok {
-		err = auth.ErrInvalidToken
-		return
+		return "", auth.ErrInvalidToken
 	}
 
-	if err = a.checkRefreshToken(refreshTokenClaims.Id); err != nil {
-		return
+	if err := a.checkRefreshToken(refreshTokenClaims.Id); err != nil {
+		return "", err
 	}
 
 	if !refreshToken.Valid {
-		err = auth.ErrInvalidToken
-		a.db.C("refresh_tokens").Remove(bson.M{"jti": refreshTokenClaims.Id})
-		return
+		err := auth.ErrInvalidToken
+		errs.Log(a.db.C("refresh_tokens").Remove(bson.M{"jti": refreshTokenClaims.Id}))
+		return "", err
 	}
 
 	authTokenClaims, ok := oldAuthToken.Claims.(*jwt.StandardClaims)
 	if !ok {
-		err = auth.ErrInvalidToken
-		return
+		return "", auth.ErrInvalidToken
 	}
 
-	newToken, err = a.createAuthToken(authTokenClaims.Subject)
-	return
+	return a.createAuthToken(authTokenClaims.Subject)
 }
 
-func (a *Authenticator) checkRefreshToken(tokenId string) error {
-	numToken, err := a.db.C("refresh_tokens").Find(bson.M{"jti": tokenId}).Count()
+func (a *Authenticator) checkRefreshToken(tokenID string) error {
+	numToken, err := a.db.C("refresh_tokens").Find(bson.M{"jti": tokenID}).Count()
 	if err != nil {
 		return err
 	}

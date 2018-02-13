@@ -23,6 +23,9 @@ acl:
   - match: {account: "user"}
     actions: ["pull"]
     comment: "User \"user\" can pull stuff."
+  - match: {account: "/.+/", name: "${account}/*"}
+    actions: ["*"]
+    comment: "Logged in users have full access to images that are in their 'namespace'"
   # Access is denied by default.
 
 mongo_auth:

@@ -5,84 +5,87 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mobingilabs/pullr/cmd/apisrv/oauth"
 	"github.com/mobingilabs/pullr/pkg/auth"
+	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
+	log "github.com/sirupsen/logrus"
 )
 
-type apiv1 struct {
+// Header names for custom headers
+const (
+	HeaderAuthToken    = "X-Auth-Token"
+	HeaderRefreshToken = "X-Refresh-Token"
+)
+
+// API implements v1 endpoints
+type API struct {
 	e              *echo.Echo
 	Group          *echo.Group
 	Auth           auth.Authenticator
 	Storage        storage.Storage
-	Conf           *ApiConfig
+	Conf           *APIConfig
 	OAuthProviders map[string]oauth.Client
 }
 
-func (a *apiv1) elapsed(c echo.Context) {
-	fn := c.Get("fnelapsed").(func(echo.Context))
-	fn(c)
-}
-
-func (a *apiv1) profile(username string, c echo.Context) error {
-	user, err := a.Storage.FindUser(username)
+func (a *API) profile(username string, c echo.Context) error {
+	usr, err := a.Storage.FindUser(username)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, struct {
-		Username string            `json:"username"`
-		Tokens   map[string]string `json:"tokens"`
-	}{user.Username, user.Tokens})
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"username": usr.Username,
+		"tokens":   usr.Tokens,
+	})
 }
 
-func (a *apiv1) regnotify(c echo.Context) error {
+func (a *API) regnotify(c echo.Context) error {
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		glog.Error(err)
+		log.Error(err)
 	}
 
-	defer c.Request().Body.Close()
-	glog.Info(string(body))
-	c.NoContent(http.StatusOK)
-	return nil
+	defer errs.Log(c.Request().Body.Close())
+	log.Info(string(body))
+	return c.NoContent(http.StatusOK)
 }
 
-func (a *apiv1) test(c echo.Context) error {
-	defer a.elapsed(c)
+func (a *API) test(c echo.Context) error {
 	start := time.Now()
 	resp, err := http.Get("http://oath.default.svc.cluster.local:8080/version")
 	if err != nil {
-		glog.Errorf("get failed: %v", err)
+		log.Errorf("get failed: %v", err)
 		return err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		glog.Errorf("readall failed: %v", err)
+		log.Errorf("readall failed: %v", err)
 		return err
 	}
 
-	defer resp.Body.Close()
-	glog.Infof("body: %v", string(body))
-	glog.Infof("delta: %v", time.Now().Sub(start))
+	defer errs.Log(resp.Body.Close())
+	log.Infof("body: %v", string(body))
+	log.Infof("delta: %v", time.Since(start))
 	return c.NoContent(http.StatusOK)
 }
 
-func NewApiV1(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator auth.Authenticator, storage storage.Storage, conf *ApiConfig) *apiv1 {
+// NewAPI creates an apiV1 instance instance with given dependencies
+func NewAPI(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticator auth.Authenticator, storage storage.Storage, conf *APIConfig) *API {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowCredentials: true,
-		AllowOrigins:     []string{"http://localhost:3000", "https://pullr.io", "https://www.pullr.io"},
-		AllowHeaders:     []string{echo.HeaderAuthorization, echo.HeaderContentType, echo.HeaderAccept, HeaderRefreshToken, "X-Requested-With"},
-		ExposeHeaders:    []string{echo.HeaderContentType, HeaderAuthToken, HeaderRefreshToken},
+		// TODO: make origins configurable
+		AllowOrigins:  []string{"http://localhost:3000", "https://pullr.io", "https://www.pullr.io"},
+		AllowHeaders:  []string{echo.HeaderAuthorization, echo.HeaderContentType, echo.HeaderAccept, HeaderRefreshToken, "X-Requested-With"},
+		ExposeHeaders: []string{echo.HeaderContentType, HeaderAuthToken, HeaderRefreshToken},
 	}))
 
 	g := e.Group("/api/v1")
-	api := &apiv1{
+	api := &API{
 		e:              e,
 		Group:          g,
 		Auth:           authenticator,
@@ -98,12 +101,12 @@ func NewApiV1(e *echo.Echo, oauthProviders map[string]oauth.Client, authenticato
 	g.GET("/profile", api.authenticated(api.profile))
 
 	// OAuth
-	g.GET("/oauth/:provider/url", api.authenticated(api.OAuthLoginUrl))
+	g.GET("/oauth/:provider/url", api.authenticated(api.OAuthLoginURL))
 	g.GET("/oauth/:provider/cb/:id", api.OAuthCb)
 
 	// VCS
-	g.GET("/vcs/:provider/organisations", api.authenticated(api.VcsOrganisations))
-	g.GET("/vcs/:provider/:organisation/repositories", api.authenticated(api.VcsRepositories))
+	g.GET("/vcs/:provider/organisations", api.authenticated(api.vcsOrganisations))
+	g.GET("/vcs/:provider/:organisation/repositories", api.authenticated(api.vcsRepositories))
 
 	// Images
 	g.GET("/images", api.authenticated(api.imagesIndex))

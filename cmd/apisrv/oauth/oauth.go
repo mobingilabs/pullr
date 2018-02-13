@@ -3,7 +3,6 @@ package oauth
 import (
 	"errors"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 )
 
@@ -14,21 +13,17 @@ var (
 	ErrUnexpectedPayload = errors.New("unexpected payload")
 )
 
-type Perm int
-
+// Client is an OAuth provider client. Implementors are responsible for
+// generating proper login urls for the browser as well as handling login
+// callback requests made by the provider
 type Client interface {
 	// Name reports OAuthProvider's name
 	Name() string
 
-	// LoginUrl reports a valid oauth login url for the client to visit
-	LoginUrl(cbUrl string) string
+	// LoginURL reports a valid oauth login url for the client to visit
+	LoginURL(cbURL string) string
 
 	// HandleCb handles callback request made by OAuth provider and reports back
 	// the access token.
 	HandleCb(c echo.Context) (string, error)
-}
-
-type CbClaims struct {
-	jwt.StandardClaims
-	RedirectUri string `json:"redirect_uri"`
 }

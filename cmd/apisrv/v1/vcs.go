@@ -4,23 +4,28 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/golang/glog"
 	"github.com/labstack/echo"
+	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/vcs"
 	"github.com/mobingilabs/pullr/pkg/vcs/github"
 )
 
-func (a *apiv1) VcsOrganisations(username string, c echo.Context) error {
+func (a *API) vcsOrganisations(username string, c echo.Context) error {
 	provider := c.Param("provider")
 	usr, err := a.Storage.FindUser(username)
 	if err != nil {
 		return err
 	}
 
-	vcsClient := getVcsClient(provider, usr.Tokens[provider])
+	token := usr.Token(provider)
+	if token == nil {
+		return srv.NewErr("ERR_OAUTH_LOGIN", http.StatusUnauthorized, "OAuth token for requested vcs provider does not exist")
+	}
+
+	vcsClient := getVcsClient(provider, token)
 	if vcsClient == nil {
-		glog.Errorf("Unsupported vcs provider '%s'", c.Param("provider"))
-		return c.NoContent(http.StatusBadRequest)
+		return srv.NewErrUnsupported("VCS provider '%s'", provider)
 	}
 
 	orgs, err := vcsClient.ListOrganisations(context.Background())
@@ -31,16 +36,21 @@ func (a *apiv1) VcsOrganisations(username string, c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string][]string{"organisations": orgs})
 }
 
-func (a *apiv1) VcsRepositories(username string, c echo.Context) error {
+func (a *API) vcsRepositories(username string, c echo.Context) error {
 	provider := c.Param("provider")
 	usr, err := a.Storage.FindUser(username)
 	if err != nil {
 		return err
 	}
 
-	vcsClient := getVcsClient(provider, usr.Tokens[provider])
+	token := usr.Token(provider)
+	if token == nil {
+		return srv.NewErr("ERR_OAUTH_LOGIN", http.StatusUnauthorized, "OAuth token for requested vcs provider does not exist")
+	}
+
+	vcsClient := getVcsClient(provider, token)
 	if vcsClient == nil {
-		glog.Errorf("Unsupported vcs provider '%s'", c.Param("provider"))
+		return srv.NewErrUnsupported("VCS provider '%s'", provider)
 	}
 
 	organisation := c.Param("organisation")
@@ -52,10 +62,10 @@ func (a *apiv1) VcsRepositories(username string, c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string][]string{"repositories": repos})
 }
 
-func getVcsClient(provider, token string) vcs.Client {
+func getVcsClient(provider string, token *domain.UserToken) vcs.Client {
 	switch provider {
 	case "github":
-		return github.NewClientWithToken(token)
+		return github.NewClientWithToken(token.Username, token.Token)
 	default:
 		return nil
 	}

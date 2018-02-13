@@ -4,10 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/auth"
-	"github.com/mobingilabs/pullr/pkg/srv"
 )
 
 type creds struct {
@@ -16,17 +14,8 @@ type creds struct {
 }
 
 type authenticatedHandlerFunc func(user string, c echo.Context) error
-type tokenKind int
 
-const (
-	HeaderAuthToken    = "X-Auth-Token"
-	HeaderRefreshToken = "X-Refresh-Token"
-
-	TokenAuth tokenKind = iota
-	TokenRefresh
-)
-
-func (a *apiv1) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
+func (a *API) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		authToken := c.Request().Header.Get(echo.HeaderAuthorization)
 		authToken = strings.TrimPrefix(authToken, "Bearer ")
@@ -49,25 +38,7 @@ func (a *apiv1) authenticated(h authenticatedHandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func (a *apiv1) getToken(c echo.Context, kind tokenKind) (*jwt.Token, *jwt.StandardClaims, error) {
-	switch kind {
-	case TokenAuth:
-		bearer := c.Request().Header.Get(echo.HeaderAuthorization)
-		bearer = strings.TrimPrefix(bearer, "Bearer ")
-		claims := new(jwt.StandardClaims)
-		token, err := a.Auth.ParseToken(bearer, claims)
-		return token, claims, err
-	case TokenRefresh:
-		tokenStr := c.Request().Header.Get(HeaderRefreshToken)
-		claims := new(jwt.StandardClaims)
-		token, err := a.Auth.ParseToken(tokenStr, claims)
-		return token, claims, err
-	}
-
-	return nil, nil, srv.NewErr("ERR_INTERNAL", http.StatusInternalServerError, "An unexpected error happened")
-}
-
-func (a *apiv1) login(c echo.Context) error {
+func (a *API) login(c echo.Context) error {
 	credentials := new(creds)
 	if err := c.Bind(credentials); err != nil {
 		return err
@@ -82,7 +53,7 @@ func (a *apiv1) login(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (a *apiv1) register(c echo.Context) error {
+func (a *API) register(c echo.Context) error {
 	credentials := new(creds)
 	if err := c.Bind(credentials); err != nil {
 		return err
@@ -94,8 +65,11 @@ func (a *apiv1) register(c echo.Context) error {
 	}
 
 	secrets, err := a.Auth.Login(credentials.Username, credentials.Password)
-	setAuthSecrets(c, secrets)
+	if err != nil {
+		return err
+	}
 
+	setAuthSecrets(c, secrets)
 	return c.NoContent(http.StatusOK)
 }
 

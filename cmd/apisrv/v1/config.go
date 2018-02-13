@@ -2,56 +2,67 @@ package v1
 
 import (
 	"net/url"
-	"os"
-	"strings"
 
-	"github.com/golang/glog"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
-type ApiConfig struct {
-	GithubClientId    string
+// APIConfig contains several information necessary to run API endpoints
+type APIConfig struct {
+	GithubClientID    string
 	GithubSecret      string
-	ServerUrl         string
-	FrontendUrl       string
+	ServerURL         string
+	FrontendURL       string
 	RedirectWhitelist []string
 }
 
-func ParseConfig() *ApiConfig {
-	redirectWhitelist := mustEnvList("REDIRECT_WHITELIST")
+// AddConfigFlags adds option flags to command line parser to obtain config
+// values from commandline or environment
+func AddConfigFlags(set *pflag.FlagSet) {
+	set.StringSlice("redirect_whitelist", nil, "Whitelist of urls can be redirected after oauth login requests")
+	set.String("github_client", "", "Github client id")
+	set.String("github_secret", "", "Github secret")
+	set.String("server_url", "", "This server's own url")
+	set.String("frontend_url", "", "Frontend url")
+}
+
+// ParseConfig reads commandline options and environment variables to populate
+// APIConfig.
+func ParseConfig() *APIConfig {
+	redirectWhitelist := mustList("redirect_whitelist")
 	for _, u := range redirectWhitelist {
-		mustValidUrl(u)
+		mustValidURL(u)
 	}
 
-	return &ApiConfig{
-		GithubClientId:    mustEnv("GITHUB_CLIENT_ID"),
-		GithubSecret:      mustEnv("GITHUB_SECRET"),
-		ServerUrl:         mustEnv("SERVER_URL"),
-		FrontendUrl:       mustEnv("FRONTEND_URL"),
+	return &APIConfig{
+		GithubClientID:    mustStr("github_client"),
+		GithubSecret:      mustStr("github_secret"),
+		ServerURL:         mustStr("server_url"),
+		FrontendURL:       mustStr("frontend_url"),
 		RedirectWhitelist: redirectWhitelist,
 	}
 }
 
-func mustValidUrl(uri string) {
+func mustValidURL(uri string) {
 	if _, err := url.Parse(uri); err != nil {
-		glog.Fatalf("%s is not a valid url", uri)
+		log.Fatalf("%s is not a valid url", uri)
 	}
 }
 
-func mustEnvList(key string) []string {
-	val := mustEnv(key)
-	list := strings.Split(val, ",")
+func mustList(key string) []string {
+	list := viper.GetStringSlice(key)
 	if len(list) == 0 {
-		glog.Fatalf("%s environment variable required at least one value to run server.", key)
+		log.Fatalf("%s required to have at least one value", key)
 	}
 
 	return list
 }
 
-func mustEnv(key string) string {
-	val, ok := os.LookupEnv(key)
-	if !ok || val == "" {
-		glog.Fatalf("%s environment variable required to run the server.", key)
+func mustStr(key string) string {
+	val := viper.GetString(key)
+	if val == "" {
+		log.Fatalf("%s required to be set", key)
 	}
-
 	return val
 }
