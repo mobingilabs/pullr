@@ -31,7 +31,9 @@ export default class App extends React.Component<Props> {
     checkUser = () => {
         const path = this.props.history.location.pathname;
         console.log(`PATH: ${path}`);
-        if (!this.props.store.init.err && (path === '/login' || path === '/')) {
+        if (this.props.store.init.err) {
+            this.props.history.replace('/login');
+        } else if (!this.props.store.init.err && (path === '/login' || path === '/')) {
             this.props.history.push('/images');
         }
     }

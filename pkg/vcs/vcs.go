@@ -19,7 +19,8 @@ const (
 
 // Webhook events
 const (
-	PushEvent = "push"
+	EventPush = "push"
+	EventPing = "ping"
 )
 
 // WebhookRequest has information to work with wide range
@@ -68,4 +69,7 @@ type Client interface {
 
 	// ListRepositories fetches authenticated user's repositories
 	ListRepositories(ctx context.Context, organisation string) ([]string, error)
+
+	// RegisterWebhook will register pullr as a webhook subscriber
+	RegisterWebhook(ctx context.Context, repo domain.Repository, uri string) error
 }

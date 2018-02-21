@@ -1,0 +1,34 @@
+http:
+  port: 8080
+  alloworigins:
+    - http://*.pullr.local
+    - https://*.pullr.local
+
+log:
+  level: info
+  formatter: text
+
+webhookurl: http://events.pullr.local
+
+auth:
+  mongodb:
+    key: /certs/pullr.key
+    crt: /certs/pullr.crt
+    conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
+
+storage:
+  mongodb:
+    conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
+
+oauth:
+  callbackurl:     http://pullr.local
+  failureredirect: http://pullr.local
+
+  redirectwhitelist:
+    - http://pullr.local
+    - https://pullr.local
+
+  clients:
+    github:
+      id: xxx     # override these values with tokens from Github
+      secret: xxx

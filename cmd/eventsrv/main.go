@@ -8,5 +8,5 @@ import (
 
 func main() {
 	errs.SetLogger(logrus.StandardLogger())
-	errs.Fatal(app.Execute())
+	errs.Fatal(app.RootCmd.Execute())
 }

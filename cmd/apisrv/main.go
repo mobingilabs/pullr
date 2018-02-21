@@ -3,8 +3,10 @@ package main
 import (
 	"github.com/mobingilabs/pullr/cmd/apisrv/app"
 	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	errs.Fatal(app.Execute())
+	errs.SetLogger(logrus.StandardLogger())
+	errs.Fatal(app.RootCmd.Execute())
 }

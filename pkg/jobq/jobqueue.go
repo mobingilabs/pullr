@@ -9,8 +9,9 @@ import (
 type Job interface {
 	// Finish acknowledges the queue as the job is consumed successfully
 	Finish() error
-	// Reject rejects and requeues the job
-	Reject() error
+	// Reject rejects and requeues the job. If requeue parameter is true, job
+	// will be requeued otherwise it will be gone possible forever
+	Reject(requeue bool) error
 	// Body returns the actual job content, it is a valid json structure
 	Body() []byte
 }

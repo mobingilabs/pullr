@@ -12,8 +12,8 @@ func (j *job) Finish() error {
 	return j.msg.Ack(false)
 }
 
-func (j *job) Reject() error {
-	return j.msg.Reject(true)
+func (j *job) Reject(requeue bool) error {
+	return j.msg.Reject(requeue)
 }
 
 func (j *job) Body() []byte {

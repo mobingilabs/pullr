@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pullr-proxy
+  labels:
+    app: pullr
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+  - name: https
+    port: 443
+  selector:
+    app: pullr
+    impl: proxy
+---
+# Pullr Rev Proxy ==============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullr-proxy
+  labels:
+    app: pullr
+    impl: proxy
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      impl: proxy
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pullr
+        impl: proxy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.12.2
+          ports:
+          - containerPort: 80
+          - containerPort: 443
+          volumeMounts:
+          - name: nginx-conf
+            mountPath: /etc/nginx/conf.d
+          - name: secrets
+            mountPath: /certs
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: pullr
+            items:
+              - key: nginx-proxy.conf
+                path: default.conf
+        - name: secrets
+          secret:
+            secretName: pullr

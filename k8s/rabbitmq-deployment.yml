@@ -1,0 +1,67 @@
+# RabbitMQ Service =============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: pullr-rabbitmq
+spec:
+  clusterIP: None
+  ports:
+  - port: 5672
+    targetPort: 5672
+  selector:
+    app: pullr
+    tier: jobq
+    impl: rabbitmq
+---
+# RabbitMQ persistent volume ===================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pv-claim
+  labels:
+    app: pullr
+    tier: jobq
+    impl: rabbitmq
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# RabbitMQ deployment ==========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullr-rabbitmq
+  labels:
+    app: pullr
+    tier: jobq
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      tier: jobq
+      impl: rabbitmq
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pullr
+        tier: jobq
+        impl: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:latest
+        ports:
+        - containerPort: 5672
+        volumeMounts:
+        - name: rabbitmq-persistent-storage
+          mountPath: /var/lib/rabbbitmq
+      volumes:
+      - name: rabbitmq-persistent-storage
+        persistentVolumeClaim:
+          claimName: rabbitmq-pv-claim

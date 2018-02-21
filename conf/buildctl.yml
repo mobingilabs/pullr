@@ -1,0 +1,25 @@
+log:
+  level: info
+  formatter: text
+
+storage:
+  mongodb:
+    conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
+
+jobq:
+  buildqueue: pullr-image-build
+  driver:
+    rabbitmq:
+      conn: amqp://pullr-rabbitmq:5672
+
+build:
+  maxerr: 5
+  clonedir: ./src
+  timeout: 5m
+
+registry:
+  url: https://docker-registry:5050
+
+  # make sure to override these with env variables like PULLR_REGISTRY_USERNAME
+  username: user
+  password: pass

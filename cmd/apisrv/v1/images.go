@@ -1,14 +1,22 @@
 package v1
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
+	"github.com/mobingilabs/pullr/pkg/vcs/github"
+	"github.com/sirupsen/logrus"
 )
 
 func (a *API) imagesGet(user string, c echo.Context) error {
@@ -25,12 +33,12 @@ func (a *API) imagesGet(user string, c echo.Context) error {
 	return c.JSON(http.StatusOK, image)
 }
 
-type indexResponse struct {
-	Images     []domain.Image     `json:"images"`
-	Pagination storage.Pagination `json:"pagination"`
-}
-
 func (a *API) imagesIndex(username string, c echo.Context) error {
+	type indexResponse struct {
+		Images     []domain.Image     `json:"images"`
+		Pagination storage.Pagination `json:"pagination"`
+	}
+
 	if sinceQuery := c.QueryParam("since"); sinceQuery != "" {
 		i, err := strconv.ParseInt(sinceQuery, 10, 64)
 		if err != nil {
@@ -66,21 +74,70 @@ func (a *API) imagesIndex(username string, c echo.Context) error {
 	return c.JSON(http.StatusOK, indexResponse{images, pagination})
 }
 
-func (a *API) imagesCreate(user string, c echo.Context) error {
-	payload := new(domain.Image)
-	if err := c.Bind(payload); err != nil {
-		return c.NoContent(http.StatusBadRequest)
+func (a *API) imagesCreate(username string, c echo.Context) error {
+	img := new(domain.Image)
+	if err := c.Bind(img); err != nil {
+		return srv.NewErrBadValue("body", "Invalid image structure")
 	}
 
-	payload.Owner = user
-	payload.CreatedAt = time.Now()
-	payload.UpdatedAt = payload.CreatedAt
-	imageKey, err := a.Storage.CreateImage(*payload)
+	if err := a.validateNewImg(img); err != nil {
+		return err
+	}
+
+	img.Owner = username
+	img.CreatedAt = time.Now()
+	img.UpdatedAt = img.CreatedAt
+
+	if strings.TrimSpace(img.DockerfilePath) == "" {
+		img.DockerfilePath = "./Dockerfile"
+	}
+
+	// Check oauth token for the img repository before saving it
+	usr, err := a.Storage.FindUser(username)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusCreated, map[string]string{"key": imageKey})
+	oauthToken := usr.Token(img.Repository.Provider)
+	if oauthToken == nil {
+		return srv.NewErrBadRequest(map[string]interface{}{
+			"repository.provider": "Unauthenticated vcs provider",
+		})
+	}
+
+	imgKey, err := a.Storage.CreateImage(*img)
+	if err != nil {
+		return err
+	}
+
+	// Register pullr webhook on vcs provider
+	whURL, _ := url.Parse(a.Conf.WebhookURL)
+	whURL.Path = path.Join(whURL.Path, fmt.Sprintf("v1/%s", img.Repository.Provider))
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
+	defer cancel()
+
+	logrus.WithFields(logrus.Fields{
+		"user": username,
+		"repo": img.Repository,
+		"url":  whURL.String(),
+	}).Infof("registering webhook")
+
+	g := github.NewClientWithToken(oauthToken.Username, oauthToken.Token)
+	if err := g.RegisterWebhook(ctx, img.Repository, whURL.String()); err != nil {
+		// TODO: should we proceed without webhook?
+		// Remove the image record if we failed to create webhook
+
+		errs.Log(a.Storage.DeleteImage(imgKey))
+
+		logrus.WithFields(logrus.Fields{
+			"user": username,
+			"repo": img.Repository,
+		}).Errorf("Failed to register webhook: %v", err)
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, map[string]string{"key": imgKey})
 }
 
 func (a *API) imagesDelete(user string, c echo.Context) error {
@@ -124,4 +181,26 @@ func (a *API) imagesUpdate(user string, c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"key": newKey})
+}
+
+func (a *API) validateNewImg(img *domain.Image) error {
+	mistakes := make(map[string]interface{})
+
+	if strings.TrimSpace(img.Name) == "" {
+		mistakes["name"] = "Can't be empty"
+	}
+
+	if _, ok := a.OAuth[img.Repository.Provider]; !ok {
+		mistakes["repository.provider"] = "Unsupported vcs provider"
+	}
+
+	if len(img.Tags) == 0 {
+		mistakes["tags"] = "At least one docker tag needs to exist"
+	}
+
+	if len(mistakes) > 0 {
+		return srv.NewErrBadRequest(mistakes)
+	}
+
+	return nil
 }

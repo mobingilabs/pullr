@@ -5,20 +5,26 @@ import (
 )
 
 var (
-	rootCmd = &cobra.Command{
-		Short: "apisrv\nAPI server for pullr.io.",
-		Long:  "apisrv\nAPI server for pullr.io.",
+	version     = "?"
+	showVersion bool
+
+	// RootCmd is the main command for apisrv
+	RootCmd = &cobra.Command{
+		Use:   "apisrv",
+		Short: "API server for pullr.io",
+		Long:  "API server for pullr.io",
+		Run: func(cmd *cobra.Command, args []string) {
+			if showVersion {
+				println(version)
+				return
+			}
+
+			_ = cmd.Usage()
+		},
 	}
 )
 
 func init() {
-	rootCmd.AddCommand(
-		VersionCmd(),
-		ServeCmd(),
-	)
-}
-
-// Execute start the application
-func Execute() error {
-	return rootCmd.Execute()
+	RootCmd.AddCommand(ServeCmd)
+	RootCmd.Flags().BoolVar(&showVersion, "version", false, "version")
 }

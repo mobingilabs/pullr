@@ -1,79 +1,177 @@
 package app
 
 import (
+	"context"
 	"fmt"
-	"path"
+	"os"
+	"time"
 
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"github.com/mobingilabs/pullr/cmd/apisrv/conf"
 	"github.com/mobingilabs/pullr/cmd/apisrv/v1"
-	authMongo "github.com/mobingilabs/pullr/pkg/auth/mongo"
+	"github.com/mobingilabs/pullr/pkg/auth"
+	authm "github.com/mobingilabs/pullr/pkg/auth/mongo"
 	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/oauth"
 	"github.com/mobingilabs/pullr/pkg/oauth/github"
 	"github.com/mobingilabs/pullr/pkg/srv"
-	storageMongo "github.com/mobingilabs/pullr/pkg/storage/mongo"
+	"github.com/mobingilabs/pullr/pkg/storage"
+	storagem "github.com/mobingilabs/pullr/pkg/storage/mongo"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-// ServeCmd starts the server
-func ServeCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "serve",
-		Short: "Run as an http server.",
-		RunE:  serve,
-	}
+// ServeCmd is a cobra command to start http server
+var ServeCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "Starts http server",
+	Long:  "Starts http server",
+	Run: func(cmd *cobra.Command, args []string) {
+		config, err := conf.Read()
+		if err != nil {
+			log.Fatalf("failed to read configuration: %v", err)
+		}
 
-	cmd.Flags().SortFlags = false
-	cmd.Flags().Int("port", 8080, "server port")
-	cmd.Flags().String("authstorage", "pullr:pullrpass@localhost:27017", "Mongodb server url for authentication")
-	cmd.Flags().String("storage", "http://pullr:pullrpass@mongodb", "Mongodb server url for storage")
-	cmd.Flags().String("certs", "/certs", "Path to cert files")
-	v1.AddConfigFlags(cmd.Flags())
+		errs.SetLogger(log.StandardLogger())
+		logLevel, err := log.ParseLevel(config.Log.Level)
+		if err == nil {
+			log.SetLevel(logLevel)
+		}
 
-	return cmd
+		switch config.Log.Formatter {
+		case "text":
+			log.SetFormatter(&log.TextFormatter{ForceColors: config.Log.ForceColors})
+		case "json":
+			log.SetFormatter(&log.JSONFormatter{})
+		}
+
+		mainCtx, mainCancel := errs.ContextWithSig(context.Background(), os.Interrupt, os.Kill)
+		defer mainCancel()
+
+		initCtx, initCancel := context.WithTimeout(mainCtx, time.Minute*5)
+		srv, err := NewServer(initCtx, config)
+		initCancel()
+		if err != nil {
+			if errors.Cause(err) == context.Canceled {
+				log.Info("Program interrupted! Terminated gracefully.")
+				return
+			}
+
+			log.Fatalf("failed to create server: %v", err)
+		}
+
+		if err := srv.Serve(); err != nil {
+			if errors.Cause(err) == context.Canceled {
+				log.Info("Program interrupted! Terminated gracefully.")
+				return
+			}
+
+			log.Fatalf("server crashed with: %v", err)
+		}
+	},
 }
 
-func serve(cmd *cobra.Command, args []string) error {
-	errs.Fatal(viper.BindPFlags(cmd.Flags()))
-	viper.AutomaticEnv()
+// Server represents general server structure
+type Server struct {
+	Config  *conf.Configuration
+	Auth    auth.Service
+	Storage storage.Service
 
-	conf := v1.ParseConfig()
+	e     *echo.Echo
+	APIv1 *v1.API
+}
 
-	// Dependencies
-	authConnURI := viper.GetString("authstorage")
-	certsPath := viper.GetString("certs")
-	auth, err := authMongo.New(authConnURI, path.Join(certsPath, "auth.key"), path.Join(certsPath, "auth.crt"))
-	if err != nil {
-		return err
+// NewServer creates a server instance with all the required services started
+func NewServer(ctx context.Context, config *conf.Configuration) (*Server, error) {
+	if len(config.OAuth.Clients) == 0 {
+		return nil, errors.New("at least one oauth provider configuration is needed")
 	}
-	defer errs.Log(auth.Close())
 
-	storeConnURI := viper.GetString("storage")
-	storage, err := storageMongo.New(storeConnURI)
-	if err != nil {
-		return err
+	// Create auth service
+	var authsvc auth.Service
+	switch config.Auth.Name {
+	case "mongodb":
+		authConf, err := authm.ConfigFromMap(config.Auth.Parameters)
+		if err != nil {
+			return nil, errors.WithMessage(err, "auth-mongodb invalid configuration")
+		}
+
+		authsvc, err = authm.New(ctx, time.Minute*2, authConf)
+		if err != nil {
+			return nil, errors.WithMessage(err, "auth-mongodb failed to start")
+		}
+	default:
+		return nil, errors.Errorf("unsupported auth driver: %s", config.Auth.Name)
 	}
-	defer errs.Log(storage.Close())
 
-	// Configure the server
+	// Create storage service
+	var storagesvc storage.Service
+	switch config.Storage.Name {
+	case "mongodb":
+		storageConf, err := storagem.ConfigFromMap(config.Storage.Parameters)
+		if err != nil {
+			return nil, errors.WithMessage(err, "storage-mongodb invalid configuration")
+		}
+
+		storagesvc, err = storagem.New(ctx, time.Minute*2, storageConf)
+		if err != nil {
+			return nil, errors.WithMessage(err, "storage-mongodb failed to start")
+		}
+	default:
+		return nil, errors.Errorf("unsupported storage driver: %s", config.Storage.Name)
+	}
+
+	// Instantiate oauth clients
+	oauthClients := make(map[string]oauth.Client)
+	for provider, client := range config.OAuth.Clients {
+		switch provider {
+		case "github":
+			oauthClients[provider] = github.New(client.ID, client.Secret)
+		default:
+			return nil, errors.Errorf("unsupported oauth provider: %s", provider)
+		}
+	}
+
+	// Configure echo context
 	e := echo.New()
 	e.Use(srv.ElapsedMiddleware())
 	e.Use(srv.ServerHeaderMiddleware("apisrv", version))
+	e.Use(srv.ErrorMiddleware())
+
+	if config.HTTP.EnableCORS {
+		if len(config.HTTP.AllowOrigins) == 0 {
+			return nil, errors.New("CORS enabled, list of allow origins required in the config")
+		}
+
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowCredentials: true,
+			AllowOrigins:     config.HTTP.AllowOrigins,
+			AllowHeaders:     []string{echo.HeaderAuthorization, echo.HeaderContentType, echo.HeaderAccept, v1.HeaderRefreshToken, "X-Requested-With"},
+			ExposeHeaders:    []string{echo.HeaderContentType, v1.HeaderAuthToken, v1.HeaderRefreshToken},
+		}))
+	}
 
 	e.GET("/", srv.CopyrightHandler())
 	e.GET("/version", srv.VersionHandler(version))
 
-	oauthClients := map[string]oauth.Client{}
-	oauthClients["github"] = github.New(conf.GithubClientID, conf.GithubSecret)
-	_ = v1.NewAPI(e, oauthClients, auth, storage, conf)
+	apiv1 := v1.NewAPI(e, oauthClients, authsvc, storagesvc, config)
+	server := &Server{
+		e:       e,
+		Storage: storagesvc,
+		Auth:    authsvc,
+		APIv1:   apiv1,
+		Config:  config,
+	}
 
-	// serve
-	port := viper.GetInt("port")
-	log.Infof("serving on :%d", port)
-	e.Server.Addr = fmt.Sprintf(":%d", port)
+	return server, nil
+}
 
-	return gracehttp.Serve(e.Server)
+// Serve starts the http server on configured host and port
+func (s *Server) Serve() error {
+	log.Infof("serving on :%d", s.Config.HTTP.Port)
+	s.e.Server.Addr = fmt.Sprintf(":%d", s.Config.HTTP.Port)
+	return gracehttp.Serve(s.e.Server)
 }

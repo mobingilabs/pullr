@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/mobingilabs/pullr/cmd/apisrv/conf"
 	"github.com/mobingilabs/pullr/pkg/auth"
 	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/oauth"
-	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,12 +22,45 @@ const (
 
 // API implements v1 endpoints
 type API struct {
-	e            *echo.Echo
-	Group        *echo.Group
-	Auth         auth.Service
-	Storage      storage.Service
-	Conf         *APIConfig
-	OAuthClients map[string]oauth.Client
+	Auth    auth.Service
+	Storage storage.Service
+	Conf    *conf.Configuration
+	OAuth   map[string]oauth.Client
+}
+
+// NewAPI creates an apiV1 instance instance with given dependencies
+func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authsvc auth.Service, storagesvc storage.Service, conf *conf.Configuration) *API {
+	g := e.Group("/api/v1")
+	api := &API{
+		Auth:    authsvc,
+		Storage: storagesvc,
+		Conf:    conf,
+		OAuth:   oauthClients,
+	}
+
+	g.GET("/test", api.test)
+	g.POST("/login", api.login)
+	g.POST("/register", api.register)
+	g.GET("/profile", api.authenticated(api.profile))
+
+	// OAuth
+	g.GET("/oauth/:provider/url", api.authenticated(api.oauthLoginURL))
+	g.GET("/oauth/:provider/cb/:id", api.oauthCb)
+
+	// VCS
+	g.GET("/vcs/:provider/organisations", api.authenticated(api.vcsOrganisations))
+	g.GET("/vcs/:provider/:organisation/repositories", api.authenticated(api.vcsRepositories))
+
+	// Images
+	g.GET("/images", api.authenticated(api.imagesIndex))
+	g.POST("/images", api.authenticated(api.imagesCreate))
+	g.GET("/images/:key", api.authenticated(api.imagesGet))
+	g.POST("/images/:key", api.authenticated(api.imagesUpdate))
+	g.DELETE("/images/:key", api.authenticated(api.imagesDelete))
+
+	g.POST("/docker/registry/notify", api.regnotify)
+
+	return api
 }
 
 func (a *API) profile(username string, c echo.Context) error {
@@ -72,50 +104,4 @@ func (a *API) test(c echo.Context) error {
 	log.Infof("body: %v", string(body))
 	log.Infof("delta: %v", time.Since(start))
 	return c.NoContent(http.StatusOK)
-}
-
-// NewAPI creates an apiV1 instance instance with given dependencies
-func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authenticator auth.Service, storage storage.Service, conf *APIConfig) *API {
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowCredentials: true,
-		// TODO: make origins configurable
-		AllowOrigins:  []string{"http://localhost:3000", "https://pullr.io", "https://www.pullr.io"},
-		AllowHeaders:  []string{echo.HeaderAuthorization, echo.HeaderContentType, echo.HeaderAccept, HeaderRefreshToken, "X-Requested-With"},
-		ExposeHeaders: []string{echo.HeaderContentType, HeaderAuthToken, HeaderRefreshToken},
-	}))
-
-	g := e.Group("/api/v1")
-	api := &API{
-		e:            e,
-		Group:        g,
-		Auth:         authenticator,
-		Storage:      storage,
-		Conf:         conf,
-		OAuthClients: oauthClients,
-	}
-
-	g.Use(srv.ErrorHandler)
-	g.GET("/test", api.test)
-	g.POST("/login", api.login)
-	g.POST("/register", api.register)
-	g.GET("/profile", api.authenticated(api.profile))
-
-	// OAuth
-	g.GET("/oauth/:provider/url", api.authenticated(api.oauthLoginURL))
-	g.GET("/oauth/:provider/cb/:id", api.oauthCb)
-
-	// VCS
-	g.GET("/vcs/:provider/organisations", api.authenticated(api.vcsOrganisations))
-	g.GET("/vcs/:provider/:organisation/repositories", api.authenticated(api.vcsRepositories))
-
-	// Images
-	g.GET("/images", api.authenticated(api.imagesIndex))
-	g.POST("/images", api.authenticated(api.imagesCreate))
-	g.GET("/images/:key", api.authenticated(api.imagesGet))
-	g.POST("/images/:key", api.authenticated(api.imagesUpdate))
-	g.DELETE("/images/:key", api.authenticated(api.imagesDelete))
-
-	g.POST("/docker/registry/notify", api.regnotify)
-
-	return api
 }

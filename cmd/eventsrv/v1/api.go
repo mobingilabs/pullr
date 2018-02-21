@@ -9,6 +9,7 @@ import (
 
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/jobq"
+	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	"github.com/mobingilabs/pullr/pkg/vcs/github"
 	log "github.com/sirupsen/logrus"
@@ -17,14 +18,14 @@ import (
 	"github.com/mobingilabs/pullr/pkg/vcs"
 )
 
-// APIV1 implements eventsrv api version 1
-type APIV1 struct {
+// API implements eventsrv api version 1
+type API struct {
 	Storage storage.Service
-	Queue   jobq.Service
+	JobQ    jobq.Service
 	Group   *echo.Group
 }
 
-func (a *APIV1) webhookHandler(c echo.Context) error {
+func (a *API) webhookHandler(c echo.Context) error {
 	provider := vcsFor(c.Param("provider"))
 	if provider == nil {
 		return c.NoContent(http.StatusNotFound)
@@ -35,9 +36,13 @@ func (a *APIV1) webhookHandler(c echo.Context) error {
 		return err
 	}
 
-	if webhook.Event != vcs.PushEvent {
+	if webhook.Event == vcs.EventPing {
+		return c.NoContent(http.StatusOK)
+	}
+
+	if webhook.Event != vcs.EventPush {
 		log.Warningf("Pullr doesn't support webhook events other than 'push', got '%s'.", webhook.Event)
-		return c.NoContent(http.StatusBadRequest)
+		return srv.NewErrBadValue("event", webhook.Event)
 	}
 
 	commitInfo, err := provider.ExtractCommitInfo(webhook)
@@ -70,7 +75,7 @@ func (a *APIV1) webhookHandler(c echo.Context) error {
 	}
 
 	log.Infof("Putting build image job to queue with image key '%s' and data '%s'", imgKey, string(jobData))
-	if err := a.Queue.Put(domain.BuildQueue, bytes.NewBuffer(jobData)); err != nil {
+	if err := a.JobQ.Put(domain.BuildQueue, bytes.NewBuffer(jobData)); err != nil {
 		return err
 	}
 
@@ -113,7 +118,7 @@ func getDockerTag(commit *vcs.CommitInfo, tags []domain.ImageTag) string {
 
 		// commit is a normal push on a branch
 		if commit.Ref == t.RefTest {
-			return commit.Ref
+			return t.Name
 		}
 	}
 
@@ -121,14 +126,14 @@ func getDockerTag(commit *vcs.CommitInfo, tags []domain.ImageTag) string {
 	return ""
 }
 
-// NewAPIV1 creates a v1 api instance with given dependencies
-func NewAPIV1(e *echo.Echo, storage storage.Service, queue jobq.Service) *APIV1 {
+// New creates a v1 api instance with given dependencies
+func New(e *echo.Echo, storagesvc storage.Service, jobqsvc jobq.Service) *API {
 	g := e.Group("/v1")
 
-	api := &APIV1{
+	api := &API{
 		Group:   g,
-		Storage: storage,
-		Queue:   queue,
+		Storage: storagesvc,
+		JobQ:    jobqsvc,
 	}
 
 	g.POST("/:provider", api.webhookHandler)

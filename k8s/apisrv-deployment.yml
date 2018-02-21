@@ -1,0 +1,79 @@
+# Apisrv Service ===============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: pullr-apisrv
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+  selector:
+    app: pullr
+    tier: backend
+    impl: apisrv
+---
+# Apisrv Deployment ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullr-apisrv
+  labels:
+    app: pullr
+    tier: backend
+    impl: apisrv
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      tier: backend
+      impl: apisrv
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: pullr
+        tier: backend
+        impl: apisrv
+    spec:
+      containers:
+        - name: apisrv
+          image: mobingilabs/pullr-apisrv:localdev
+          args: ['serve']
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: PULLR_CONF_FILE
+              value: /conf/apisrv.yml
+
+            - name: PULLR_OAUTH_CLIENTS_GITHUB_ID
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: githubid
+            - name: PULLR_OAUTH_CLIENTS_GITHUB_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: githubsecret
+
+          volumeMounts:
+            - name: secrets
+              mountPath: /certs
+            - name: conf
+              mountPath: /conf
+
+      volumes:
+        - name: secrets
+          secret:
+            secretName: pullr
+
+        - name: conf
+          configMap:
+            name: pullr
+

@@ -1,12 +1,16 @@
 package mongo
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/storage"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -16,21 +20,39 @@ const (
 	imagesC = "images"
 )
 
+// Config is a structure of necessary information needed to run this
+// service
+type Config struct {
+	Conn string
+}
+
+// ConfigFromMap parses a map into Config
+func ConfigFromMap(in map[string]interface{}) (*Config, error) {
+	var config Config
+	err := mapstructure.Decode(in, &config)
+	return &config, err
+}
+
 type mongo struct {
 	session *mgo.Session
 	db      *mgo.Database
 }
 
 // New creates a mongodb backed storage service
-func New(conn string) (storage.Service, error) {
-	session, err := mgo.Dial(conn)
+func New(ctx context.Context, timeout time.Duration, conf *Config) (storage.Service, error) {
+	var sess *mgo.Session
+	err := errs.RetryWithContext(ctx, timeout, time.Second*10, func() (err error) {
+		log.Info("MongoDB storage trying to connect to the server...")
+		sess, err = mgo.Dial(conf.Conn)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	mongodb := mongo{
-		session: session,
-		db:      session.DB("pullr"),
+		session: sess,
+		db:      sess.DB("pullr"),
 	}
 
 	return &mongodb, nil
@@ -57,7 +79,7 @@ func (s *mongo) FindAllImages(username string, opts *storage.ListOptions) ([]dom
 
 	query := bson.M{"owner": username}
 	count, err := col.Find(query).Count()
-	if err != mgo.ErrNotFound {
+	if err != nil && err != mgo.ErrNotFound {
 		return nil, pagination, err
 	}
 

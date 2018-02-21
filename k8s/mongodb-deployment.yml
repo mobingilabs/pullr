@@ -1,0 +1,77 @@
+# Mongodb service ==============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: pullr-mongodb
+spec:
+  clusterIP: None
+  ports:
+  - port: 27017
+    targetPort: 27017
+  selector:
+    app: pullr
+    tier: storage
+    impl: mongodb
+---
+# Mongodb volume ===============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pv-claim
+  labels:
+    app: pullr
+    impl: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Mongodb deployment ===========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullr-mongodb
+  labels:
+    app: pullr
+    tier: storage
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      tier: storage
+      impl: mongodb
+
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pullr
+        tier: storage
+        impl: mongodb
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:latest
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_DATA_DIR
+              value: /data/db
+
+          volumeMounts:
+            - name: storage
+              mountPath: /data/db
+
+
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: mongodb-pv-claim

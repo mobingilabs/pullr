@@ -11,18 +11,21 @@ storage:
     blobdescriptor: inmemory
 http:
   addr: :5000
+  tls:
+    certificate: /certs/pullr.crt
+    key: /certs/pullr.key
   headers:
     X-Content-Type-Options: [nosniff]
 auth:
   token:
-     realm: "http://127.0.0.1:5001/auth"
+     realm: "https://reg.pullr.local/tokensrv/auth"
      service: "Docker registry"
      issuer: "Acme auth server"
-     rootcertbundle: /certs/auth.crt
-notifications:
-  endpoints:
-  - name: listener
-    url: http://apiserver:8080/api/v1/docker/registry/notify
-    timeout: 800ms
-    threshold: 5
-    backoff: 2s
+     rootcertbundle: /certs/pullr.crt
+#notifications:
+#  endpoints:
+#  - name: listener
+#    url: http://apiserver:8080/api/v1/docker/registry/notify
+#    timeout: 800ms
+#    threshold: 5
+#    backoff: 2s

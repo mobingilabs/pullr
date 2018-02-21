@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry
+spec:
+  clusterIP: None
+  ports:
+  - name: tokensrv
+    port: 5001
+  - name: external-registry
+    port: 5000
+  - name: internal-registry
+    port: 5050
+  selector:
+    app: pullr
+    tier: registry
+---
+# Registry persistent volume claim =============================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-registry-pv-claim
+  labels:
+    app: pullr
+    tier: registry
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Registry deployment ==========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+  labels:
+    app: pullr
+    tier: registry
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      tier: registry
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pullr
+        tier: registry
+    spec:
+      containers:
+        - name: internal-registry
+          image: registry:2
+          ports:
+            - containerPort: 5050
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: ":5050"
+            - name: REGISTRY_AUTH_TOKEN_REALM
+              value: "https://docker-registry:5001/auth"
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/registry
+            - name: certs
+              mountPath: /certs
+            - name: registry-conf
+              mountPath: /etc/docker/registry
+
+        - name: external-registry
+          image: registry:2
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/registry
+            - name: certs
+              mountPath: /certs
+            - name: registry-conf
+              mountPath: /etc/docker/registry
+
+        - name: tokensrv
+          image: mobingilabs/docker_auth:1.11
+          args: ["--v=3", "--alsologtostderr", "/conf/docker_auth.yml", "AUTH"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+
+          ports:
+            - containerPort: 5001
+
+          env:
+            - name: AUTH_MONGOAUTH_DIALINFO_ADDRS
+              value: '["pullr-mongodb"]'
+            - name: AUTH_MONGOAUTH_DIALINFO_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pullr
+                  key: mongouser
+
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+            - name: secrets
+              mountPath: /secrets
+            - name: certs
+              mountPath: /certs
+
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: docker-registry-pv-claim
+
+        - name: conf
+          configMap:
+            name: pullr
+
+        - name: registry-conf
+          configMap:
+            name: pullr
+            items:
+            - key: docker_registry.yml
+              path: config.yml
+
+        - name: secrets
+          secret:
+            secretName: pullr
+            items:
+            - key: mongopass
+              path: mongopass.txt
+        - name: certs
+          secret:
+            secretName: pullr
+            items:
+            - key: pullr.crt
+              path: pullr.crt
+            - key: pullr.key
+              path: pullr.key

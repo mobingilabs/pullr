@@ -16,7 +16,6 @@ import Button from '../layout/Button';
 import Icons from '../layout/Icons';
 import Pagination from '../widgets/Pagination';
 import Notification from '../widgets/Notification';
-import Syncing from '../widgets/Syncing';
 import ImageDetailModal from './ImageDetailModal';
 import ApiError from '../../libs/api/ApiError';
 import Alert from '../widgets/Alert';
@@ -120,7 +119,7 @@ export default class ImagesScreen extends React.Component<Props, State> {
                                         </td>
                                         <td>{image.repository.provider}</td>
                                         <td>{image.repository.owner}/{image.repository.name}</td>
-                                        <td>{image.tags.map(tag => tag.ref_test || tag.name).join(', ')}</td>
+                                        <td>{image.tags.map(tag => tag.name || tag.ref_test).join(', ')}</td>
                                         <td width={100}><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.key)} /></td>
                                     </tr>
                                 )}

@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -8,14 +9,36 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/mitchellh/mapstructure"
 	"github.com/mobingilabs/pullr/pkg/auth"
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+// Configuration is a structure of necessary information needed to run this
+// service
+type Configuration struct {
+	// Conn is connection url for mongodb
+	Conn string
+
+	// Crt specifies the path to an x509 certificate file
+	Crt string
+
+	// Key specifies the path to the x509 key file
+	Key string
+}
+
+// ConfigFromMap parses map input into Configuration
+func ConfigFromMap(in map[string]interface{}) (*Configuration, error) {
+	var config Configuration
+	err := mapstructure.Decode(in, &config)
+	return &config, err
+}
 
 type mongo struct {
 	conn *mgo.Session
@@ -35,8 +58,8 @@ const (
 var signingMethod = jwt.SigningMethodRS256
 
 // New creates a mongodb backed authentication service
-func New(conn string, privKeyPath string, pubKeyPath string) (auth.Service, error) {
-	privateKeyBytes, err := ioutil.ReadFile(privKeyPath)
+func New(ctx context.Context, timeout time.Duration, conf *Configuration) (auth.Service, error) {
+	privateKeyBytes, err := ioutil.ReadFile(conf.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +69,7 @@ func New(conn string, privKeyPath string, pubKeyPath string) (auth.Service, erro
 		return nil, err
 	}
 
-	pubKeyBytes, err := ioutil.ReadFile(pubKeyPath)
+	pubKeyBytes, err := ioutil.ReadFile(conf.Crt)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +79,12 @@ func New(conn string, privKeyPath string, pubKeyPath string) (auth.Service, erro
 		return nil, err
 	}
 
-	sess, err := mgo.Dial(conn)
+	var sess *mgo.Session
+	err = errs.RetryWithContext(ctx, timeout, time.Second*10, func() (err error) {
+		logrus.Info("MongoDB auth trying to connect to the server...")
+		sess, err = mgo.Dial(conf.Conn)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +107,7 @@ func (a *mongo) Validate(refreshToken, authToken string) (*auth.Secrets, string,
 	authJwt, authParseErr := jwt.ParseWithClaims(authToken, claims, a.keyFunc)
 	refreshJwt, refreshParseErr := jwt.ParseWithClaims(refreshToken, &jwt.StandardClaims{}, a.keyFunc)
 	if refreshParseErr != nil {
-		return nil, "", refreshParseErr
+		return nil, "", auth.ErrUnauthenticated
 	}
 
 	var err error

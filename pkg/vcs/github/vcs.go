@@ -21,7 +21,7 @@ func New() vcs.Vcs {
 
 func (*githubVcs) ExtractCommitInfo(r *vcs.WebhookRequest) (*vcs.CommitInfo, error) {
 	switch r.Event {
-	case vcs.PushEvent:
+	case vcs.EventPush:
 		return extractCommitInfoPushPayload(r)
 	default:
 		return nil, vcs.ErrUnsupportedEvent
@@ -33,7 +33,7 @@ func (*githubVcs) ParseWebhookRequest(r *http.Request) (*vcs.WebhookRequest, err
 		return nil, vcs.ErrInvalidWebhook
 	}
 
-	event := r.Header.Get("X-githubVcs-Event")
+	event := r.Header.Get("X-Github-Event")
 	if event == "" {
 		return nil, vcs.ErrInvalidWebhook
 	}

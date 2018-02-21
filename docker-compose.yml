@@ -1,83 +1,157 @@
 version: '3'
+networks:
+  pullr:
 services:
-  mongodb:
-    container_name: mongodb
+  pullr-mongodb:
+    container_name: pullr-mongodb
     image: mongo:latest
     command: --auth --bind_ip_all
     environment:
-    - MONGO_DATA_DIR=/data/db
+      - MONGO_DATA_DIR=/data/db
     volumes:
-    - "/Users/umurgdk/Work/mobingi/pullr/mongodb:/data/db"
-    ports:
-    - "27017:27017"
-  tokenserver:
-    container_name: tokenserver
-    image: cesanta/docker_auth:1
-    command: --v=3 --alsologtostderr /config/auth_config.yml
-    ports:
-    - "5001:5001"
-    volumes:
-    - "./certs:/certs:ro"
-    - "./registry/tokenserver:/config:ro"
-    depends_on:
-    - mongodb
-  apisrv:
-    container_name: apisrv
-    image: pullr-apisrv:localdev
-    command: serve
-    volumes:
-    - "./certs:/certs:ro"
-    environment:
-    - PORT=8080
-    - AUTHSTORAGE=http://mongodb:27017
-    - STORAGE=http://mongodb:27017
-    - REDIRECT_WHITELIST=http://188.166.71.32
-    - SERVER_URL=http://188.166.71.32
-    - FRONTEND_URL=http://188.166.71.32
-    - GITHUB_CLIENT=3d80f42bb8bed7caa9de
-    - GITGUB_SECRET=4f8ce81cd83fee2c1ed7bef0a70f31bf3a46548c
-    - CERTS=/certs
-    ports:
-    - "8080:8080"
-    depends_on:
-    - mongodb
-  eventsrv:
-    container_name: eventsrv
-    image: pullr-eventsrv:localdev
-    command: serve
-    depends_on:
-    - mongodb
-    - mqueue
-  buildctl:
-    container_name: buildctl
-    image: pullr-buildctl:localdev
-    volumes:
-    - ./tmp/src:/data/src
-    environment:
-    - AMQP=amqp://mqueue:5672
-    - STORAGE=http://mongodb:27017
-    - CLONE_DIR=/data/src
-    - REG_USERNAME=$REG_USERNAME
-    - REG_PASSWORD=$REG_PASSWORD
-    - REGISTRY=http://registry:5000
-    depends_on:
-    - registry
-    - mqueue
-    - mongodb
-  registry:
-    container_name: registry2
-    image: registry:2
-    ports:
-    - "5000:5000"
-    volumes:
-    - "./certs:/certs:ro"
-    - "./registry:/etc/docker/registry:ro"
-    - "/var/tmp/pullr/registry:/var/lib/registry:rw"
-    depends_on:
-    - tokenserver
-  mqueue:
-    container_name: mqueue
+      - "/Users/umurgdk/Work/mobingi/pullr/mongodb:/data/db"
+    networks:
+      pullr:
+
+  pullr-rabbitmq:
+    container_name: pullr-rabitmq
     image: rabbitmq
+    networks:
+      pullr:
+
+  docker-registry-tokensrv:
+    container_name: docker-registry-tokensrv
+    image: mobingilabs/docker_auth:1.11
+    command: ["--v=3", "--alsologtostderr", "/conf/docker_auth.yml", "AUTH"]
+    environment:
+      - AUTH_MONGOAUTH_DIALINFO_USERNAME=pullr
+      - AUTH_MONGOAUTH_DIALINFO_PASSWORD=pullrpass
+      - AUTH_MONGOAUTH_DIALINFO_PASSWORDFILE=""
+    volumes:
+      - "./conf:/conf:ro"
+      - "./certs:/certs:ro"
+    networks:
+      pullr:
+    depends_on:
+      - pullr-mongodb
+
+
+  docker-registry-internal:
+    container_name: docker-registry-internal
+    image: registry:2
+    environment:
+      - REGISTRY_HTTP_ADDR=':5050'
+      - REGISTRY_AUTH_TOKEN_REALM='https://docker-registry-tokensrv:5001/auth'
+    volumes:
+      - "./certs:/certs:ro"
+      - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
+      - "/var/tmp/pullr/registry:/var/lib/registry:rw"
+    depends_on:
+      - docker-registry-tokensrv
+    networks:
+      pullr:
+        aliases:
+          - docker-registry
+
+  docker-registry-external:
+    container_name: docker-registry-external
+    image: registry:2
+    volumes:
+      - "./certs:/certs:ro"
+      - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
+      - "/var/tmp/pullr/registry:/var/lib/registry:rw"
+    depends_on:
+      - docker-registry-tokensrv
+    networks:
+      pullr:
+        aliases:
+          - docker-registry
+
+  pullr-proxy:
+    container_name: pullr-proxy
+    image: nginx:1.12.2
     ports:
-    - "5672:5672"
-    - "15672:15672"
+      - 80:80
+      - 443:443
+    volumes:
+      - "./conf/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro"
+      - "./certs:/certs:ro"
+    networks:
+      pullr:
+    depends_on:
+      - docker-registry-external
+      - docker-registry-tokensrv
+      - pullr-ui
+      - pullr-apisrv
+      - pullr-eventsrv
+
+  pullr-ui:
+    container_name: pullr-ui
+    image: mobingilabs/pullr-ui:localdev
+    networks:
+      pullr:
+
+  pullr-apisrv:
+    container_name: pullr-apisrv
+    image: mobingilabs/pullr-apisrv:localdev
+    command: ["serve"]
+    networks:
+      pullr:
+    volumes:
+      - "./conf:/conf:ro"
+      - "./certs:/certs:ro"
+    environment:
+      - PULLR_CONF_FILE=/conf/apisrv.yml
+      - PULLR_OAUTH_CLIENTS_GITHUB_ID=$GITHUBID
+      - PULLR_OAUTH_CLIENTS_GITHUB_SECRET=$GITHUBSECRET
+    depends_on:
+      - pullr-mongodb
+
+  pullr-eventsrv:
+    container_name: pullr-eventsrv
+    image: mobingilabs/pullr-eventsrv:localdev
+    command: ["serve"]
+    networks:
+      pullr:
+    volumes:
+      - "./conf:/conf:ro"
+    environment:
+      - PULLR_CONF_FILE=/conf/eventsrv.yml
+    depends_on:
+      - pullr-rabbitmq
+      - pullr-mongodb
+      - docker-registry-internal
+
+  pullr-buildctl:
+    container_name: pullr-buildctl
+    image: mobingilabs/pullr-buildctl:localdev
+    command: ["listen"]
+    networks:
+      pullr:
+    volumes:
+      - "./conf:/conf:ro"
+    environment:
+      - PULLR_CONF_FILE=/conf/buildctl.yml
+      - PULLR_BUILD_CLONEDIR=./tmp/src
+      - PULLR_REGISTRY_USERNAME=admin
+      - PULLR_REGISTRY_PASSWORD=admin
+      - PULLR_REGISTRY_URL=https://docker-registry:5050
+      - DOCKER_HOST=tcp://pullr-dind:2375
+    depends_on:
+      - pullr-mongodb
+      - pullr-rabbitmq
+      - pullr-dind
+      - docker-registry-internal
+  pullr-dind:
+    container_name: pullr-dind
+    image: docker:17.12.0-dind
+    networks:
+      pullr:
+    depends_on:
+      - docker-registry-internal
+    command:
+      - "--insecure-registry"
+      - "docker-registry:5050"
+    volumes:
+      - "./tmp/dind:/var/lib/docker:rw"
+    privileged: true

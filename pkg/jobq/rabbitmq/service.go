@@ -1,12 +1,29 @@
 package rabbitmq
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
+	"time"
 
+	"github.com/mitchellh/mapstructure"
+	"github.com/mobingilabs/pullr/pkg/errs"
 	"github.com/mobingilabs/pullr/pkg/jobq"
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )
+
+// Configuration contains necessary information to run this service
+type Configuration struct {
+	Conn string
+}
+
+// ConfigFromMap parses map object into Configuration
+func ConfigFromMap(in map[string]interface{}) (*Configuration, error) {
+	var config Configuration
+	err := mapstructure.Decode(in, &config)
+	return &config, err
+}
 
 type rabbitmq struct {
 	conn     *amqp.Connection
@@ -15,8 +32,14 @@ type rabbitmq struct {
 }
 
 // New creates a RabbitMQ backed job queue service
-func New(connURI string) (jobq.Service, error) {
-	conn, err := amqp.Dial(connURI)
+func New(ctx context.Context, timeout time.Duration, config *Configuration) (jobq.Service, error) {
+	var conn *amqp.Connection
+	// Try connecting every 5 seconds
+	err := errs.RetryWithContext(ctx, timeout, time.Second*5, func() (err error) {
+		log.Info("JobQ rabbitmq driver trying to connect to the server...")
+		conn, err = amqp.Dial(config.Conn)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}

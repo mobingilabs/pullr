@@ -16,7 +16,7 @@ import (
 // provider. Reported url includes a base64 encoded identity token (jwt) to make sure callback
 // endpoint matches granted oauth token with the correct pullr user account.
 func (a *API) oauthLoginURL(username string, c echo.Context) error {
-	p, ok := a.OAuthClients[c.Param("provider")]
+	p, ok := a.OAuth[c.Param("provider")]
 	if !ok {
 		msg := fmt.Sprintf("Unsupported oauth provider: '%s'", c.Param("provider"))
 		return srv.NewErr("ERR_UNSUPPORTED_OAUTHPROVIDER", http.StatusBadRequest, msg)
@@ -24,7 +24,7 @@ func (a *API) oauthLoginURL(username string, c echo.Context) error {
 
 	clientURI := c.QueryParam("cb")
 	uriTrusted := false
-	for _, uri := range a.Conf.RedirectWhitelist {
+	for _, uri := range a.Conf.OAuth.RedirectWhitelist {
 		if strings.HasPrefix(clientURI, uri) {
 			uriTrusted = true
 			break
@@ -40,7 +40,7 @@ func (a *API) oauthLoginURL(username string, c echo.Context) error {
 		return err
 	}
 
-	cbURI := fmt.Sprintf("%s/api/v1/oauth/%s/cb/%s", a.Conf.ServerURL, p.Name(), id.UUID)
+	cbURI := fmt.Sprintf("%s/api/v1/oauth/%s/cb/%s", a.Conf.OAuth.CallbackURL, p.Name(), id.UUID)
 
 	loginURL := p.LoginURL(cbURI)
 	return c.JSON(http.StatusOK, map[string]string{"login_url": loginURL})
@@ -52,7 +52,7 @@ func (a *API) oauthLoginURL(username string, c echo.Context) error {
 // token list. Redirect uri should start with one of the uris set by
 // RedirectWhitelist configuration.
 func (a *API) oauthCb(c echo.Context) (err error) {
-	client, ok := a.OAuthClients[c.Param("provider")]
+	client, ok := a.OAuth[c.Param("provider")]
 	if !ok {
 		msg := fmt.Sprintf("Unsupported oauth provider: '%s'", c.Param("provider"))
 		return srv.NewErr("ERR_UNSUPPORTED_OAUTHPROVIDER", http.StatusBadRequest, msg)
@@ -65,7 +65,7 @@ func (a *API) oauthCb(c echo.Context) (err error) {
 	cbID, err := a.Auth.OAuthCbIdentifier(id)
 	if err != nil {
 		log.Warn("OAuth identifier is not provided")
-		return redirect(c, a.Conf.FrontendURL, client.Name(), errParams)
+		return redirect(c, a.Conf.OAuth.RedirectWhitelist[0], client.Name(), errParams)
 	}
 
 	err = a.Auth.RemoveOAuthCbIdentifier(id)
@@ -76,7 +76,7 @@ func (a *API) oauthCb(c echo.Context) (err error) {
 	oauthToken, err := client.HandleCb(c.Request())
 	if err != nil {
 		log.Warn("OAuth callback couldn't handle the callback")
-		return redirect(c, a.Conf.FrontendURL, client.Name(), errParams)
+		return redirect(c, a.Conf.OAuth.RedirectWhitelist[0], client.Name(), errParams)
 	}
 
 	err = a.Storage.PutUserToken(cbID.Username, client.Name(), oauthToken)

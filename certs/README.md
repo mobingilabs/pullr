@@ -1,5 +1,4 @@
-The `auth.crt` and `auth.key` files were generated using the following command:
+Created with:
+`openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt`
 
-```bash
-$ openssl req -newkey rsa:4096 -nodes -sha256 -keyout auth.key -x509 -days 365 -out auth.crt
-```
+CommonName is `*.pullr.io`

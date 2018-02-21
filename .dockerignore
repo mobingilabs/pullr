@@ -1,0 +1,8 @@
+cmd
+pkg
+tmp
+ui
+!ui/dist
+!ui/nginx.conf
+vendor
+k8s

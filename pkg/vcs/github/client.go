@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/go-github/github"
 	"github.com/mobingilabs/pullr/pkg/domain"
@@ -40,6 +41,7 @@ func (g *githubClient) CloneRepository(ctx context.Context, repository domain.Re
 			Username: g.username,
 			Password: g.token,
 		},
+		URL: fmt.Sprintf("https://github.com/%s/%s", repository.Owner, repository.Name),
 	})
 	if err != nil {
 		return err
@@ -142,6 +144,20 @@ func (g *githubClient) ListRepositories(ctx context.Context, organisation string
 	}
 
 	return repos, nil
+}
+
+func (g *githubClient) RegisterWebhook(ctx context.Context, repo domain.Repository, uri string) error {
+	c := newAuthenticatedClient(ctx, g.token)
+	_, _, err := c.Repositories.CreateHook(ctx, repo.Owner, repo.Name, &github.Hook{
+		Name: github.String("web"),
+		Config: map[string]interface{}{
+			"url":          github.String(uri),
+			"content_type": "json",
+		},
+		Active: github.Bool(true),
+		Events: []string{"push"},
+	})
+	return err
 }
 
 func newAuthenticatedClient(ctx context.Context, token string) *github.Client {
