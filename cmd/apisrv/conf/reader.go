@@ -68,6 +68,12 @@ func Read() (*Configuration, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "storage config")
 	}
+
+	config.JobQ.Driver, err = NewSingleItemMap(config.JobQ.DriverMap)
+	if err != nil {
+		return nil, errors.WithMessage(err, "jobq driver config")
+	}
+
 	if _, err := govalidator.ValidateStruct(config); err != nil {
 		return nil, errors.WithMessage(err, "invalid configuration")
 	}

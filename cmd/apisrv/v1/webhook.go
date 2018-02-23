@@ -7,25 +7,16 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/domain"
-	"github.com/mobingilabs/pullr/pkg/jobq"
 	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
+	"github.com/mobingilabs/pullr/pkg/vcs"
 	"github.com/mobingilabs/pullr/pkg/vcs/github"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/labstack/echo"
-	"github.com/mobingilabs/pullr/pkg/vcs"
 )
 
-// API implements eventsrv api version 1
-type API struct {
-	Storage storage.Service
-	JobQ    jobq.Service
-	Group   *echo.Group
-}
-
-func (a *API) webhookHandler(c echo.Context) error {
+func (a *API) gitWebhook(c echo.Context) error {
 	provider := vcsFor(c.Param("provider"))
 	if provider == nil {
 		return c.NoContent(http.StatusNotFound)
@@ -68,14 +59,14 @@ func (a *API) webhookHandler(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	}
 
-	job := domain.NewBuildImageJob("pullr:eventsrv", imgKey, commitInfo.Ref, commitInfo.Hash, dockerTag)
+	job := domain.NewBuildImageJob("pullr:apisrv", imgKey, commitInfo.Ref, commitInfo.Hash, dockerTag)
 	jobData, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
 
 	log.Infof("Putting build image job to queue with image key '%s' and data '%s'", imgKey, string(jobData))
-	if err := a.JobQ.Put(domain.BuildQueue, bytes.NewBuffer(jobData)); err != nil {
+	if err := a.JobQ.Put(a.Conf.JobQ.BuildQueue, bytes.NewBuffer(jobData)); err != nil {
 		return err
 	}
 
@@ -124,19 +115,4 @@ func getDockerTag(commit *vcs.CommitInfo, tags []domain.ImageTag) string {
 
 	// commit doesn't match any image tags
 	return ""
-}
-
-// New creates a v1 api instance with given dependencies
-func New(e *echo.Echo, storagesvc storage.Service, jobqsvc jobq.Service) *API {
-	g := e.Group("/v1")
-
-	api := &API{
-		Group:   g,
-		Storage: storagesvc,
-		JobQ:    jobqsvc,
-	}
-
-	g.POST("/:provider", api.webhookHandler)
-
-	return api
 }

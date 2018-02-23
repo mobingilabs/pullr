@@ -9,7 +9,7 @@ services:
     environment:
       - MONGO_DATA_DIR=/data/db
     volumes:
-      - "/Users/umurgdk/Work/mobingi/pullr/mongodb:/data/db"
+      - "./tmp/mongodb:/data/db"
     networks:
       pullr:
 
@@ -83,7 +83,6 @@ services:
       - docker-registry-tokensrv
       - pullr-ui
       - pullr-apisrv
-      - pullr-eventsrv
 
   pullr-ui:
     container_name: pullr-ui
@@ -98,29 +97,13 @@ services:
     networks:
       pullr:
     volumes:
-      - "./conf:/conf:ro"
       - "./certs:/certs:ro"
     environment:
-      - PULLR_CONF_FILE=/conf/apisrv.yml
       - PULLR_OAUTH_CLIENTS_GITHUB_ID=$GITHUBID
       - PULLR_OAUTH_CLIENTS_GITHUB_SECRET=$GITHUBSECRET
     depends_on:
       - pullr-mongodb
-
-  pullr-eventsrv:
-    container_name: pullr-eventsrv
-    image: mobingilabs/pullr-eventsrv:localdev
-    command: ["serve"]
-    networks:
-      pullr:
-    volumes:
-      - "./conf:/conf:ro"
-    environment:
-      - PULLR_CONF_FILE=/conf/eventsrv.yml
-    depends_on:
       - pullr-rabbitmq
-      - pullr-mongodb
-      - docker-registry-internal
 
   pullr-buildctl:
     container_name: pullr-buildctl
@@ -128,10 +111,7 @@ services:
     command: ["listen"]
     networks:
       pullr:
-    volumes:
-      - "./conf:/conf:ro"
     environment:
-      - PULLR_CONF_FILE=/conf/buildctl.yml
       - PULLR_BUILD_CLONEDIR=./tmp/src
       - PULLR_REGISTRY_USERNAME=admin
       - PULLR_REGISTRY_PASSWORD=admin

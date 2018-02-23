@@ -1,7 +1,0 @@
-bin
-eventsvr
-Gopkg*
-README.md
-Dockerfile*
-kubeconf.yaml
-.travis.yml

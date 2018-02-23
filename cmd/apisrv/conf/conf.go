@@ -14,8 +14,15 @@ type Configuration struct {
 	Storage    SingleItemMap          `valid:"required"`
 	StorageMap map[string]interface{} `mapstructure:"storage"`
 
-	// WebhookURL is the url of the VCS webhook callback handler endpoint
-	WebhookURL string `valid:"required"`
+	// JobQ contains configuration for the job queue
+	JobQ struct {
+		// BuildQueue is the queue name where the build jobs are published
+		BuildQueue string `valid:"required"`
+
+		// Driver contains configuration for jobq driver like rabbitmq
+		Driver    SingleItemMap          `valid:"required"`
+		DriverMap map[string]interface{} `mapstructure:"driver"`
+	} `valid:"required"`
 
 	// Log contains configuration parameters for logging
 	Log struct {
@@ -46,13 +53,6 @@ type Configuration struct {
 	// OAuth contains configuration parameters for getting user's source code
 	// information
 	OAuth struct {
-		// RedirectWhitelist is a whitelist of urls which they can be redirected
-		// to after successful oauth logins
-		RedirectWhitelist []string `valid:"required"`
-
-		// CallbackURL will be called after users logged in to oauth provider
-		CallbackURL string `valid:"required"`
-
 		// Clients is a dictionary of oauth client configurations
 		Clients map[string]struct {
 			// ID is the client id given by the oauth provider

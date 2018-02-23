@@ -9,6 +9,7 @@ import (
 	"github.com/mobingilabs/pullr/cmd/apisrv/conf"
 	"github.com/mobingilabs/pullr/pkg/auth"
 	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/jobq"
 	"github.com/mobingilabs/pullr/pkg/oauth"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	log "github.com/sirupsen/logrus"
@@ -24,16 +25,18 @@ const (
 type API struct {
 	Auth    auth.Service
 	Storage storage.Service
+	JobQ    jobq.Service
 	Conf    *conf.Configuration
 	OAuth   map[string]oauth.Client
 }
 
 // NewAPI creates an apiV1 instance instance with given dependencies
-func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authsvc auth.Service, storagesvc storage.Service, conf *conf.Configuration) *API {
+func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authsvc auth.Service, storagesvc storage.Service, jobqsvc jobq.Service, conf *conf.Configuration) *API {
 	g := e.Group("/api/v1")
 	api := &API{
 		Auth:    authsvc,
 		Storage: storagesvc,
+		JobQ:    jobqsvc,
 		Conf:    conf,
 		OAuth:   oauthClients,
 	}
@@ -42,6 +45,9 @@ func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authsvc auth.Ser
 	g.POST("/login", api.login)
 	g.POST("/register", api.register)
 	g.GET("/profile", api.authenticated(api.profile))
+
+	// Git webhooks
+	g.POST("/webhook/:provider", api.gitWebhook)
 
 	// OAuth
 	g.GET("/oauth/:provider/url", api.authenticated(api.oauthLoginURL))

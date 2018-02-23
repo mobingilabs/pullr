@@ -23,24 +23,12 @@ func (a *API) oauthLoginURL(username string, c echo.Context) error {
 	}
 
 	clientURI := c.QueryParam("cb")
-	uriTrusted := false
-	for _, uri := range a.Conf.OAuth.RedirectWhitelist {
-		if strings.HasPrefix(clientURI, uri) {
-			uriTrusted = true
-			break
-		}
-	}
-	if !uriTrusted {
-		log.Warn("Untrusted uri is given for redirect, ignoring")
-		return srv.NewErrBadValue("cb", clientURI)
-	}
-
 	id, err := a.Auth.NewOAuthCbIdentifier(username, p.Name(), clientURI)
 	if err != nil {
 		return err
 	}
 
-	cbURI := fmt.Sprintf("%s/api/v1/oauth/%s/cb/%s", a.Conf.OAuth.CallbackURL, p.Name(), id.UUID)
+	cbURI := fmt.Sprintf("https://%s/api/v1/oauth/%s/cb/%s", c.Request().Host, p.Name(), id.UUID)
 
 	loginURL := p.LoginURL(cbURI)
 	return c.JSON(http.StatusOK, map[string]string{"login_url": loginURL})
@@ -61,11 +49,13 @@ func (a *API) oauthCb(c echo.Context) (err error) {
 	authErr := srv.NewErr("ERR_OAUTH_FAIL", http.StatusUnauthorized, "Failed to authenticate with %s")
 	errParams := errToQueryParams(authErr)
 
+	redirectURL := fmt.Sprintf("http://%s", c.Request().Host)
+
 	id := c.Param("id")
 	cbID, err := a.Auth.OAuthCbIdentifier(id)
 	if err != nil {
 		log.Warn("OAuth identifier is not provided")
-		return redirect(c, a.Conf.OAuth.RedirectWhitelist[0], client.Name(), errParams)
+		return redirect(c, redirectURL, client.Name(), errParams)
 	}
 
 	err = a.Auth.RemoveOAuthCbIdentifier(id)
@@ -76,7 +66,7 @@ func (a *API) oauthCb(c echo.Context) (err error) {
 	oauthToken, err := client.HandleCb(c.Request())
 	if err != nil {
 		log.Warn("OAuth callback couldn't handle the callback")
-		return redirect(c, a.Conf.OAuth.RedirectWhitelist[0], client.Name(), errParams)
+		return redirect(c, redirectURL, client.Name(), errParams)
 	}
 
 	err = a.Storage.PutUserToken(cbID.Username, client.Name(), oauthToken)

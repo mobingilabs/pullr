@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -111,20 +109,18 @@ func (a *API) imagesCreate(username string, c echo.Context) error {
 	}
 
 	// Register pullr webhook on vcs provider
-	whURL, _ := url.Parse(a.Conf.WebhookURL)
-	whURL.Path = path.Join(whURL.Path, fmt.Sprintf("v1/%s", img.Repository.Provider))
-
+	whURL := fmt.Sprintf("https://%s/api/v1/webhook/%s", c.Request().Host, img.Repository.Provider)
 	ctx, cancel := context.WithTimeout(c.Request().Context(), time.Second*30)
 	defer cancel()
 
 	logrus.WithFields(logrus.Fields{
 		"user": username,
 		"repo": img.Repository,
-		"url":  whURL.String(),
+		"url":  whURL,
 	}).Infof("registering webhook")
 
 	g := github.NewClientWithToken(oauthToken.Username, oauthToken.Token)
-	if err := g.RegisterWebhook(ctx, img.Repository, whURL.String()); err != nil {
+	if err := g.RegisterWebhook(ctx, img.Repository, whURL); err != nil {
 		// TODO: should we proceed without webhook?
 		// Remove the image record if we failed to create webhook
 

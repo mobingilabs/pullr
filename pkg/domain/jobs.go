@@ -1,8 +1,5 @@
 package domain
 
-// BuildQueue is the queue name for build jobs
-const BuildQueue = "pullr-image-build"
-
 // BaseJob defines necessary information for all the jobs
 type BaseJob struct {
 	Source string `json:"source" valid:"required"`

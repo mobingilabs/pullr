@@ -14,6 +14,8 @@ import (
 	"github.com/mobingilabs/pullr/pkg/auth"
 	authm "github.com/mobingilabs/pullr/pkg/auth/mongo"
 	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/jobq"
+	"github.com/mobingilabs/pullr/pkg/jobq/rabbitmq"
 	"github.com/mobingilabs/pullr/pkg/oauth"
 	"github.com/mobingilabs/pullr/pkg/oauth/github"
 	"github.com/mobingilabs/pullr/pkg/srv"
@@ -79,6 +81,7 @@ type Server struct {
 	Config  *conf.Configuration
 	Auth    auth.Service
 	Storage storage.Service
+	JobQ    jobq.Service
 
 	e     *echo.Echo
 	APIv1 *v1.API
@@ -124,6 +127,23 @@ func NewServer(ctx context.Context, config *conf.Configuration) (*Server, error)
 		return nil, errors.Errorf("unsupported storage driver: %s", config.Storage.Name)
 	}
 
+	// Create jobq service
+	var jobqsvc jobq.Service
+	switch config.JobQ.Driver.Name {
+	case "rabbitmq":
+		jobqConf, err := rabbitmq.ConfigFromMap(config.JobQ.Driver.Parameters)
+		if err != nil {
+			return nil, errors.WithMessage(err, "jobq-rabbitmq invalid configuration")
+		}
+
+		jobqsvc, err = rabbitmq.New(ctx, time.Minute, jobqConf)
+		if err != nil {
+			return nil, errors.WithMessage(err, "jobq-rabbitmq failed to start")
+		}
+	default:
+		return nil, errors.Errorf("unsupported jobq driver: %s", config.JobQ.Driver.Name)
+	}
+
 	// Instantiate oauth clients
 	oauthClients := make(map[string]oauth.Client)
 	for provider, client := range config.OAuth.Clients {
@@ -157,7 +177,7 @@ func NewServer(ctx context.Context, config *conf.Configuration) (*Server, error)
 	e.GET("/", srv.CopyrightHandler())
 	e.GET("/version", srv.VersionHandler(version))
 
-	apiv1 := v1.NewAPI(e, oauthClients, authsvc, storagesvc, config)
+	apiv1 := v1.NewAPI(e, oauthClients, authsvc, storagesvc, jobqsvc, config)
 	server := &Server{
 		e:       e,
 		Storage: storagesvc,

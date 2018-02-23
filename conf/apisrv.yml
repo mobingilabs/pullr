@@ -1,14 +1,10 @@
 http:
   port: 8080
-  alloworigins:
-    - http://*.pullr.local
-    - https://*.pullr.local
+  alloworigins: ["*"]
 
 log:
   level: info
   formatter: text
-
-webhookurl: http://events.pullr.local
 
 auth:
   mongodb:
@@ -16,18 +12,17 @@ auth:
     crt: /certs/pullr.crt
     conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
 
+jobq:
+  buildqueue: pullr-image-build
+  driver:
+    rabbitmq:
+      conn: amqp://pullr-rabbitmq:5672
+
 storage:
   mongodb:
     conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
 
 oauth:
-  callbackurl:     http://pullr.local
-  failureredirect: http://pullr.local
-
-  redirectwhitelist:
-    - http://pullr.local
-    - https://pullr.local
-
   clients:
     github:
       id: xxx     # override these values with tokens from Github
