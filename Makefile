@@ -2,7 +2,7 @@ DIST:=bin
 DOCKER_TAG_PREFIX:=mobingilabs/pullr-
 VERSION:=localdev
 
-CMDS:=apisrv eventsrv buildctl
+CMDS:=apisrv buildctl
 LINUX_CMDS:=$(addsuffix -linux,$(CMDS))
 DOCKER_CMDS:=$(addsuffix -docker,$(CMDS))
 
@@ -23,6 +23,7 @@ show:
 	@echo
 	@echo Tasks:
 	@echo ==========================================================
+	@echo "helm               Prepares helm package"
 	@echo "build              Build all services"
 	@echo "build-linux        Build all services for linux"
 	@echo "docker             Build docker images for all services"
@@ -33,7 +34,7 @@ show:
 .PHONY: build build-linux
 build: $(CMDS) ui
 build-linux: $(LINUX_CMDS) ui
-docker: $(DOCKER_CMDS) docker-ui
+docker: $(DOCKER_CMDS) ui-docker
 
 .PHONY: $(CMDS) $(LINUX_CMDS) $(DOCKER_CMDS)
 cmd=$(word 1, $@)
@@ -49,9 +50,10 @@ dockerdep=$(patsubst %-docker,%-linux,$@)
 $(DOCKER_CMDS): % : $$(dockerdep)
 	docker build -t $(DOCKER_TAG_PREFIX)$(dockercmd):$(VERSION) -f cmd/$(dockercmd)/Dockerfile .
 
-.PHONY: ui docker-ui
+.PHONY: ui ui-docker
 ui:
 	- mkdir -p ui/dist
 	cd ui/dist; parcel build -d . ../src/index.html
 ui-docker: ui
 	docker build -t $(DOCKER_TAG_PREFIX)ui:$(VERSION) -f ui/Dockerfile .
+
