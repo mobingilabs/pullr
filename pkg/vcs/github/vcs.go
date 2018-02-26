@@ -33,7 +33,7 @@ func (*githubVcs) ParseWebhookRequest(r *http.Request) (*vcs.WebhookRequest, err
 		return nil, vcs.ErrInvalidWebhook
 	}
 
-	event := r.Header.Get("X-Github-Event")
+	event := r.Header.Get("X-GitHub-Event")
 	if event == "" {
 		return nil, vcs.ErrInvalidWebhook
 	}
@@ -65,17 +65,25 @@ func extractCommitInfoPushPayload(r *vcs.WebhookRequest) (*vcs.CommitInfo, error
 	}
 
 	var refType vcs.RefType
-	if refParts[1] == "tag" {
+	if refParts[1] == "tags" {
 		refType = vcs.Tag
 	} else {
 		refType = vcs.Branch
 	}
 
 	refName := refParts[len(refParts)-1]
+	var commit *github.PushEventCommit
+	if len(event.Commits) > 0 {
+		commit = &event.Commits[0]
+	} else if event.GetHeadCommit() != nil {
+		commit = event.GetHeadCommit()
+	} else {
+		return nil, vcs.ErrInvalidWebhookPayload
+	}
 
 	commitInfo := &vcs.CommitInfo{
-		Author:    event.Commits[0].Author.GetName(),
-		CreatedAt: event.Commits[0].GetTimestamp().Time,
+		Author:    commit.GetAuthor().GetName(),
+		CreatedAt: commit.GetTimestamp().Time,
 		Ref:       refName,
 		RefType:   refType,
 		Hash:      event.GetAfter(),
