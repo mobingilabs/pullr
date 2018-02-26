@@ -12,8 +12,8 @@ storage:
 http:
   addr: :5000
   tls:
-    certificate: /certs/pullr.crt
-    key: /certs/pullr.key
+    certificate: /certs/internal.crt
+    key: /certs/internal.key
   headers:
     X-Content-Type-Options: [nosniff]
 auth:
@@ -21,7 +21,7 @@ auth:
      realm: "https://reg.pullr.local/tokensrv/auth"
      service: "Docker registry"
      issuer: "Acme auth server"
-     rootcertbundle: /certs/pullr.crt
+     rootcertbundle: /certs/auth.crt
 #notifications:
 #  endpoints:
 #  - name: listener

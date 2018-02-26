@@ -33,7 +33,7 @@ spec:
             - name: docker-storage
               mountPath: /var/lib/docker
         - name: buildctl
-          image: mobingilabs/pullr-buildctl:localdev
+          image: registry.umurgdk.io/mobingilabs/pullr-buildctl:localdev
           args: ['listen']
           ports:
             - containerPort: 8080
@@ -44,7 +44,7 @@ spec:
               value: /conf/buildctl.yml
             - name: PULLR_REGISTRY_USERNAME
               valueFrom:
-                configMapKeyRef:
+                secretKeyRef:
                   name: pullr
                   key: reguser
             - name: PULLR_REGISTRY_PASSWORD

@@ -1,0 +1,17 @@
+# Apisrv Service ===============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: pullr-apisrv
+  labels:
+    app: pullr
+    tier: backend
+    impl: apisrv
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+  selector:
+    app: pullr
+    tier: backend
+    impl: apisrv

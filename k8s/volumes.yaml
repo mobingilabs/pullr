@@ -1,0 +1,45 @@
+# Mongodb volume ===============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pv-claim
+  labels:
+    app: pullr
+    impl: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# RabbitMQ persistent volume ===================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pv-claim
+  labels:
+    app: pullr
+    tier: jobq
+    impl: rabbitmq
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Registry persistent volume claim =============================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-registry-pv-claim
+  labels:
+    app: pullr
+    tier: registry
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullr-mongodb
+  labels:
+    app: pullr
+    tier: storage
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      tier: storage
+      impl: mongodb
+
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: pullr
+        tier: storage
+        impl: mongodb
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:latest
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - 'sh'
+                  - '-c'
+                  - |-
+                    sleep 60;
+                    mongo --eval "db.createUser({user: '$ROOT_USER', pwd: '$ROOT_PASS', roles: ['root']})" admin;
+                    mongo -u $ROOT_USER -p $ROOT_PASS --authenticationDatabase admin --eval "db.createUser({user: '$USER', pwd: '$PASS', roles: ['readWrite']})" pullr;
+                    mongo -u $ROOT_USER -p $ROOT_PASS --authenticationDatabase admin --eval "createCollection('users')" pullr;
+                    mongo -u $ROOT_USER -p $ROOT_PASS --authenticationDatabase admin --eval "db.users.insert({'username': '$REG_USER', 'password': '$REG_PASS'})" pullr;
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_DATA_DIR
+              value: /data/db
+            - name: ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: mongorootuser
+            - name: ROOT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: mongorootpass
+            - name: USER
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: mongouser
+            - name: PASS
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: mongopass
+            - name: REG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: reguser
+            - name: REG_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: regpass
+          volumeMounts:
+            - name: storage
+              mountPath: /data/db
+
+
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: mongodb-pv-claim

@@ -1,13 +1,14 @@
+# copied from https://github.com/cesanta/docker_auth/blob/master/examples/simple.yml
 server:
   addr: ":5001"
-  certificate: "/certs/pullr.crt"
-  key: "/certs/pullr.key"
+  certificate: /certs/internal.crt
+  key: /certs/internal.key
 
 token:
   issuer: "Acme auth server"  # Must match issuer in the Registry config.
   expiration: 900
-  certificate: /certs/pullr.crt
-  key: /certs/pullr.key
+  certificate: /certs/auth.crt
+  key: /certs/auth.key
 
 # users:
 #   # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.

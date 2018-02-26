@@ -8,8 +8,8 @@ log:
 
 auth:
   mongodb:
-    key: /certs/pullr.key
-    crt: /certs/pullr.crt
+    key: /certs/auth.key
+    crt: /certs/auth.crt
     conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
 
 jobq:

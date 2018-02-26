@@ -1,18 +1,3 @@
-# Apisrv Service ===============================================================
-apiVersion: v1
-kind: Service
-metadata:
-  name: pullr-apisrv
-spec:
-  ports:
-  - port: 8080
-    protocol: TCP
-  selector:
-    app: pullr
-    tier: backend
-    impl: apisrv
----
-# Apisrv Deployment ============================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,7 +22,7 @@ spec:
     spec:
       containers:
         - name: apisrv
-          image: mobingilabs/pullr-apisrv:localdev
+          image: registry.umurgdk.io/mobingilabs/pullr-apisrv:localdev
           args: ['serve']
           resources:
             requests:
