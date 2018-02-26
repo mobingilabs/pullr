@@ -1,0 +1,24 @@
+defaultEntryPoints = ["https", "http"]
+InsecureSkipVerify = true
+
+[entryPoints]
+
+[entryPoints.http]
+address = ":80"
+[entryPoints.http.redirect]
+entryPoint = "https"
+
+[entryPoints.https]
+address = ":443"
+compress = true
+
+[entryPoints.https.tls]
+[[entryPoints.https.tls.certificates]]
+certFile = "/certs/internal.crt"
+keyFile = "/certs/internal.key"
+[[entryPoints.https.tls.certificates]]
+certFile = "/certs/dev.crt"
+keyFile = "/certs/dev.key"
+[[entryPoints.https.tls.certificates]]
+certFile = "/certs/regdev.crt"
+keyFile = "/certs/regdev.key"

@@ -1,6 +1,10 @@
 version: '3'
 networks:
+  proxy:
+    external: true
   pullr:
+    external: false
+
 services:
   pullr-mongodb:
     container_name: pullr-mongodb
@@ -10,31 +14,38 @@ services:
       - MONGO_DATA_DIR=/data/db
     volumes:
       - "./tmp/mongodb:/data/db"
+    labels:
+      - traefik.enable=false
     networks:
       pullr:
 
   pullr-rabbitmq:
     container_name: pullr-rabitmq
-    image: rabbitmq
+    image: rabbitmq:3.7.3-alpine
+    volumes:
+      - "./tmp/rabbbitmq:/var/lib/rabbitmq"
     networks:
       pullr:
+    labels:
+      - traefik.enable=false
 
   docker-registry-tokensrv:
     container_name: docker-registry-tokensrv
-    image: mobingilabs/docker_auth:1.11
-    command: ["--v=3", "--alsologtostderr", "/conf/docker_auth.yml", "AUTH"]
-    environment:
-      - AUTH_MONGOAUTH_DIALINFO_USERNAME=pullr
-      - AUTH_MONGOAUTH_DIALINFO_PASSWORD=pullrpass
-      - AUTH_MONGOAUTH_DIALINFO_PASSWORDFILE=""
+    image: cesanta/docker_auth:1
+    command: ["--v=3", "--alsologtostderr", "/conf/docker_auth.yml"]
     volumes:
       - "./conf:/conf:ro"
       - "./certs:/certs:ro"
     networks:
+      proxy:
       pullr:
     depends_on:
       - pullr-mongodb
-
+    labels:
+      - traefik.frontend.rule=Host:reg.pullr.io;PathPrefixStrip:/tokensrv
+      - traefik.protocol=https
+      - traefik.port=5001
+      - traefik.passHostHeader=true
 
   docker-registry-internal:
     container_name: docker-registry-internal
@@ -45,9 +56,13 @@ services:
     volumes:
       - "./certs:/certs:ro"
       - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
-      - "/var/tmp/pullr/registry:/var/lib/registry:rw"
+      - "./tmp/registry:/var/lib/registry:rw"
+    expose:
+      - 5050
     depends_on:
       - docker-registry-tokensrv
+    labels:
+      - traefik.enable=false
     networks:
       pullr:
         aliases:
@@ -59,45 +74,47 @@ services:
     volumes:
       - "./certs:/certs:ro"
       - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
-      - "/var/tmp/pullr/registry:/var/lib/registry:rw"
+      - "./tmp/registry:/var/lib/registry:rw"
+    environment:
+      - REGISTRY_AUTH_TOKEN_REALM='https://reg.pullr.io/tokensrv/auth'
     depends_on:
       - docker-registry-tokensrv
+    labels:
+      - traefik.frontend.rule=Host:reg.pullr.io,reg.pullr.dev
+      - traefik.port=5000
+      - traefik.protocol=https
+      - traefik.passHostHeader=true
     networks:
+      proxy:
       pullr:
-        aliases:
-          - docker-registry
-
-  pullr-proxy:
-    container_name: pullr-proxy
-    image: nginx:1.12.2
-    ports:
-      - 80:80
-      - 443:443
-    volumes:
-      - "./conf/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro"
-      - "./certs:/certs:ro"
-    networks:
-      pullr:
-    depends_on:
-      - docker-registry-external
-      - docker-registry-tokensrv
-      - pullr-ui
-      - pullr-apisrv
 
   pullr-ui:
     container_name: pullr-ui
     image: mobingilabs/pullr-ui:localdev
     networks:
       pullr:
+      proxy:
+    labels:
+      - traefik.frontend.rule=Host:pullr.io,pullr.dev
+      - traefik.port=80
+      - traefik.passHostHeader=true
 
   pullr-apisrv:
     container_name: pullr-apisrv
-    image: mobingilabs/pullr-apisrv:localdev
+    image: reg.umurgdk.io/mobingilabs/pullr-apisrv:0.0.5
     command: ["serve"]
     networks:
       pullr:
+      proxy:
     volumes:
       - "./certs:/certs:ro"
+    expose:
+      - 8080
+    labels:
+      - traefik.backend=pullr-apisrv
+      - traefik.frontend.rule=Host:pullr.io,pullr.dev;PathPrefix:/api
+      - traefik.port=8080
+      - traefik.passHostHeader=true
     environment:
       - PULLR_OAUTH_CLIENTS_GITHUB_ID=$GITHUBID
       - PULLR_OAUTH_CLIENTS_GITHUB_SECRET=$GITHUBSECRET
@@ -111,22 +128,30 @@ services:
     command: ["listen"]
     networks:
       pullr:
+    labels:
+      - traefik.enable=false
     environment:
-      - PULLR_BUILD_CLONEDIR=./tmp/src
+      - PULLR_BUILD_CLONEDIR=/data/buildctl
       - PULLR_REGISTRY_USERNAME=admin
       - PULLR_REGISTRY_PASSWORD=admin
-      - PULLR_REGISTRY_URL=https://docker-registry:5050
+      - PULLR_REGISTRY_URL=docker-registry:5050
       - DOCKER_HOST=tcp://pullr-dind:2375
+    volumes:
+      - "./tmp/buildctl:/data/buildctl:rw"
     depends_on:
       - pullr-mongodb
       - pullr-rabbitmq
       - pullr-dind
       - docker-registry-internal
+      - docker-registry-tokensrv
+
   pullr-dind:
     container_name: pullr-dind
     image: docker:17.12.0-dind
     networks:
       pullr:
+    labels:
+      - traefik.enable=false
     depends_on:
       - docker-registry-internal
     command:
@@ -135,3 +160,16 @@ services:
     volumes:
       - "./tmp/dind:/var/lib/docker:rw"
     privileged: true
+
+  pullr-proxy:
+    image: traefik:v1.5.2-alpine
+    command: ["--docker"]
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "./certs:/certs:ro"
+      - "./conf/traefik.toml:/traefik.toml:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      proxy:

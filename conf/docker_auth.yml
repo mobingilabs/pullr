@@ -29,9 +29,9 @@ acl:
     comment: "Logged in users have full access to images that are in their 'namespace'"
   # Access is denied by default.
 
-mongoauth:
+mongo_auth:
   # Essentially all options are described here: https://godoc.org/gopkg.in/mgo.v2#DialInfo
-  dialinfo:
+  dial_info:
     # The MongoDB hostnames or IPs to connect to.
     addrs: ["pullr-mongodb"]
     # The time to wait for a server to respond when first connecting and on
@@ -43,8 +43,7 @@ mongoauth:
     database: "pullr"
     # The username with which to connect to the MongoDB server.
     username: "pullr"
-    # Path to the text file with the password in it.
-    passwordfile: "/secrets/mongopass.txt"
+    password: "pullrpass"
     # Enable TLS connection to MongoDB (only enable this if your server supports it)
     enabletls: false
     # Name of the collection in which ACLs will be stored in MongoDB.
