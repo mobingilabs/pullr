@@ -4,6 +4,16 @@ services:
   docker-registry-external:
     environment:
       - REGISTRY_AUTH_TOKEN_REALM='https://reg.pullr.dev/tokensrv/auth'
+  pullr-mongodb:
+    ports:
+      - 27017:27017
+  pullr-rabbitmq:
+    ports:
+      - 5671:5671
+      - 5672:5672
+  pullr-dind:
+    ports:
+      - 9999:2375
   pullr-apisrv:
     build:
       context: .

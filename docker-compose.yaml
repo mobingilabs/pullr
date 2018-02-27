@@ -101,7 +101,7 @@ services:
 
   pullr-apisrv:
     container_name: pullr-apisrv
-    image: reg.umurgdk.io/mobingilabs/pullr-apisrv:0.0.5
+    image: mobingilabs/pullr-apisrv:0.0.7
     command: ["serve"]
     networks:
       pullr:
@@ -113,6 +113,7 @@ services:
     labels:
       - traefik.backend=pullr-apisrv
       - traefik.frontend.rule=Host:pullr.io,pullr.dev;PathPrefix:/api
+      - traefik.docker.network=pullr
       - traefik.port=8080
       - traefik.passHostHeader=true
     environment:
@@ -173,3 +174,4 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       proxy:
+      pullr:
