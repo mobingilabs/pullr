@@ -42,6 +42,13 @@ export default class AsyncCmd<T, E = ApiError, A1 = never, A2 = never, A3 = neve
     }
 
     @action.bound
+    reset() {
+        this.err = null;
+        this.inProgress = false;
+        this.value = null;
+    }
+
+    @action.bound
     private startProsessing() {
         this.inProgress = true;
     }

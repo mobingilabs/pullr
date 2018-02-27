@@ -54,17 +54,23 @@ func (a *API) login(c echo.Context) error {
 }
 
 func (a *API) register(c echo.Context) error {
-	credentials := new(creds)
-	if err := c.Bind(credentials); err != nil {
+	type reqPayload struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	payload := new(reqPayload)
+	if err := c.Bind(payload); err != nil {
 		return err
 	}
 
-	err := a.Auth.Register(credentials.Username, credentials.Password)
+	err := a.Auth.Register(payload.Username, payload.Email, payload.Password)
 	if err != nil {
 		return err
 	}
 
-	secrets, err := a.Auth.Login(credentials.Username, credentials.Password)
+	secrets, err := a.Auth.Login(payload.Username, payload.Password)
 	if err != nil {
 		return err
 	}

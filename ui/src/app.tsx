@@ -4,6 +4,8 @@ import { Route, Switch, withRouter, RouteComponentProps } from 'react-router-dom
 import { autorun, whyRun, IReactionDisposer } from 'mobx';
 import { inject, observer } from 'mobx-react';
 
+import ApiError from './libs/api/ApiError';
+
 import RootStore from './state/RootStore';
 import SideBar from './components/layout/SideBar';
 import InitScreen from './components/screens/Init';
@@ -11,10 +13,10 @@ import ImagesScreen from './components/screens/Images';
 import AddImageScreen from './components/screens/AddImage';
 import EditImageScreen from './components/screens/EditImage';
 import HistoryScreen from './components/screens/History';
-import LoginScreen from './components/screens/Login';
+import LoginScreen from './components/screens/Auth/LoginScreen';
 import OAuthScreen from './components/screens/OAuth';
-
-import ApiError from './libs/api/ApiError';
+import RegisterScreen from './components/screens/Auth/RegisterScreen';
+import RegisterWaitScreen from './components/screens/Auth/RegisterWaitScreen';
 
 interface Props extends RouteComponentProps<{}> {
     store?: RootStore;
@@ -47,6 +49,8 @@ export default class App extends React.Component<Props> {
             return (
                 <Switch>
                     <Route path="/login" exact component={LoginScreen} />
+                    <Route path="/register" exact component={RegisterScreen} />
+                    <Route path="/register/waiting" exact component={RegisterWaitScreen} />
                 </Switch>
             );
         }

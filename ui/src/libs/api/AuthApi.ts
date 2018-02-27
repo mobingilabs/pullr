@@ -19,6 +19,12 @@ export default class AuthApi {
             .then(this.getProfile);
     }
 
+    register = (username: string, email: string, password: string): Promise<User | ApiError> => {
+        const body = JSON.stringify({ username, email, password });
+        return this.apiClient.request('post', '/register', null, { body })
+            .then(this.getProfile);
+    }
+
     getProfile = (): Promise<User> => {
         return this.apiClient.json('get', '/profile')
             .then(user => new User(user));

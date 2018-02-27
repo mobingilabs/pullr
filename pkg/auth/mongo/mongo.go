@@ -172,15 +172,22 @@ func (a *mongo) Login(username, password string) (*auth.Secrets, error) {
 	return secrets, nil
 }
 
-func (a *mongo) Register(username, password string) error {
+func (a *mongo) Register(username, email, password string) error {
 	users := a.db.C("users")
 	numUsers, err := users.Find(bson.M{"username": username}).Count()
 	if err != nil {
 		return err
 	}
-
 	if numUsers > 0 {
 		return auth.ErrUsernameTaken
+	}
+
+	numUsers, err = users.Find(bson.M{"email": email}).Count()
+	if err != nil {
+		return err
+	}
+	if numUsers > 0 {
+		return auth.ErrEmailTaken
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -188,7 +195,7 @@ func (a *mongo) Register(username, password string) error {
 		return err
 	}
 
-	return users.Insert(bson.M{"username": username, "password": hashedPassword})
+	return users.Insert(bson.M{"username": username, "email": email, "password": hashedPassword})
 }
 
 func (a *mongo) ParseToken(token string, claims jwt.Claims) (*jwt.Token, error) {

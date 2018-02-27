@@ -9,6 +9,7 @@ interface Props {
     popup?: boolean;
     text?: string;
     icon?: string;
+    outline?: boolean;
     onClick: (e: any) => any;
     disabled?: boolean;
     className?: string;
@@ -22,14 +23,16 @@ export default class Button extends React.PureComponent<Props> {
         size: 'medium',
         aslink: false,
         href: '',
-        popup: false;
+        popup: false,
+        outline: false,
     }
 
     render() {
         const classes = ['button', this.props.size].concat([
             this.props.className ? this.props.className : '',
             this.props.text ? '' : 'button-icon-only',
-            this.props.secondary ? 'button-secondary' : ''
+            this.props.secondary ? 'button-secondary' : '',
+            this.props.outline ? 'button-outline' : '',
         ]).join(' ');
 
         if (this.props.aslink) {

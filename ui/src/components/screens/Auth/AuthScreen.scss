@@ -1,0 +1,55 @@
+.authScreen {
+    flex-grow: 1;
+    background: #F5F5F5;
+    overflow-y: auto;
+    .authScreen-inner {
+        width: 460px;
+        margin: 0 auto;
+        padding: 60px 0;
+    }
+    .logo {
+        margin: 0 auto 32px;
+    }
+    .card {
+        padding: 46px 40px 0;
+        flex-direction: column;
+        box-shadow: 0 5px 12px 0 rgba(0, 0, 0, 0.27), 0 24px 42px 0 rgba(0, 0, 0, 0.13);
+        border-radius: 4px;
+    }
+    h1 {
+        margin-bottom: 50px;
+        font-weight: bold;
+        font-size: 22px;
+    }
+    .form {
+        margin-bottom: 32px;
+    }
+    .entry {
+        margin-bottom: 32px;
+        label {
+            font-size: 14px;
+            a {
+                font-weight: normal;
+                color: #57B2FE;
+                float: right;
+            }
+        }
+    }
+    .button {
+        width: 120px;
+    }
+    .err-msg {
+        color: #C73939;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .alternative-section {
+        height: 95px;
+        border-top: 1px solid #eee;
+        padding: 25px 42px;
+        margin: 0 -40px;
+        span {
+            color: #555;
+        }
+    }
+}

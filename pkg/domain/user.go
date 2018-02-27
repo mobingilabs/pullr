@@ -13,7 +13,8 @@ type UserToken struct {
 
 // User defines both user authentication and relation
 type User struct {
-	Username       string               `json:"username" bson:"username,omitempty"`
+	Username       string               `json:"username" bson:"username"`
+	Email          string               `json:"email" bson:"email"`
 	HashedPassword []byte               `json:"password,omitempty" bson:"password,omitempty"`
 	Tokens         map[string]UserToken `json:"tokens" bson:"tokens,omitempty"`
 }

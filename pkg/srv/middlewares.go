@@ -68,14 +68,18 @@ func ErrorMiddleware() echo.MiddlewareFunc {
 				e.Kind = "ERR_USERNAMETAKEN"
 				e.Status = http.StatusConflict
 				e.Msg = "Username is taken by another user"
+			case auth.ErrEmailTaken:
+				e.Kind = "ERR_EMAILTAKEN"
+				e.Status = http.StatusConflict
+				e.Msg = "Email is already registered"
 
-				// Service errors
+			// Service errors
 			case storage.ErrNotFound:
 				e.Kind = "ERR_RESOURCE_NOTFOUND"
 				e.Status = http.StatusNotFound
 				e.Msg = "Resource not found"
 
-				// Vcs errors
+			// Vcs errors
 			case vcs.ErrInvalidWebhook, vcs.ErrInvalidWebhookPayload:
 				e.Kind = "ERR_INVALID_WEBHOOK"
 				e.Status = http.StatusBadRequest

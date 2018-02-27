@@ -11,6 +11,7 @@ import (
 var (
 	ErrCredentials     = errors.New("credentials are not met")
 	ErrUsernameTaken   = errors.New("username has already taken")
+	ErrEmailTaken      = errors.New("this email has been already registered")
 	ErrUnauthenticated = errors.New("unauthenticated")
 	ErrInvalidToken    = errors.New("invalid token")
 	ErrTokenExpired    = errors.New("token expired")
@@ -39,7 +40,7 @@ type Service interface {
 	Login(username, password string) (*Secrets, error)
 
 	// Register will create user record
-	Register(username, password string) error
+	Register(username, email, password string) error
 
 	// ParseToken parses signed token
 	ParseToken(token string, claims jwt.Claims) (*jwt.Token, error)

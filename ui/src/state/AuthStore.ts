@@ -12,7 +12,7 @@ export default class AuthStore {
     @observable readonly loginUrls: ObservableMap<string>;
     @observable readonly loadProfile: AsyncCmd<void>;
     @observable readonly login: AsyncCmd<void, ApiError, string, string>;
-    @observable readonly register: AsyncCmd<void>;
+    @observable readonly register: AsyncCmd<void, ApiError, string, string, string>;
     @observable readonly oauthInProgress: ObservableMap<boolean>;
 
     @observable private readonly loginUrlCmds: ObservableMap<AsyncCmd<string, ApiError>>;
@@ -27,6 +27,7 @@ export default class AuthStore {
         this.loginUrls = new ObservableMap({});
         this.loadProfile = new AsyncCmd(this.loadProfileImpl);
         this.login = new AsyncCmd(this.loginImpl);
+        this.register = new AsyncCmd(this.registerImpl);
         this.loginUrlCmds = new ObservableMap({});
         this.oauthInProgress = new ObservableMap({});
         // this.register = new AsyncCmd(this.registerImpl);
@@ -55,7 +56,7 @@ export default class AuthStore {
     }
 
     @action.bound
-    getLoginUrlImpl(provider: string): Promise<string> {
+    private getLoginUrlImpl(provider: string): Promise<string> {
         return this.oauthApi.getLoginUrl(provider);
     }
 
@@ -65,13 +66,18 @@ export default class AuthStore {
     }
 
     @action.bound
-    loadProfileImpl(): Promise<void> {
+    private loadProfileImpl(): Promise<void> {
         return this.authApi.getProfile().tap(this.setUser).then(() => { });
     }
 
     @action.bound
-    loginImpl(username: string, password: string): Promise<void> {
+    private loginImpl(username: string, password: string): Promise<void> {
         return this.authApi.login(username, password).tap(this.setUser).then(() => { });
+    }
+
+    @action.bound
+    private registerImpl(username: string, email: string, password: string): Promise<void> {
+        return this.authApi.register(username, email, password).tap(this.setUser).then(() => { });
     }
 
     @action.bound
