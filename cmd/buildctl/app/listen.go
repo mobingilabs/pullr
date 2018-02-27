@@ -297,5 +297,5 @@ func (l *Listener) removeDockerImage(ctx context.Context, dockerTag string) erro
 }
 
 func (l *Listener) removeDir(dir string) {
-	errs.Log(os.Remove(dir))
+	errs.Log(os.RemoveAll(dir))
 }
