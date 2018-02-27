@@ -124,10 +124,14 @@ func NewListener(ctx context.Context, config *conf.Configuration) (*Listener, er
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "docker", "login", "-u", config.Registry.Username, "-p", config.Registry.Password, config.Registry.URL)
-	cmd.Stderr = log.StandardLogger().WithField("cmd", "docker").WriterLevel(log.InfoLevel)
-	if err := cmd.Run(); err != nil {
-		return nil, errors.WithMessage(cmd.Run(), "docker login failed")
+	err := errs.RetryWithContext(ctx, time.Minute*2, time.Second*5, func() error {
+		log.Info("Trying to login to registry")
+		cmd := exec.CommandContext(ctx, "docker", "login", "-u", config.Registry.Username, "-p", config.Registry.Password, config.Registry.URL)
+		cmd.Stderr = log.StandardLogger().WithField("cmd", "docker").WriterLevel(log.InfoLevel)
+		return cmd.Run()
+	})
+	if err != nil {
+		return nil, errors.WithMessage(err, "docker login failed")
 	}
 
 	builder := Listener{

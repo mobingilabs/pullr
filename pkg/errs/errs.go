@@ -66,18 +66,15 @@ func RetryWithContext(ctx context.Context, timeout, delay time.Duration, job fun
 
 	select {
 	case <-ctx.Done():
-		ticker.Stop()
-		close(donec)
-		return ctx.Err()
+		err = ctx.Err()
 	case <-time.After(timeout):
-		ticker.Stop()
-		close(donec)
-		return err
 	case <-donec:
-		ticker.Stop()
-		close(donec)
-		return nil
+		err = nil
 	}
+
+	ticker.Stop()
+	close(donec)
+	return err
 }
 
 // ContextWithSig creates a new context with passed context as it's parent and a
@@ -91,9 +88,6 @@ func ContextWithSig(ctx context.Context, sigs ...os.Signal) (context.Context, fu
 	go func() {
 		sig := make(chan os.Signal)
 		signal.Notify(sig, sigs...)
-
-		defer signal.Stop(sig)
-		defer close(sig)
 
 		select {
 		case <-sig:
