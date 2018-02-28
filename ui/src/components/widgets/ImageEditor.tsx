@@ -54,7 +54,7 @@ export default class ImageEditor extends React.Component<Props> {
                     <div className="entry">
                         <label htmlFor="dockerfilePath">Dockerfile path:</label>
                         <span className="entry-help">Please enter Dockerfile’s path relative to the repository root</span>
-                        <input type="text" id="dockerfilePath" placeholder="e.g. docker/Dockerfile" value={this.props.image.dockerfile_path} onChange={this.bindInputVal('dockerfilePath')} />
+                        <input type="text" id="dockerfilePath" placeholder="e.g. docker/Dockerfile" value={this.props.image.dockerfile_path} onChange={this.bindInputVal('dockerfile_path')} />
                     </div>
                     <div className="entry">
                         <label>Configure build tags</label>
