@@ -1,6 +1,4 @@
-ui/node_modules
-ui/dist
-ui/.cache
 .env
 tmp
 bin
+Caddyfile

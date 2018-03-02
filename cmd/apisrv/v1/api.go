@@ -64,6 +64,9 @@ func NewAPI(e *echo.Echo, oauthClients map[string]oauth.Client, authsvc auth.Ser
 	g.POST("/images/:key", api.authenticated(api.imagesUpdate))
 	g.DELETE("/images/:key", api.authenticated(api.imagesDelete))
 
+	// History
+	g.GET("/:kind/statuses", api.authenticated(api.statuses))
+
 	g.POST("/docker/registry/notify", api.regnotify)
 
 	return api

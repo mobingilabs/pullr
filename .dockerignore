@@ -1,8 +1,9 @@
 cmd
 pkg
+k8s
+certs
 tmp
 ui
 !ui/dist
-!ui/nginx.conf
+ui/dist/.cache
 vendor
-k8s

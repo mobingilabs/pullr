@@ -8,6 +8,7 @@ storage:
 
 jobq:
   buildqueue: pullr-image-build
+  statusqueue: pullr-status-update
   driver:
     rabbitmq:
       conn: amqp://pullr-rabbitmq:5672

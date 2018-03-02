@@ -5,6 +5,20 @@ import (
 	"time"
 )
 
+// Image status changing events
+const (
+	CauseImgBuildStart   = "images:build:start"
+	CauseImgBuildFail    = "images:build:fail"
+	CauseImgBuildSuccess = "images:build:success"
+	CauseImgDelete       = "images:delete"
+)
+
+// Image statuses
+const (
+	StatusReady       = "images:ready"
+	StatusImgBuilding = "images:building"
+)
+
 // Image represents a docker image
 type Image struct {
 	// Key is a unique string with combination of "Repository.Provider:Repository.Owner:Repository.Name"

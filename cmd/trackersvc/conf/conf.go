@@ -2,7 +2,6 @@ package conf
 
 import (
 	"errors"
-	"time"
 )
 
 // Configuration contains necessary information to run apisrv
@@ -21,36 +20,9 @@ type Configuration struct {
 		Formatter string `valid:"in(text|json),required"`
 	}
 
-	// Build contains configuration for building docker images
-	Build struct {
-		// MaxErr is maximum number of serial errors before crashing the builder
-		MaxErr int `valid:"required"`
-
-		// CloneDir points to a path where the source repositories will be cloned
-		CloneDir string `valid:"required"`
-
-		// Timeout is timeout duration for a build job
-		Timeout time.Duration `valid:"required"`
-	} `valid:"required"`
-
-	// Registry contains configuration for the docker registry service
-	Registry struct {
-		// URL is docker registry url
-		URL string `valid:"required"`
-
-		// Username is docker registry username. Make sure the user has rights for both
-		// pulling and pushing the images
-		Username string `valid:"required"`
-
-		// Password is docker registry password
-		Password string `valid:"required"`
-	} `valid:"required"`
-
 	// JobQ contains configuration for the job queue
 	JobQ struct {
-		// BuildQueue is the queue name where the build jobs are published
-		BuildQueue string `valid:"required"`
-		// StatusQueue is the queue name where the status updates are published
+		// StatusQueue is the queue name where the build jobs are published
 		StatusQueue string `valid:"required"`
 
 		// Driver contains configuration for jobq driver like rabbitmq

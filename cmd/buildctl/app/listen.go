@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -222,24 +223,46 @@ func (l *Listener) handleJob(ctx context.Context, job jobq.Job) error {
 		return errors.Errorf("oauth token not found for'%s'", img.Repository.Provider)
 	}
 
+	l.updateImgStatus(img, domain.StatusImgBuilding, domain.CauseImgBuildStart, nil)
 	buildName := fmt.Sprintf("%s_%s_%s_%d", img.Owner, img.Repository.Owner, img.Repository.Name, rand.Intn(10000))
 	repoPath, err := l.cloneRepository(ctx, buildName, img, vcsToken, buildJob)
 	if err != nil {
+		l.updateImgStatus(img, domain.StatusReady, domain.CauseImgBuildFail, map[string]interface{}{"error": err})
 		return errors.WithMessage(err, fmt.Sprintf("cloning image '%s' failed", img.Key))
 	}
 	defer l.removeDir(repoPath)
 
 	dockerTag, err := l.buildImage(ctx, repoPath, buildName, buildJob)
 	if err != nil {
+		l.updateImgStatus(img, domain.StatusReady, domain.CauseImgBuildFail, map[string]interface{}{"error": err})
 		return errors.WithMessage(err, fmt.Sprintf("building image '%s' failed", img.Key))
 	}
 	defer l.removeDockerImage(ctx, dockerTag)
 
 	if err := l.pushImage(ctx, dockerTag, img, buildJob); err != nil {
+		l.updateImgStatus(img, domain.StatusReady, domain.CauseImgBuildFail, map[string]interface{}{"error": err})
 		return errors.WithMessage(err, "push failed")
 	}
 
+	l.updateImgStatus(img, domain.StatusReady, domain.CauseImgBuildSuccess, nil)
 	return nil
+}
+
+func (l *Listener) updateImgStatus(img domain.Image, status string, cause string, metadata interface{}) {
+	var encMetadata []byte
+	var err error
+	if metadata != nil {
+		encMetadata, err = json.Marshal(metadata)
+	}
+	if err != nil {
+		log.Error(errors.WithMessage(err, "couldn't encode update status metadata"))
+	}
+
+	imgStatus := domain.NewImageStatus(img.Key, status, cause, encMetadata)
+	statusJob := domain.NewUpdateStatusJob("buildctl", imgStatus)
+	jobJson, err := json.Marshal(statusJob)
+
+	errs.Log(l.Jobq.Put(l.Config.JobQ.StatusQueue, bytes.NewReader(jobJson)))
 }
 
 func (l *Listener) validateJob(job jobq.Job) (domain.BuildImageJob, error) {

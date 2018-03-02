@@ -29,3 +29,15 @@ func NewBuildImageJob(source, imageKey, ref, hash, dockerTag string) BuildImageJ
 		CommitHash: hash,
 	}
 }
+
+type UpdateStatusJob struct {
+	BaseJob
+	Status
+}
+
+func NewUpdateStatusJob(source string, status Status) UpdateStatusJob {
+	return UpdateStatusJob{
+		BaseJob{Source: source, Action: "updatestatus"},
+		status,
+	}
+}
