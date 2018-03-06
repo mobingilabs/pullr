@@ -18,10 +18,11 @@ type Status struct {
 
 const UnknownCause = "unknown"
 
-func NewImageStatus(imgKey string, name string, cause string, metadata []byte) Status {
+func NewImageStatus(account string, imgKey string, name string, cause string, metadata []byte) Status {
 	return Status{
 		Kind:     "image",
 		ID:       imgKey,
+		Account:  account,
 		Time:     time.Now(),
 		Name:     name,
 		Cause:    cause,

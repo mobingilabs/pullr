@@ -14,6 +14,7 @@ import (
 	"github.com/mobingilabs/pullr/pkg/srv"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	"github.com/mobingilabs/pullr/pkg/vcs/github"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,33 +38,30 @@ func (a *API) imagesIndex(username string, c echo.Context) error {
 		Pagination storage.Pagination `json:"pagination"`
 	}
 
+	var images []domain.Image
+	var pagination storage.Pagination
+	var err error
 	if sinceQuery := c.QueryParam("since"); sinceQuery != "" {
 		i, err := strconv.ParseInt(sinceQuery, 10, 64)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid time format"})
+			return srv.NewErrBadValue("since", sinceQuery)
 		}
 
 		since := time.Unix(i, 0)
-		images, err := a.Storage.FindAllImagesSince(username, since)
+		images, err = a.Storage.FindAllImagesSince(username, since)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to get images since %s", since)
+		}
+	} else {
+		listOpts := new(storage.ListOptions)
+		if err := c.Bind(listOpts); err != nil {
+			listOpts = nil
 		}
 
-		// Make sure it is an empty array instead of nil
-		images = append([]domain.Image{}, images...)
-
-		return c.JSON(http.StatusOK, indexResponse{images, storage.Pagination{}})
-
-	}
-
-	listOpts := new(storage.ListOptions)
-	if err := c.Bind(listOpts); err != nil {
-		listOpts = nil
-	}
-
-	images, pagination, err := a.Storage.FindAllImages(username, listOpts)
-	if err != nil {
-		return err
+		images, pagination, err = a.Storage.FindAllImages(username, listOpts)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get images")
+		}
 	}
 
 	// Make sure it is an empty array instead of nil

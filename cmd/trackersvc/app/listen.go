@@ -25,7 +25,7 @@ var (
 			defer sigCanceler()
 
 			timeoutCtx, timeoutCanceler := context.WithTimeout(mainCtx, time.Minute*5)
-			tracker, err := service.New(timeoutCtx, Config)
+			tracker, err := service.New(timeoutCtx, Logger, Config)
 			timeoutCanceler()
 			if err != nil {
 				if errors.Cause(err) == context.Canceled {

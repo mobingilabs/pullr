@@ -94,7 +94,6 @@ export default class ImageStore {
             .then(() => { });
     }
 
-
     private saveImageImpl = (image: Image): Promise<void> => {
         return this.imagesApi.create(image).then(() => { });
     }

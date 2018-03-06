@@ -66,7 +66,6 @@ func RetryWithContext(ctx context.Context, timeout, delay time.Duration, job fun
 
 	select {
 	case <-ctx.Done():
-		err = ctx.Err()
 	case <-time.After(timeout):
 	case <-donec:
 		err = nil

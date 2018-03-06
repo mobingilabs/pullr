@@ -1,7 +1,6 @@
 cmd
 pkg
 k8s
-certs
 tmp
 ui
 !ui/dist

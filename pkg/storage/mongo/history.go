@@ -3,6 +3,7 @@ package mongo
 import (
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/storage"
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -18,10 +19,13 @@ func (m *mongo) Status(username, kind, id string) (*domain.Status, error) {
 
 func (m *mongo) Statuses(username string, kind string, listOpts *storage.ListOptions) ([]domain.Status, error) {
 	col := m.db.C("history")
+	if listOpts == nil {
+		listOpts = storage.NewListOptions()
+	}
 
 	query := bson.M{"kind": kind, "account": username}
-	skip := listOpts.GetPage() * listOpts.GetPerPage()
-	limit := listOpts.GetPerPage()
+	skip := listOpts.Page * listOpts.PerPage
+	limit := listOpts.PerPage
 
 	pipe := []bson.M{
 		{
@@ -36,6 +40,7 @@ func (m *mongo) Statuses(username string, kind string, listOpts *storage.ListOpt
 		},
 		{"$limit": limit},
 		{"$skip": skip},
+		{"$sort": bson.M{"time": -1}},
 	}
 
 	var results []struct {
@@ -43,7 +48,7 @@ func (m *mongo) Statuses(username string, kind string, listOpts *storage.ListOpt
 	}
 
 	if err := col.Pipe(pipe).All(&results); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "mongo storage failed to get statuses")
 	}
 
 	statuses := make([]domain.Status, len(results))
@@ -75,7 +80,7 @@ func (m *mongo) StatusesByResources(username string, kind string, ids []string) 
 	}
 
 	if err := col.Pipe(pipe).All(&results); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "storage mongodb failed to get statuses for resource ids")
 	}
 
 	statuses := make([]domain.Status, len(results))
@@ -88,9 +93,12 @@ func (m *mongo) StatusesByResources(username string, kind string, ids []string) 
 
 func (m *mongo) StatusesByCause(username, kind, cause string, listOpts *storage.ListOptions) ([]domain.Status, error) {
 	col := m.db.C("history")
+	if listOpts == nil {
+		listOpts = storage.NewListOptions()
+	}
 
-	skip := listOpts.GetPage() * listOpts.GetPerPage()
-	limit := listOpts.GetPerPage()
+	skip := listOpts.Page * listOpts.PerPage
+	limit := listOpts.PerPage
 
 	query := bson.M{"kind": kind, "cause": cause, "account": username}
 	pipe := []bson.M{
@@ -125,11 +133,14 @@ func (m *mongo) StatusesByCause(username, kind, cause string, listOpts *storage.
 
 func (m *mongo) History(username string, kind string, id string, listOpts *storage.ListOptions) ([]domain.Status, error) {
 	var statuses []domain.Status
+	if listOpts == nil {
+		listOpts = storage.NewListOptions()
+	}
 
 	col := m.db.C("history")
 	query := bson.M{"kind": kind, "id": id, "account": username}
-	skip := listOpts.GetPage() * listOpts.GetPerPage()
-	limit := listOpts.GetPerPage()
+	skip := listOpts.Page * listOpts.PerPage
+	limit := listOpts.PerPage
 	err := col.Find(query).Skip(skip).Limit(limit).Sort("-time").All(&statuses)
 	return statuses, err
 }

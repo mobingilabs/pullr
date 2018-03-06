@@ -1,7 +1,7 @@
-FROM alpine:3.7
-RUN apk --no-cache add ca-certificates docker
-RUN update-ca-certificates
-WORKDIR /trackersvc/
-COPY bin/trackersvc .
-COPY conf/trackersvc.yml .
-ENTRYPOINT ["/trackersvc/trackersvc"]
+FROM scratch
+WORKDIR /app
+ADD certs/ca-certificates.crt /etc/ssl/certs
+ADD conf/trackersvc.yml .
+ADD bin/trackersvc .
+ENTRYPOINT ["/app/trackersvc"]
+CMD ["listen"]

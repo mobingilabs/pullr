@@ -23,10 +23,11 @@ type Tracker struct {
 	jobq     jobq.Service
 	config   *conf.Configuration
 	listener *jobq.QueueListener
+	logger   *logrus.Logger
 }
 
 // New creates a new Tracker instance
-func New(ctx context.Context, config *conf.Configuration) (*Tracker, error) {
+func New(ctx context.Context, logger *logrus.Logger, config *conf.Configuration) (*Tracker, error) {
 	storagesvc, err := initStorage(ctx, config)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,12 @@ func New(ctx context.Context, config *conf.Configuration) (*Tracker, error) {
 		return nil, err
 	}
 
-	return &Tracker{storagesvc, jobqsvc, config, nil}, nil
+	return &Tracker{
+		storage: storagesvc,
+		jobq:    jobqsvc,
+		config:  config,
+		logger:  logger,
+	}, nil
 }
 
 // Listen starts listening for status events
@@ -47,7 +53,7 @@ func (s *Tracker) Listen(ctx context.Context) error {
 		return err
 	}
 
-	logrus.Info("Waiting for status events...")
+	s.logger.Info("Waiting for status events...")
 	for {
 		select {
 		case <-ctx.Done():
@@ -76,7 +82,15 @@ func (s *Tracker) Listen(ctx context.Context) error {
 }
 
 func (s *Tracker) handleJob(job *domain.UpdateStatusJob) error {
-	return s.storage.UpdateStatus(job.Status)
+	logger := s.logger.WithField("kind", job.Status.Kind).WithField("id", job.Status.ID)
+	logger.Info("Got new update status job")
+
+	err := s.storage.UpdateStatus(job.Status)
+	if err != nil {
+		logger.Errorf("Job failed with: %v", err)
+	}
+
+	return err
 }
 
 func parseJob(job jobq.Job) (*domain.UpdateStatusJob, error) {

@@ -12,6 +12,7 @@ var (
 	version     = "?"
 	showVersion bool
 	Config      *conf.Configuration
+	Logger      *logrus.Logger
 
 	// RootCmd is the main command for trackkrsrv
 	RootCmd = &cobra.Command{
@@ -54,7 +55,7 @@ func initLogger() error {
 		return errors.WithMessage(err, "could not parse log level")
 	}
 
-	logger := logrus.StandardLogger()
+	logger := logrus.New()
 	logger.SetLevel(logLevel)
 
 	switch Config.Log.Formatter {
@@ -67,5 +68,6 @@ func initLogger() error {
 	}
 
 	errs.SetLogger(logger)
+	Logger = logger
 	return nil
 }

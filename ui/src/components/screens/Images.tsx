@@ -22,6 +22,7 @@ import Alert from '../widgets/Alert';
 import TableActionsMenu from '../widgets/TableActionsMenu';
 import InProgress from '../widgets/InProgress';
 import LoadingSpinner from '../widgets/LoadingSpinner';
+import ImageStatus from '../widgets/ImageStatus';
 
 interface RouteParams {
     imageName?: string;
@@ -92,7 +93,7 @@ export default class ImagesScreen extends React.Component<Props, State> {
                             <thead>
                                 <tr>
                                     <th>IMAGE NAME</th>
-                                    <th>SOURCE PROVIDER</th>
+                                    <th>STATUS</th>
                                     <th>REPOSITORY</th>
                                     <th>TAGS</th>
                                     <th className="table-actions-column">
@@ -117,8 +118,8 @@ export default class ImagesScreen extends React.Component<Props, State> {
                                         <td>
                                             <Link className="table-link" to={`/images/${image.key}`}><Icon name={Icons.images} /> {image.name}</Link>
                                         </td>
-                                        <td>{image.repository.provider}</td>
-                                        <td>{image.repository.owner}/{image.repository.name}</td>
+                                        <td>{image.status && <ImageStatus image={image} />}</td>
+                                        <td>{image.repository.provider}/{image.repository.owner}/{image.repository.name}</td>
                                         <td>{image.tags.map(tag => tag.name || tag.ref_test).join(', ')}</td>
                                         <td width={100}><Button icon={Icons.edit} onClick={this.handleEditImage.bind(null, image.key)} /></td>
                                     </tr>

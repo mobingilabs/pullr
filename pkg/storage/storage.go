@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 	"io"
+	"math"
 	"time"
 
 	"github.com/mobingilabs/pullr/pkg/domain"
@@ -29,6 +30,8 @@ type Service interface {
 
 	// Images ==================================================================
 
+	// GetImages reports image records for each corresponding key
+	GetImages(keys []string) ([]domain.Image, error)
 	// FindImageByKey finds an image by its key
 	FindImageByKey(key string) (domain.Image, error)
 	// FindAllImages finds all images belongs to a user, optional listOpts
@@ -41,6 +44,12 @@ type Service interface {
 	CreateImage(image domain.Image) (string, error)
 	// UpdateImage updates the matching image record by imageKey
 	UpdateImage(imageKey string, image domain.Image) (string, error)
+	// StartImageBuild will create a new build record in image object only latest
+	// 100 builds will be kept
+	StartImageBuild(username, imageKey string, build domain.ImageBuild) error
+	// FinishImageBuild will update the latest build record as finished with
+	// with given status
+	FinishImageBuild(username string, imgKey string, status domain.ImageBuildStatus) error
 	// DeleteImage deletes the matching image record
 	DeleteImage(imageKey string) error
 
@@ -82,6 +91,35 @@ type Pagination struct {
 	PerPage int `json:"per_page"`
 }
 
+func NewPagination(listOpts *ListOptions, count int) Pagination {
+	if listOpts == nil {
+		listOpts = NewListOptions()
+	}
+
+	var pagination Pagination
+
+	page := listOpts.Page
+	perPage := listOpts.PerPage
+	if count > perPage {
+		pagination.Last = int(math.Max(math.Ceil(float64(count)/float64(perPage)), 1)) - 1
+	} else {
+		pagination.Last = 0
+	}
+
+	if page < pagination.Last {
+		pagination.Next = page + 1
+	} else {
+		pagination.Next = page
+	}
+
+	pagination.PerPage = perPage
+	pagination.Current = page
+	pagination.Total = count
+
+	return pagination
+
+}
+
 // Direction defines ordering/sorting direction
 type Direction string
 
@@ -100,38 +138,13 @@ type ListOptions struct {
 	Filter        map[string]string `query:"filter"`
 }
 
-// GetPerPage reports items per page for listing default value is 20
-func (o *ListOptions) GetPerPage() int {
-	if o == nil {
-		return 20
+// NewListOptions creates a ListOptions instance with default values
+func NewListOptions() *ListOptions {
+	return &ListOptions{
+		PerPage:       20,
+		Page:          0,
+		SortBy:        "",
+		SortDirection: Asc,
+		Filter:        nil,
 	}
-
-	return o.PerPage
-}
-
-// GetPage reports current page for listing default value is 0
-func (o *ListOptions) GetPage() int {
-	if o == nil {
-		return 0
-	}
-
-	return o.Page
-}
-
-// GetSortBy reports sorting column for listing default is empty string
-func (o *ListOptions) GetSortBy() string {
-	if o == nil {
-		return ""
-	}
-
-	return o.SortBy
-}
-
-// GetSortDirection reports sorting direction for listing default is ascending
-func (o *ListOptions) GetSortDirection() Direction {
-	if o == nil {
-		return Asc
-	}
-
-	return o.SortDirection
 }

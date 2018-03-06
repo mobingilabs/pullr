@@ -37,28 +37,29 @@ var ServeCmd = &cobra.Command{
 			log.Fatalf("failed to read configuration: %v", err)
 		}
 
-		errs.SetLogger(log.StandardLogger())
+		logger := log.New()
+		errs.SetLogger(logger)
 		logLevel, err := log.ParseLevel(config.Log.Level)
 		if err == nil {
-			log.SetLevel(logLevel)
+			logger.SetLevel(logLevel)
 		}
 
 		switch config.Log.Formatter {
 		case "text":
-			log.SetFormatter(&log.TextFormatter{ForceColors: config.Log.ForceColors})
+			logger.Formatter = &log.TextFormatter{ForceColors: config.Log.ForceColors}
 		case "json":
-			log.SetFormatter(&log.JSONFormatter{})
+			logger.Formatter = &log.JSONFormatter{}
 		}
 
 		mainCtx, mainCancel := errs.ContextWithSig(context.Background(), os.Interrupt, os.Kill)
 		defer mainCancel()
 
 		initCtx, initCancel := context.WithTimeout(mainCtx, time.Minute*5)
-		srv, err := NewServer(initCtx, config)
+		srv, err := NewServer(initCtx, logger, config)
 		initCancel()
 		if err != nil {
 			if errors.Cause(err) == context.Canceled {
-				log.Info("Program interrupted! Terminated gracefully.")
+				logger.Info("Program interrupted! Terminated gracefully.")
 				return
 			}
 
@@ -67,11 +68,11 @@ var ServeCmd = &cobra.Command{
 
 		if err := srv.Serve(); err != nil {
 			if errors.Cause(err) == context.Canceled {
-				log.Info("Program interrupted! Terminated gracefully.")
+				logger.Info("Program interrupted! Terminated gracefully.")
 				return
 			}
 
-			log.Fatalf("server crashed with: %v", err)
+			logger.Fatalf("server crashed with: %v", err)
 		}
 	},
 }
@@ -82,13 +83,14 @@ type Server struct {
 	Auth    auth.Service
 	Storage storage.Service
 	JobQ    jobq.Service
+	Logger  *log.Logger
 
 	e     *echo.Echo
 	APIv1 *v1.API
 }
 
 // NewServer creates a server instance with all the required services started
-func NewServer(ctx context.Context, config *conf.Configuration) (*Server, error) {
+func NewServer(ctx context.Context, logger *log.Logger, config *conf.Configuration) (*Server, error) {
 	if len(config.OAuth.Clients) == 0 {
 		return nil, errors.New("at least one oauth provider configuration is needed")
 	}
@@ -157,9 +159,9 @@ func NewServer(ctx context.Context, config *conf.Configuration) (*Server, error)
 
 	// Configure echo context
 	e := echo.New()
-	e.Use(srv.ElapsedMiddleware())
+	e.Use(srv.ElapsedMiddleware(logger))
 	e.Use(srv.ServerHeaderMiddleware("apisrv", version))
-	e.Use(srv.ErrorMiddleware())
+	e.Use(srv.ErrorMiddleware(logger))
 
 	if config.HTTP.EnableCORS {
 		if len(config.HTTP.AllowOrigins) == 0 {
@@ -184,6 +186,7 @@ func NewServer(ctx context.Context, config *conf.Configuration) (*Server, error)
 		Auth:    authsvc,
 		APIv1:   apiv1,
 		Config:  config,
+		Logger:  logger,
 	}
 
 	return server, nil

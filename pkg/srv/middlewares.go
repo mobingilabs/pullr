@@ -8,11 +8,10 @@ import (
 	"github.com/mobingilabs/pullr/pkg/auth"
 	"github.com/mobingilabs/pullr/pkg/storage"
 	"github.com/mobingilabs/pullr/pkg/vcs"
-	log "github.com/sirupsen/logrus"
 )
 
 // ElapsedMiddleware logs elapsed time while handling the request
-func ElapsedMiddleware() echo.MiddlewareFunc {
+func ElapsedMiddleware(logger Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			startTime := time.Now()
@@ -20,7 +19,7 @@ func ElapsedMiddleware() echo.MiddlewareFunc {
 			res := next(c)
 
 			elapsed := time.Since(startTime)
-			log.Infof("%s %s %d took %s", c.Request().Method, c.Request().URL.Path, c.Response().Status, elapsed)
+			logger.Infof("%s %s %d took %s", c.Request().Method, c.Request().URL.Path, c.Response().Status, elapsed)
 
 			return res
 		}
@@ -39,13 +38,15 @@ func ServerHeaderMiddleware(srvName string, version string) echo.MiddlewareFunc 
 
 // ErrorMiddleware is an echo middleware to map few known error values from common
 // packages as well as ErrMsg values.
-func ErrorMiddleware() echo.MiddlewareFunc {
+func ErrorMiddleware(logger Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			err := next(c)
 			if err == nil {
 				return nil
 			}
+
+			logger.Error(err)
 
 			if e, ok := err.(ErrMsg); ok {
 				return c.JSON(e.Status, e)

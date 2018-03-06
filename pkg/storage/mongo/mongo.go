@@ -10,6 +10,7 @@ import (
 	"github.com/mobingilabs/pullr/pkg/storage"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -69,15 +70,34 @@ func toStorageErr(err error) error {
 }
 
 func optsToMongoSort(opts *storage.ListOptions) string {
-	s := opts.GetSortBy()
+	if opts == nil {
+		return "$natural"
+	}
+
+	s := opts.SortBy
 	if s == "" {
 		return "$natural"
 	}
 
 	dirSign := "-"
-	if opts.GetSortDirection() == storage.Asc {
+	if opts.SortDirection == storage.Asc {
 		dirSign = "+"
 	}
 
 	return fmt.Sprintf("%s%s", dirSign, s)
+}
+
+func mergeBson(src bson.M, others ...bson.M) bson.M {
+	clone := make(bson.M, len(src))
+	for k := range src {
+		clone[k] = src[k]
+	}
+
+	for _, other := range others {
+		for k := range other {
+			clone[k] = other[k]
+		}
+	}
+
+	return clone
 }

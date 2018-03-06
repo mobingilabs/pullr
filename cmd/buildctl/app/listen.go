@@ -258,7 +258,7 @@ func (l *Listener) updateImgStatus(img domain.Image, status string, cause string
 		log.Error(errors.WithMessage(err, "couldn't encode update status metadata"))
 	}
 
-	imgStatus := domain.NewImageStatus(img.Key, status, cause, encMetadata)
+	imgStatus := domain.NewImageStatus(img.Owner, img.Key, status, cause, encMetadata)
 	statusJob := domain.NewUpdateStatusJob("buildctl", imgStatus)
 	jobJson, err := json.Marshal(statusJob)
 
