@@ -1,32 +1,98 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 
-	"github.com/mobingilabs/pullr/cmd/apisrv/app"
-	"github.com/mobingilabs/pullr/pkg/errs"
+	"github.com/mobingilabs/pullr/pkg/api"
+	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/dummy"
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	version     = "?"
+	showHelp    = false
+	showVersion = false
+	confPath    = "conf/pullr.yml"
+	port        = 8080
+)
+
+func fatal(err error) {
+	fmt.Fprintf(os.Stderr, "fatal: %v", err)
+	os.Exit(1)
+}
+
 func main() {
-	pemCerts, err := ioutil.ReadFile("./ca-certificates.crt")
+	flag.BoolVar(&showVersion, "version", showVersion, "print version")
+	flag.BoolVar(&showHelp, "help", showHelp, "show this help screen")
+	flag.IntVar(&port, "port", port, "http port to listen on")
+	flag.StringVar(&confPath, "c", confPath, "pullr configuration path")
+	flag.Parse()
+
+	if showHelp {
+		flag.Usage()
+		os.Exit(0)
+	}
+
+	if showVersion {
+		fmt.Fprintf(os.Stderr, "%s", version)
+		os.Exit(0)
+	}
+
+	confFile, err := os.Open(confPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to read ca-certificates: %v", err)
-		os.Exit(1)
+		fatal(err)
 	}
 
-	pool := x509.NewCertPool()
-	pool.AppendCertsFromPEM(pemCerts)
-
-	http.DefaultClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool},
+	conf, err := domain.ParseConfig(confFile)
+	if err != nil {
+		fatal(fmt.Errorf("parse config: %v", err))
 	}
 
-	errs.SetLogger(logrus.StandardLogger())
-	errs.Fatal(app.RootCmd.Execute())
+	// Create storage driver
+	var storage domain.StorageDriver
+	switch conf.Storage.Driver {
+	case "dummy":
+		storage = dummy.NewStorageDriver(conf.Storage.Options)
+	default:
+		fatal(fmt.Errorf("storage driver: %s: not implemented yet", conf.Storage.Driver))
+	}
+
+	// Create jobq driver
+	var jobq domain.JobQDriver
+	switch conf.JobQ.Driver {
+	case "dummy":
+		jobq = dummy.NewJobQ(conf.JobQ.Options)
+	default:
+		fatal(fmt.Errorf("jobq driver: %s: not implemented yet", conf.JobQ.Driver))
+	}
+
+	// Create oauth providers
+	oauthProviders := make(map[string]domain.OAuthProvider)
+	for name, opts := range conf.OAuth {
+		switch name {
+		case "github":
+			oauthProviders[name] = dummy.NewGithub(opts)
+		default:
+			fatal(fmt.Errorf("oauth provider: %s: not implemented yet", name))
+		}
+	}
+
+	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{}
+
+	authsvc, err := domain.NewAuthService(storage.AuthStorage(), storage.UserStorage(), logger, conf.Auth)
+	if err != nil {
+		fatal(fmt.Errorf("authsvc init: %v", err))
+	}
+
+	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildCtl.Queue)
+	oauthsvc := domain.NewOAuthService(storage.OAuthStorage(), oauthProviders)
+
+	apisrv := api.NewApiServer(storage, buildsvc, authsvc, oauthsvc, logger)
+	if err := apisrv.Serve(port); err != nil {
+		fatal(fmt.Errorf("server failed: %v", err))
+	}
 }

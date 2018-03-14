@@ -1,0 +1,41 @@
+log:
+  level: info
+  formatter: text
+
+apisrv:
+  port: 8080
+  alloworigins: ["*"]
+
+oauth:
+  github:
+    client_id: id       # override these values with tokens from Github
+    client_secret: secret
+
+buildctl:
+  queue: pullr-image-build
+  maxerr: 5
+  clonedir: ./src
+  timeout: 5m
+
+# Configurations for services
+auth:
+  key: /certs/auth.key
+  crt: /certs/auth.crt
+
+jobq:
+  driver: rabbitmq
+  options:
+    conn: amqp://pullr-rabbitmq:5672
+
+storage:
+  driver: mongodb
+  options:
+    conn: mongodb://pullr:pullrpass@pullr-mongodb/pullr
+
+registry:
+  url: https://docker-registry:5050
+
+  # make sure to override these with env variables like PULLR_REGISTRY_USERNAME
+  username: user
+  password: pass
+
