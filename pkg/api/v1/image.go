@@ -34,7 +34,23 @@ func (a *Api) ImageCreate(secrets domain.AuthSecrets, c echo.Context) error {
 		return err
 	}
 
-	return nil
+	// Ignore the owner from the body
+	img.Owner = secrets.Username
+
+	valid, validationErrs := img.Valid()
+	if !valid {
+		return validationErrs
+	}
+
+	// Ignore the key field from the body
+	img.Key = domain.ImageKey(img)
+
+	err := a.imageStorage.Put(secrets.Username, img)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, img)
 }
 
 // ImageGet responds with the image details found by the :key parameter.
