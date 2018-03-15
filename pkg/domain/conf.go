@@ -131,7 +131,7 @@ func (c *Config) setField(path []string, node reflect.Value, value string) error
 			}
 		}
 
-		return fmt.Errorf("field not found: %s", path[0])
+		return fmt.Errorf("Field not found: %s", path[0])
 
 	case reflect.Map:
 		for _, key := range node.MapKeys() {

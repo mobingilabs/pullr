@@ -3,6 +3,8 @@ package domain
 import (
 	"fmt"
 	"time"
+
+	"github.com/mobingilabs/pullr/pkg/gova"
 )
 
 // Image represents a docker image
@@ -18,9 +20,9 @@ type Image struct {
 	UpdatedAt      time.Time        `json:"updated_at" bson:"updated_at,omitempty"`
 }
 
-// Validate validates the image data if it is well defined enough to store
-func (i Image) Validate() (bool, []ValidationError) {
-	validator := &Validator{}
+// Valid validates the image data
+func (i Image) Valid() (bool, gova.ValidationErrors) {
+	validator := &gova.Validator{}
 	validator.NotEmptyString("name", i.Name)
 	validator.NotEmptyString("owner", i.Owner)
 	validator.NotEmptyString("repository.provider", i.Repository.Provider)
@@ -29,14 +31,34 @@ func (i Image) Validate() (bool, []ValidationError) {
 	validator.NotEmptyString("dockerfile_path", i.DockerfilePath)
 	validator.NotEmpty("tags", len(i.Tags))
 
+	if len(i.Tags) > 0 {
+		for index, tag := range i.Tags {
+			_, errs := tag.Valid()
+			validator.ExtendElt("tags", index, errs)
+		}
+	}
+
 	return validator.Valid(), validator.Errors()
 }
 
 // ImageTag represents docker tags for an Image
 type ImageTag struct {
-	RefType string `json:"ref_type" bson:"ref_type,omitempty"`
-	RefTest string `json:"ref_test" bson:"ref_test,omitempty"`
-	Name    string `json:"name" bson:"name,omitempty"`
+	RefType SourceRefType `json:"ref_type" bson:"ref_type,omitempty"`
+	RefTest string        `json:"ref_test" bson:"ref_test,omitempty"`
+	Name    string        `json:"name" bson:"name,omitempty"`
+}
+
+// Valid validates the image tag data
+func (it ImageTag) Valid() (bool, gova.ValidationErrors) {
+	validator := &gova.Validator{}
+	validator.ShouldBeOneOf("ref_type", string(it.RefType), string(SourceTag), string(SourceBranch))
+	validator.NotEmptyString("ref_test", it.RefTest)
+
+	if it.RefType == SourceBranch {
+		validator.NotEmptyString("name", it.Name)
+	}
+
+	return validator.Valid(), validator.Errors()
 }
 
 // ImageStorage stores and queries image data

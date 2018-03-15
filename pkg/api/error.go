@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/domain"
+	"github.com/mobingilabs/pullr/pkg/gova"
 )
 
 // ErrorMiddleware turns Pullr errors to corresponding http errors
@@ -15,6 +16,10 @@ func ErrorMiddleware() echo.MiddlewareFunc {
 
 			if pullrErr, ok := err.(*domain.Error); ok {
 				return handlePullrError(pullrErr)
+			}
+
+			if validationErrs, ok := err.(gova.ValidationErrors); ok {
+				return handleValidationErrors(validationErrs)
 			}
 
 			return err
@@ -43,4 +48,13 @@ func handlePullrError(err *domain.Error) error {
 	}
 
 	return err
+}
+
+func handleValidationErrors(errs gova.ValidationErrors) error {
+	response := make(map[string]string, len(errs))
+	for _, err := range errs {
+		response[err.Field] = err.Message
+	}
+
+	return echo.NewHTTPError(http.StatusBadRequest, response)
 }
