@@ -29,14 +29,11 @@ type ListOptions struct {
 
 // Pagination contains pagination meta data about query
 type Pagination struct {
-	Total   int `json:"total"`
-	Next    int `json:"next_page"`
 	Last    int `json:"last_page"`
 	Current int `json:"current"`
-	PerPage int `json:"per_page"`
 }
 
-var DefaultListOptions = &ListOptions{
+var DefaultListOptions = ListOptions{
 	PerPage: 20,
 	Page:    0,
 }

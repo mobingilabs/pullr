@@ -101,12 +101,6 @@
   revision = "83801418e1b59fb1880e363299581ee543af32ca"
 
 [[projects]]
-  name = "gopkg.in/asaskevich/govalidator.v4"
-  packages = ["."]
-  revision = "7664702784775e51966f0885f5cd27435916517b"
-  version = "v4"
-
-[[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
@@ -115,6 +109,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fdbe4f157afca8a0593c1cb6199c7feed1c45baaf9ef2a4a30c212b389216704"
+  inputs-digest = "86d1bc1642b7b6544c46baec390898e590193d50f0ced0100d2b9ca87af36eac"
   solver-name = "gps-cdcl"
   solver-version = 1

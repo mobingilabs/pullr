@@ -246,10 +246,29 @@ func (s *imageStorage) Get(username string, key string) (domain.Image, error) {
 	return img, nil
 }
 
+func (s *imageStorage) GetMany(username string, keys []string) (map[string]domain.Image, error) {
+	usrImages, ok := s.d.images[username]
+	if !ok {
+		return nil, nil
+	}
+
+	foundImages := make(map[string]domain.Image, len(keys))
+	for key, img := range usrImages {
+		for i := range keys {
+			if keys[i] == key {
+				foundImages[key] = img
+				break
+			}
+		}
+	}
+
+	return foundImages, nil
+}
+
 func (s *imageStorage) List(username string, opts domain.ListOptions) ([]domain.Image, domain.Pagination, error) {
 	usrImages, ok := s.d.images[username]
 	if !ok {
-		return nil, domain.Pagination{}, domain.ErrNotFound
+		return []domain.Image{}, domain.Pagination{}, nil
 	}
 
 	pagination := domain.Pagination{

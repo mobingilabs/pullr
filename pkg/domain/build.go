@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"gopkg.in/asaskevich/govalidator.v4"
 )
 
 // BuildStatus is status of a build record
@@ -20,10 +18,18 @@ const (
 	BuildFailed     BuildStatus = "failed"
 )
 
-// Build represents a build process
+// Build represents a collection of build records for an image. First
+// element of the records slice is always the latest record.
 type Build struct {
+	ImageKey   string        `json:"image_key" bson:"image_key,omitempty"`
+	LastRecord time.Time     `json:"last_status" bson:"last_status,omitempty"`
+	Records    []BuildStatus `json:"statuses" bson:"statuses,omitempty"`
+}
+
+// BuildRecord represents a build process and it is status
+type BuildRecord struct {
 	StartedAt  time.Time   `json:"started_at,omitempty" bson:"started_at,omitempty"`
-	FinishedAt time.Time   `json:"finished_at,omitempty" bson:"finished_at"`
+	FinishedAt time.Time   `json:"finished_at,omitempty" bson:"finished_at,omitempty"`
 	Status     BuildStatus `json:"status,omitempty" bson:"status,omitempty"`
 	Logs       string      `json:"logs,omitempty" bson:"logs,omitempty"`
 }
@@ -66,6 +72,7 @@ type BuildService struct {
 	queueName string
 }
 
+// NewBuildService creates a new build service
 func NewBuildService(jobq JobQDriver, storage BuildStorage, queueName string) *BuildService {
 	return &BuildService{storage, jobq, nil, queueName}
 }
@@ -101,6 +108,6 @@ func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, JobQJob, error) {
 		return nil, job, fmt.Errorf("failed to parse job: %v", err)
 	}
 
-	_, err = govalidator.ValidateStruct(&buildJob)
-	return &buildJob, job, fmt.Errorf("failed to validate job description: %v", err)
+	// FIXME: Do validation using Validator
+	return &buildJob, job, fmt.Errorf("failed to validate job description: %v", nil)
 }

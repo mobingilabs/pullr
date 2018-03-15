@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/facebookgo/grace/gracehttp"
 	"github.com/mobingilabs/pullr/pkg/api"
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/dummy"
@@ -51,6 +52,8 @@ func main() {
 		fatal(fmt.Errorf("parse config: %v", err))
 	}
 
+	conf.SetByEnv("PULLR", os.Environ())
+
 	// Create storage driver
 	var storage domain.StorageDriver
 	switch conf.Storage.Driver {
@@ -92,7 +95,12 @@ func main() {
 	oauthsvc := domain.NewOAuthService(storage.OAuthStorage(), oauthProviders)
 
 	apisrv := api.NewApiServer(storage, buildsvc, authsvc, oauthsvc, logger)
-	if err := apisrv.Serve(port); err != nil {
+
+	httpSrv := apisrv.HTTPServer()
+	httpSrv.Addr = fmt.Sprintf(":%d", port)
+
+	logger.Infof("apisrv start listening at: %d", port)
+	if err := gracehttp.Serve(httpSrv); err != nil {
 		fatal(fmt.Errorf("server failed: %v", err))
 	}
 }

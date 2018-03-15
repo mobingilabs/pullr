@@ -71,6 +71,7 @@ func TestConfig_SetByEnv(t *testing.T) {
 	env := []string{
 		"PULLR_NOKEY=noval",
 		"PULLR_APISRV_PORT=9090",
+		"PULLR_STORAGE_DRIVER=dummy",
 		"PULLR_JOBQ_OPTIONS_NEWKEY=newval",
 		"JOBQ_OPTIONS_IGNORE=ignored",
 	}
@@ -78,6 +79,7 @@ func TestConfig_SetByEnv(t *testing.T) {
 	conf.SetByEnv("PULLR", env)
 
 	assertEq(t, "apisrv.http", conf.ApiSrv.Port, 9090)
+	assertEq(t, "storage.driver", conf.Storage.Driver, "dummy")
 	assertEq(t, "jobq.options.newkey", conf.JobQ.Options["newkey"], "newval")
 	_, ok := conf.JobQ.Options["ignore"]
 	assert(t, !ok, "env variables without matching prefix should be ignored")

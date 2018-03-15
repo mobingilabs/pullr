@@ -1,10 +1,9 @@
 package api
 
 import (
-	"fmt"
 	"io/ioutil"
+	"net/http"
 
-	"github.com/facebookgo/grace/gracehttp"
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/api/v1"
 	"github.com/mobingilabs/pullr/pkg/domain"
@@ -29,9 +28,7 @@ func NewApiServer(storage domain.StorageDriver, buildsvc *domain.BuildService, a
 	return &Server{srv, logger}
 }
 
-// Serve starts listening and serving to the http requests
-func (s *Server) Serve(port int) error {
-	s.log.Infof("apisrv start listening at: %d", port)
-	s.srv.Server.Addr = fmt.Sprintf(":%d", port)
-	return gracehttp.Serve(s.srv.Server)
+// HTTPServer reports back golang http compatible server
+func (s *Server) HTTPServer() *http.Server {
+	return s.srv.Server
 }

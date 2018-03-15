@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
@@ -8,12 +10,30 @@ import (
 // ImageList response with list of user's images. ListOptions can be used
 // for pagination
 func (a *Api) ImageList(secrets domain.AuthSecrets, c echo.Context) error {
-	return nil
+	type responsePayload struct {
+		Images     []domain.Image    `json:"images"`
+		Pagination domain.Pagination `json:"pagination"`
+	}
+
+	listOpts := domain.DefaultListOptions
+	_ = c.Bind(&listOpts)
+
+	imgs, pagination, err := a.imageStorage.List(secrets.Username, listOpts)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, responsePayload{imgs, pagination})
 }
 
 // ImageCreates accepts domain.Image as it is body and stores accepted image
 // data in images storage.
 func (a *Api) ImageCreate(secrets domain.AuthSecrets, c echo.Context) error {
+	var img domain.Image
+	if err := c.Bind(&img); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -37,7 +37,7 @@ func sortBuilds(builds []domain.Build) []domain.Build {
 	sorted := make([]domain.Build, 0, len(builds))
 	for _, build := range builds {
 		index := sort.Search(len(sorted), func(i int) bool {
-			return sorted[i].StartedAt.After(build.StartedAt)
+			return sorted[i].LastRecord.After(build.LastRecord)
 		})
 		copy(sorted[index+1:], sorted[index:])
 		sorted[index] = build
@@ -50,7 +50,7 @@ func sortImageBuilds(images map[string][]domain.Build) []domain.Build {
 	sorted := make([]domain.Build, 0, len(images))
 	for _, imgBuilds := range images {
 		index := sort.Search(len(sorted), func(i int) bool {
-			return sorted[i].StartedAt.After(imgBuilds[0].StartedAt)
+			return sorted[i].LastRecord.After(imgBuilds[0].LastRecord)
 		})
 		copy(sorted[index+1:], sorted[index:])
 		sorted[index] = imgBuilds[0]
