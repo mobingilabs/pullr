@@ -24,10 +24,15 @@ func sortImages(images map[string]domain.Image) []domain.Image {
 	sorted := make([]domain.Image, 0, len(images))
 	for name, img := range images {
 		index := sort.Search(len(sorted), func(i int) bool {
-			return strings.Compare(sorted[i].Name, name) > 0
+			return strings.Compare(sorted[i].Name, name) >= 0
 		})
-		copy(sorted[index+1:], sorted[index:])
-		sorted[index] = img
+
+		if index < len(sorted) {
+			copy(sorted[index+1:], sorted[index:])
+			sorted[index] = img
+		} else {
+			sorted = append(sorted, img)
+		}
 	}
 
 	return sorted
@@ -57,4 +62,12 @@ func sortImageBuilds(images map[string][]domain.Build) []domain.Build {
 	}
 
 	return sorted
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
 }

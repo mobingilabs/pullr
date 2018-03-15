@@ -29,7 +29,7 @@ type ListOptions struct {
 
 // Pagination contains pagination meta data about query
 type Pagination struct {
-	Last    int `json:"last_page"`
+	Last    int `json:"last"`
 	Current int `json:"current"`
 }
 

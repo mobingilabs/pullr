@@ -207,7 +207,7 @@ func (s *userStorage) Put(user domain.User) error {
 func (s *userStorage) List(opts domain.ListOptions) ([]domain.User, domain.Pagination, error) {
 	users := sortUsers(s.d.users)
 	pagination := domain.Pagination{
-		Last:    (len(users) / opts.PerPage) - 1,
+		Last:    maxInt((len(users)/opts.PerPage)-1, 0),
 		Current: opts.Page,
 	}
 
@@ -272,7 +272,7 @@ func (s *imageStorage) List(username string, opts domain.ListOptions) ([]domain.
 	}
 
 	pagination := domain.Pagination{
-		Last:    (len(usrImages) / opts.PerPage) - 1,
+		Last:    maxInt((len(usrImages)/opts.PerPage)-1, 0),
 		Current: opts.Page,
 	}
 
@@ -346,7 +346,7 @@ func (s *buildStorage) GetAll(username string, imgKey string, opts domain.ListOp
 	}
 
 	pagination := domain.Pagination{
-		Last:    (len(builds) / opts.PerPage) - 1,
+		Last:    maxInt((len(builds)/opts.PerPage)-1, 0),
 		Current: opts.Page,
 	}
 
@@ -382,7 +382,7 @@ func (s *buildStorage) List(username string, opts domain.ListOptions) ([]domain.
 	}
 
 	pagination := domain.Pagination{
-		Last:    (len(images) / opts.PerPage) - 1,
+		Last:    maxInt((len(images)/opts.PerPage)-1, 0),
 		Current: opts.Page,
 	}
 
