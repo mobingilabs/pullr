@@ -206,20 +206,12 @@ func (s *userStorage) Put(user domain.User) error {
 
 func (s *userStorage) List(opts domain.ListOptions) ([]domain.User, domain.Pagination, error) {
 	users := sortUsers(s.d.users)
-	pagination := domain.Pagination{
-		Last:    maxInt((len(users)/opts.PerPage)-1, 0),
-		Current: opts.Page,
-	}
 
-	skip := opts.PerPage * opts.Page
-	if skip > len(users) {
-		return users[pagination.Last*opts.PerPage:], pagination, nil
-	}
-	if skip+opts.PerPage > len(users) {
-		return users[skip:], pagination, nil
-	}
+	nusers := len(users)
+	pagination := opts.Paginate(nusers)
 
-	return users[skip : skip+opts.PerPage], pagination, nil
+	skip, limit := opts.Cursor(nusers)
+	return users[skip:limit], pagination, nil
 }
 
 func (s *userStorage) Delete(username string) error {
@@ -271,21 +263,13 @@ func (s *imageStorage) List(username string, opts domain.ListOptions) ([]domain.
 		return []domain.Image{}, domain.Pagination{}, nil
 	}
 
-	pagination := domain.Pagination{
-		Last:    maxInt((len(usrImages)/opts.PerPage)-1, 0),
-		Current: opts.Page,
-	}
-
+	nimages := len(usrImages)
 	sortedImages := sortImages(usrImages)
-	skip := opts.PerPage * opts.Page
-	if skip > len(sortedImages) {
-		return sortedImages[pagination.Last*opts.PerPage:], pagination, nil
-	}
-	if skip+opts.PerPage > len(sortedImages) {
-		return sortedImages[skip:], pagination, nil
-	}
 
-	return sortedImages[skip : skip+opts.PerPage], pagination, nil
+	skip, limit := opts.Cursor(nimages)
+	pagination := opts.Paginate(nimages)
+
+	return sortedImages[skip:limit], pagination, nil
 }
 
 func (s *imageStorage) Put(username string, image domain.Image) error {
@@ -345,21 +329,12 @@ func (s *buildStorage) GetAll(username string, imgKey string, opts domain.ListOp
 		return nil, domain.Pagination{}, domain.ErrNotFound
 	}
 
-	pagination := domain.Pagination{
-		Last:    maxInt((len(builds)/opts.PerPage)-1, 0),
-		Current: opts.Page,
-	}
+	nbuilds := len(builds)
+	pagination := opts.Paginate(nbuilds)
 
 	sortedBuilds := sortBuilds(builds)
-	skip := opts.PerPage * opts.Page
-	if skip > len(sortedBuilds) {
-		return sortedBuilds[pagination.Last*opts.PerPage:], pagination, nil
-	}
-	if skip+opts.PerPage > len(sortedBuilds) {
-		return sortedBuilds[skip:], pagination, nil
-	}
-
-	return sortedBuilds[skip : skip+opts.PerPage], pagination, nil
+	skip, limit := opts.Cursor(nbuilds)
+	return sortedBuilds[skip:limit], pagination, nil
 }
 
 func (s *buildStorage) GetLast(username string, imgKey string) (domain.Build, error) {
@@ -376,26 +351,16 @@ func (s *buildStorage) GetLast(username string, imgKey string) (domain.Build, er
 }
 
 func (s *buildStorage) List(username string, opts domain.ListOptions) ([]domain.Build, domain.Pagination, error) {
-	images, ok := s.d.builds[username]
+	builds, ok := s.d.builds[username]
 	if !ok {
 		return nil, domain.Pagination{}, domain.ErrNotFound
 	}
 
-	pagination := domain.Pagination{
-		Last:    maxInt((len(images)/opts.PerPage)-1, 0),
-		Current: opts.Page,
-	}
-
-	sortedBuilds := sortImageBuilds(images)
-	skip := opts.PerPage * opts.Page
-	if skip > len(sortedBuilds) {
-		return sortedBuilds[pagination.Last*opts.PerPage:], pagination, nil
-	}
-	if skip+opts.PerPage > len(sortedBuilds) {
-		return sortedBuilds[skip:], pagination, nil
-	}
-
-	return sortedBuilds[skip : skip+opts.PerPage], pagination, nil
+	nbuilds := len(builds)
+	sortedBuilds := sortImageBuilds(builds)
+	skip, limit := opts.Cursor(nbuilds)
+	pagination := opts.Paginate(nbuilds)
+	return sortedBuilds[skip:limit], pagination, nil
 }
 
 func (s *buildStorage) Update(username string, imgKey string, build domain.Build) error {
