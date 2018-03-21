@@ -9,6 +9,7 @@ import (
 	"github.com/mobingilabs/pullr/pkg/api"
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/dummy"
+	"github.com/mobingilabs/pullr/pkg/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,12 +73,14 @@ func main() {
 		fatal(fmt.Errorf("jobq driver: %s: not implemented yet", conf.JobQ.Driver))
 	}
 
-	// Create oauth providers
+	// Create oauth providers and vcs clients
+	sourceClients := make(map[string]domain.SourceClient)
 	oauthProviders := make(map[string]domain.OAuthProvider)
 	for name, opts := range conf.OAuth {
 		switch name {
 		case "github":
-			oauthProviders[name] = dummy.NewGithub(opts)
+			oauthProviders[name] = github.NewOAuthProvider(opts)
+			sourceClients[name] = github.NewClient()
 		default:
 			fatal(fmt.Errorf("oauth provider: %s: not implemented yet", name))
 		}
@@ -93,8 +96,9 @@ func main() {
 
 	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildCtl.Queue)
 	oauthsvc := domain.NewOAuthService(storage.OAuthStorage(), oauthProviders)
+	sourcesvc := domain.NewSourceService(storage.OAuthStorage(), sourceClients)
 
-	apisrv := api.NewApiServer(storage, buildsvc, authsvc, oauthsvc, logger)
+	apisrv := api.NewApiServer(storage, buildsvc, authsvc, oauthsvc, sourcesvc, logger)
 
 	httpSrv := apisrv.HTTPServer()
 	httpSrv.Addr = fmt.Sprintf(":%d", port)
