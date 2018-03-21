@@ -3,6 +3,7 @@ package domain_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	. "github.com/mobingilabs/pullr/pkg/domain"
@@ -15,12 +16,12 @@ type testOAuthProvider struct {
 	secret      string
 }
 
-func (p *testOAuthProvider) LoginUrl(secret string, cbUrl string) string {
+func (p *testOAuthProvider) LoginURL(secret string, cbUrl string) string {
 	p.secret = secret
 	return fmt.Sprintf("%s?secret=%s", cbUrl, secret)
 }
 
-func (p *testOAuthProvider) HandleCallback(secret string, req *http.Request) (string, error) {
+func (p *testOAuthProvider) FinishLogin(secret string, req *http.Request) (string, error) {
 	if p.secret != secret {
 		p.Test.Errorf("expected secret: %s, got: %s", p.secret, secret)
 	}
@@ -41,18 +42,22 @@ func TestOAuthService(t *testing.T) {
 	provider := &testOAuthProvider{Test: t}
 	oauthsvc := NewOAuthService(storage.OAuthStorage(), map[string]OAuthProvider{"test": provider})
 
-	_, err := oauthsvc.LoginUrl("test", "test", "http://test/api/v1/oauth/github/callback")
+	_, err := oauthsvc.LoginURL("test", "test", "http://test/api/v1/oauth/github/callback", "redir")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	token, err := oauthsvc.HandleCallback("test", nil)
+	token, err := oauthsvc.FinishLogin("test", "test", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if token != "testtoken" {
+	if token.Token != "testtoken" {
 		t.Errorf("expected token: testtoken, got: %s", token)
+	}
+
+	if !strings.HasPrefix(token.Redirect, "redir") {
+		t.Errorf("expected redirect url to start with: redir, but redirec url is: %s", token.Redirect)
 	}
 }
 
@@ -61,12 +66,12 @@ func TestOAuthService_BadRequest(t *testing.T) {
 	provider := &testOAuthProvider{Test: t, WrongSecret: true}
 	oauthsvc := NewOAuthService(storage.OAuthStorage(), map[string]OAuthProvider{"test": provider})
 
-	_, err := oauthsvc.LoginUrl("test", "test", "http://test/api/v1/oauth/github/callback")
+	_, err := oauthsvc.LoginURL("test", "test", "http://test/api/v1/oauth/github/callback", "redir")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = oauthsvc.HandleCallback("test", nil)
+	_, err = oauthsvc.FinishLogin("test", "test", nil)
 	if err != ErrNotFound {
 		t.Error("mismatching secrets should result not found error")
 	}

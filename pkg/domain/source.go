@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -16,9 +17,19 @@ const (
 
 // SourceClient wraps source control provider client operations
 type SourceClient interface {
+	// ParseWebhookPayload extracts CommitInfo from source provider's webhook request
 	ParseWebhookPayload(req *http.Request) (*CommitInfo, error)
-	Organisations(username string, token string) ([]string, error)
-	Repositories(username string, organisation string, token string) ([]string, error)
+
+	// Organisations reports back a list of organisations of the authenticated source
+	// provider user
+	Organisations(ctx context.Context, identity string, token string) ([]string, error)
+
+	// Repositories reports back a list of repositories which belongs to given
+	// organisation and user can collaborate.
+	//
+	// To get repositories owned by the user pass authenticated source provider
+	// user name as the organisation.
+	Repositories(ctx context.Context, identity string, organisation string, token string) ([]string, error)
 }
 
 // CommitInfo has information about a commit
@@ -42,4 +53,66 @@ type SourceRepository struct {
 	Provider string `json:"provider" bson:"provider"`
 	Owner    string `json:"owner" bson:"owner"`
 	Name     string `json:"name" bson:"name"`
+}
+
+// SourceService wraps different vcs client implementations
+// to integrate with vcs providers.
+type SourceService struct {
+	storage OAuthStorage
+	clients map[string]SourceClient
+}
+
+// NewSourceService creates a new SourceService
+func NewSourceService(storage OAuthStorage, clients map[string]SourceClient) *SourceService {
+	return &SourceService{storage, clients}
+}
+
+// ParseWebhookPayload extracts the commit info from given source provider's webhook request.
+func (s *SourceService) ParseWebhookPayload(provider string, req *http.Request) (*CommitInfo, error) {
+	c, ok := s.clients[provider]
+	if !ok {
+		return nil, ErrSourceUnsupportedProvider
+	}
+
+	return c.ParseWebhookPayload(req)
+}
+
+// Organisations find organisations which user has membership
+func (s *SourceService) Organisations(ctx context.Context, provider, username string) ([]string, error) {
+	c, ok := s.clients[provider]
+	if !ok {
+		return nil, ErrSourceUnsupportedProvider
+	}
+
+	tokens, err := s.storage.GetTokens(username)
+	if err != nil {
+		return nil, err
+	}
+
+	token, ok := tokens[provider]
+	if !ok {
+		return nil, ErrAuthUnauthorized
+	}
+
+	return c.Organisations(ctx, token.Identity, token.Token)
+}
+
+// Repositories finds repositories belongs to organisation
+func (s *SourceService) Repositories(ctx context.Context, provider, username, organisation string) ([]string, error) {
+	c, ok := s.clients[provider]
+	if !ok {
+		return nil, ErrSourceUnsupportedProvider
+	}
+
+	tokens, err := s.storage.GetTokens(username)
+	if err != nil {
+		return nil, err
+	}
+
+	token, ok := tokens[provider]
+	if !ok {
+		return nil, ErrAuthUnauthorized
+	}
+
+	return c.Repositories(ctx, token.Identity, organisation, token.Token)
 }

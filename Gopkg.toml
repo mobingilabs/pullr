@@ -18,6 +18,9 @@
 # [[override]]
 #  name = "github.com/x/y"
 #  version = "2.4.0"
+[[constraint]]
+  name = "github.com/jinzhu/copier"
+  revision = "7e38e58719c33e0d44d585c4ab477a30f8cb82dd"
 
 [[constraint]]
   name = "github.com/dgrijalva/jwt-go"

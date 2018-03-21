@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/mobingilabs/pullr/pkg/gova"
@@ -21,7 +22,7 @@ type Image struct {
 }
 
 // Valid validates the image data
-func (i Image) Valid() (bool, gova.ValidationErrors) {
+func (i Image) Valid() (bool, error) {
 	validator := &gova.Validator{}
 	validator.NotEmptyString("name", i.Name)
 	validator.NotEmptyString("owner", i.Owner)
@@ -39,6 +40,35 @@ func (i Image) Valid() (bool, gova.ValidationErrors) {
 	}
 
 	return validator.Valid(), validator.Errors()
+}
+
+// MatchingTag reports back the matching build tag for given commit info
+func (i Image) MatchingTag(commit *CommitInfo) (ImageTag, bool) {
+	for _, tag := range i.Tags {
+		if commit.RefType != tag.RefType {
+			continue
+		}
+
+		if commit.RefType == SourceBranch {
+			if commit.Ref == tag.RefTest {
+				return tag, true
+			}
+
+			continue
+		}
+
+		test := tag.RefTest
+		if test[0] == '/' && test[len(test)-1] == '/' {
+			test = test[1 : len(test)-1]
+		}
+
+		match, err := regexp.MatchString(test, commit.Ref)
+		if match && err == nil {
+			return tag, true
+		}
+	}
+
+	return ImageTag{}, false
 }
 
 // ImageTag represents docker tags for an Image
@@ -59,6 +89,19 @@ func (it ImageTag) Valid() (bool, gova.ValidationErrors) {
 	}
 
 	return validator.Valid(), validator.Errors()
+}
+
+// Tag reports back container tag name
+func (it ImageTag) Tag(commit *CommitInfo) string {
+	if it.RefType == SourceBranch {
+		return it.Name
+	}
+
+	if it.Name == "" {
+		return commit.Ref
+	}
+
+	return it.Name
 }
 
 // ImageStorage stores and queries image data
@@ -83,8 +126,7 @@ type ImageStorage interface {
 }
 
 // ImageKey generates a unique image key from the repository
-func ImageKey(img Image) string {
-	repo := img.Repository
+func ImageKey(repo SourceRepository) string {
 	if repo.Name == "" || repo.Provider == "" || repo.Owner == "" {
 		return ""
 	}

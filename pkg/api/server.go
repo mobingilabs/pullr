@@ -16,14 +16,14 @@ type Server struct {
 }
 
 // NewApiServer creates a new Pullr api server
-func NewApiServer(storage domain.StorageDriver, buildsvc *domain.BuildService, authsvc *domain.AuthService, oauthsvc *domain.OAuthService, logger domain.Logger) *Server {
+func NewApiServer(storage domain.StorageDriver, buildsvc *domain.BuildService, authsvc *domain.AuthService, oauthsvc *domain.OAuthService, sourcesvc *domain.SourceService, logger domain.Logger) *Server {
 	srv := echo.New()
 	srv.Logger.SetOutput(ioutil.Discard)
 	srv.Use(LoggerMiddleware(logger))
 	srv.Use(ErrorMiddleware())
 
 	api := srv.Group("/api")
-	_ = v1.NewApi(storage, buildsvc, authsvc, oauthsvc, api.Group("/v1"))
+	_ = v1.NewApi(storage, buildsvc, authsvc, oauthsvc, sourcesvc, api.Group("/v1"))
 
 	return &Server{srv, logger}
 }

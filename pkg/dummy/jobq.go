@@ -2,7 +2,10 @@ package dummy
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
@@ -18,6 +21,13 @@ func (*JobQ) Close() error {
 }
 
 func (*JobQ) Put(queue string, content io.Reader) error {
+	json, err := ioutil.ReadAll(content)
+	if err != nil {
+		return err
+
+	}
+
+	fmt.Fprintf(os.Stderr, "Putting job to queue: %s: %s", queue, json)
 	return nil
 }
 

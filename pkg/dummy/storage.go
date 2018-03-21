@@ -1,6 +1,8 @@
 package dummy
 
 import (
+	"time"
+
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
@@ -13,6 +15,7 @@ type credential struct {
 type oauthsecret struct {
 	secret   string
 	username string
+	cburi    string
 }
 
 type tId = string
@@ -23,23 +26,23 @@ type tProvider = string
 type storage struct {
 	users  map[tUsername]domain.User
 	images map[tUsername]map[tId]domain.Image
-	builds map[tUsername]map[tImageId][]domain.Build
+	builds map[tUsername]map[tImageId]domain.Build
 
 	authtokens      map[tId]string
 	authcredentials map[tUsername]credential
 	oauthsecrets    map[string]oauthsecret
-	oauthtokens     map[tUsername]map[tProvider]string
+	oauthtokens     map[tUsername]map[tProvider]domain.OAuthToken
 }
 
 func NewStorageDriver(opts map[string]interface{}) domain.StorageDriver {
 	return &storage{
 		users:           make(map[string]domain.User),
 		images:          make(map[string]map[string]domain.Image),
-		builds:          make(map[string]map[string][]domain.Build),
+		builds:          make(map[string]map[string]domain.Build),
 		authtokens:      make(map[string]string),
 		authcredentials: make(map[string]credential),
 		oauthsecrets:    make(map[string]oauthsecret),
-		oauthtokens:     make(map[string]map[string]string),
+		oauthtokens:     make(map[string]map[string]domain.OAuthToken),
 	}
 }
 
@@ -131,37 +134,45 @@ type oauthStorage struct {
 	d *storage
 }
 
-func (s *oauthStorage) PutSecret(username, secret string) error {
-	s.d.oauthsecrets[secret] = oauthsecret{username, secret}
+func (s *oauthStorage) PutSecret(username, secret, cburi string) error {
+	s.d.oauthsecrets[secret] = oauthsecret{
+		secret:   secret,
+		username: username,
+		cburi:    cburi,
+	}
 	return nil
 }
 
-func (s *oauthStorage) PopSecret(secret string) (string, error) {
+func (s *oauthStorage) PopSecret(username, secret string) (string, error) {
 	sec, ok := s.d.oauthsecrets[secret]
-	if !ok {
+	if !ok || sec.username != username {
 		return "", domain.ErrNotFound
 	}
 
-	return sec.username, nil
+	return sec.cburi, nil
 }
 
-func (s *oauthStorage) GetTokens(username string) (map[string]string, error) {
+func (s *oauthStorage) GetTokens(username string) (map[string]domain.OAuthToken, error) {
 	tokens, ok := s.d.oauthtokens[username]
 	if !ok {
-		return make(map[string]string), nil
+		return make(map[string]domain.OAuthToken), nil
 	}
 
 	return tokens, nil
 }
 
-func (s *oauthStorage) PutToken(username string, provider string, token string) error {
+func (s *oauthStorage) PutToken(username string, identity, provider, token string) error {
 	tokens, ok := s.d.oauthtokens[username]
 	if !ok {
-		s.d.oauthtokens[username] = make(map[string]string)
+		s.d.oauthtokens[username] = make(map[string]domain.OAuthToken)
 		tokens = s.d.oauthtokens[username]
 	}
 
-	tokens[provider] = token
+	tokens[provider] = domain.OAuthToken{
+		Identity: identity,
+		Provider: provider,
+		Token:    token,
+	}
 	return nil
 }
 
@@ -279,7 +290,7 @@ func (s *imageStorage) Put(username string, image domain.Image) error {
 		usrImages = s.d.images[username]
 	}
 
-	usrImages[domain.ImageKey(image)] = image
+	usrImages[domain.ImageKey(image.Repository)] = image
 	return nil
 }
 
@@ -294,11 +305,11 @@ func (s *imageStorage) Update(username string, key string, image domain.Image) e
 		return domain.ErrNotFound
 	}
 
-	if key != domain.ImageKey(image) {
+	if key != image.Key {
 		delete(usrImages, key)
 	}
 
-	usrImages[key] = image
+	usrImages[image.Key] = image
 	return nil
 }
 
@@ -323,31 +334,28 @@ type buildStorage struct {
 	d *storage
 }
 
-func (s *buildStorage) GetAll(username string, imgKey string, opts domain.ListOptions) ([]domain.Build, domain.Pagination, error) {
-	builds, ok := s.d.builds[username][imgKey]
+func (s *buildStorage) GetAll(username string, imgKey string, opts domain.ListOptions) ([]domain.BuildRecord, domain.Pagination, error) {
+	imgBuild, ok := s.d.builds[username][imgKey]
 	if !ok {
 		return nil, domain.Pagination{}, domain.ErrNotFound
 	}
 
-	nbuilds := len(builds)
+	nbuilds := len(imgBuild.Records)
 	pagination := opts.Paginate(nbuilds)
 
-	sortedBuilds := sortBuilds(builds)
+	sortedBuilds := sortBuilds(imgBuild.Records)
 	skip, limit := opts.Cursor(nbuilds)
+
 	return sortedBuilds[skip:limit], pagination, nil
 }
 
-func (s *buildStorage) GetLast(username string, imgKey string) (domain.Build, error) {
-	imgBuilds, ok := s.d.builds[username][imgKey]
-	if !ok {
-		return domain.Build{}, domain.ErrNotFound
+func (s *buildStorage) GetLast(username string, imgKey string) (domain.BuildRecord, error) {
+	imgBuild, ok := s.d.builds[username][imgKey]
+	if !ok || len(imgBuild.Records) == 0 {
+		return domain.BuildRecord{}, domain.ErrNotFound
 	}
 
-	if len(imgBuilds) == 0 {
-		return domain.Build{}, domain.ErrNotFound
-	}
-
-	return imgBuilds[0], nil
+	return imgBuild.Records[0], nil
 }
 
 func (s *buildStorage) List(username string, opts domain.ListOptions) ([]domain.Build, domain.Pagination, error) {
@@ -363,28 +371,36 @@ func (s *buildStorage) List(username string, opts domain.ListOptions) ([]domain.
 	return sortedBuilds[skip:limit], pagination, nil
 }
 
-func (s *buildStorage) Update(username string, imgKey string, build domain.Build) error {
-	builds, ok := s.d.builds[username][imgKey]
-	if !ok || len(builds) == 0 {
+func (s *buildStorage) UpdateLast(username string, imgKey string, update domain.BuildRecord) error {
+	build, ok := s.d.builds[username][imgKey]
+	if !ok || len(build.Records) == 0 {
 		return domain.ErrNotFound
 	}
 
-	builds[0] = build
+	build.Records[0].Status = update.Status
+	build.Records[0].Logs = update.Logs
+	build.Records[0].FinishedAt = update.FinishedAt
+	s.d.builds[username][imgKey] = build
 	return nil
 }
 
-func (s *buildStorage) Put(username string, imgKey string, build domain.Build) error {
+func (s *buildStorage) Put(username string, imgKey string, record domain.BuildRecord) error {
 	usrImgs, ok := s.d.builds[username]
 	if !ok {
-		s.d.builds[username] = make(map[string][]domain.Build)
+		s.d.builds[username] = make(map[string]domain.Build)
 		usrImgs = s.d.builds[username]
 	}
 
-	_, ok = usrImgs[imgKey]
+	build, ok := usrImgs[imgKey]
 	if !ok {
-		usrImgs[imgKey] = nil
+		build = domain.Build{
+			Records:  nil,
+			ImageKey: imgKey,
+		}
 	}
 
-	usrImgs[imgKey] = append(usrImgs[imgKey])
+	build.Records = append(usrImgs[imgKey].Records, record)
+	build.LastRecord = time.Now()
+	usrImgs[imgKey] = build
 	return nil
 }

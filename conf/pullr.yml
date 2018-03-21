@@ -8,8 +8,8 @@ apisrv:
 
 oauth:
   github:
-    client_id: id       # override these values with tokens from Github
-    client_secret: secret
+    clientid: id       # override these values with tokens from Github
+    clientsecret: secret
 
 buildctl:
   queue: pullr-image-build

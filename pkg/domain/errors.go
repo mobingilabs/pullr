@@ -10,11 +10,14 @@ func (err *Error) Error() string {
 	return err.msg
 }
 
-// ErrNotFound is generic not found error
-var ErrNotFound = &Error{"not found"}
-
-// ErrStorageDriver is generic storage driver error
-var ErrStorageDriver = &Error{"storage driver failed"}
+var (
+	// ErrNotFound is generic not found error
+	ErrNotFound = &Error{"not found"}
+	// ErrStorageDriver is generic storage driver error
+	ErrStorageDriver = &Error{"storage driver failed"}
+	// ErrImageExists is image conflict error
+	ErrImageExists = &Error{"image exists"}
+)
 
 // AuthService errors
 var (
@@ -35,4 +38,16 @@ var (
 var (
 	ErrUserUsernameExist = &Error{"username exist"}
 	ErrUserEmailExist    = &Error{"email exist"}
+)
+
+// SourceService errors
+var (
+	ErrSourceUnsupportedProvider = &Error{"unsupported source client"}
+	ErrSourceBadPayload          = &Error{"bad webhook payload"}
+	ErrSourceIrrelevantEvent     = &Error{"irrelevant webhook event"}
+)
+
+// BuildService errors
+var (
+	ErrBuildBadJob = &Error{"bad job"}
 )

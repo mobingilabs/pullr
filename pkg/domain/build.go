@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -23,7 +22,7 @@ const (
 type Build struct {
 	ImageKey   string        `json:"image_key" bson:"image_key,omitempty"`
 	LastRecord time.Time     `json:"last_status" bson:"last_status,omitempty"`
-	Records    []BuildStatus `json:"statuses" bson:"statuses,omitempty"`
+	Records    []BuildRecord `json:"statuses" bson:"statuses,omitempty"`
 }
 
 // BuildRecord represents a build process and it is status
@@ -37,19 +36,19 @@ type BuildRecord struct {
 // BuildStorage is an interface wraps database operations for build data
 type BuildStorage interface {
 	// GetAll retrieves all build records of matching image
-	GetAll(username string, imgKey string, opts ListOptions) ([]Build, Pagination, error)
+	GetAll(username string, imgKey string, opts ListOptions) ([]BuildRecord, Pagination, error)
 
 	// GetLast retrieves last build record of matching image
-	GetLast(username string, imgKey string) (Build, error)
+	GetLast(username string, imgKey string) (BuildRecord, error)
 
 	// List retrieves list of build records of matching user ordered by time
 	List(username string, opts ListOptions) ([]Build, Pagination, error)
 
-	// Update, updates the status of last build of matching image
-	Update(username string, imgKey string, build Build) error
+	// UpdateLast, updates the status of last build of matching image
+	UpdateLast(username string, imgKey string, update BuildRecord) error
 
 	// Put inserts a new build record
-	Put(username string, imgKey string, build Build) error
+	Put(username string, imgKey string, record BuildRecord) error
 }
 
 // BuildJob describes necessary information to build a docker image
@@ -95,7 +94,7 @@ func (s *BuildService) Listen() error {
 }
 
 // GetJob waits for a build job to arrive and reports the job
-func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, JobQJob, error) {
+func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, *JobQJob, error) {
 	job, err := s.listener.Get(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -105,9 +104,8 @@ func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, JobQJob, error) {
 
 	var buildJob BuildJob
 	if err := json.Unmarshal(body, &buildJob); err != nil {
-		return nil, job, fmt.Errorf("failed to parse job: %v", err)
+		return nil, &job, ErrBuildBadJob
 	}
 
-	// FIXME: Do validation using Validator
-	return &buildJob, job, fmt.Errorf("failed to validate job description: %v", nil)
+	return &buildJob, &job, nil
 }

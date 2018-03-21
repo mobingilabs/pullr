@@ -35,6 +35,11 @@
   revision = "1b76add642e42c6ffba7211ad7b3939ce654526e"
 
 [[projects]]
+  name = "github.com/jinzhu/copier"
+  packages = ["."]
+  revision = "7e38e58719c33e0d44d585c4ab477a30f8cb82dd"
+
+[[projects]]
   name = "github.com/labstack/echo"
   packages = ["."]
   revision = "b338075a0fc6e1a0683dbf03d09b4957a289e26f"
@@ -109,6 +114,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "86d1bc1642b7b6544c46baec390898e590193d50f0ced0100d2b9ca87af36eac"
+  inputs-digest = "2c512b55c1bef2fe2a96784b1301ac4e31c4fd9a41b2a7d24536c46cb63fcadc"
   solver-name = "gps-cdcl"
   solver-version = 1

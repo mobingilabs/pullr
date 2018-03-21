@@ -252,7 +252,7 @@ func (s *AuthService) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt
 	}
 
 	if _, err := s.storage.GetRefreshToken(refreshTokenClaims.Id); err != nil {
-		return "", err
+		return "", ErrAuthBadToken
 	}
 
 	authTokenClaims, ok := oldAuthToken.Claims.(*jwt.StandardClaims)

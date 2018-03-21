@@ -16,7 +16,7 @@ func (v *Validator) Valid() bool {
 }
 
 // Errors reports validation errors
-func (v *Validator) Errors() []ValidationError {
+func (v *Validator) Errors() ValidationErrors {
 	return v.errors
 }
 
@@ -59,6 +59,13 @@ func (v *Validator) NotEmptyString(field string, value string) {
 func (v *Validator) NotEmpty(field string, nitems int) {
 	if nitems == 0 {
 		v.errors = append(v.errors, ValidationError{field, "should have at least one value"})
+	}
+}
+
+// NotNil checks if the given pointer is nil or not
+func (v *Validator) NotNil(field string, val interface{}) {
+	if val == nil {
+		v.errors = append(v.errors, ValidationError{field, "shouldn't be nil"})
 	}
 }
 

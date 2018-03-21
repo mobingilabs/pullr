@@ -38,36 +38,38 @@ func sortImages(images map[string]domain.Image) []domain.Image {
 	return sorted
 }
 
-func sortBuilds(builds []domain.Build) []domain.Build {
-	sorted := make([]domain.Build, 0, len(builds))
-	for _, build := range builds {
+func sortBuilds(records []domain.BuildRecord) []domain.BuildRecord {
+	sorted := make([]domain.BuildRecord, 0, len(records))
+	for _, record := range records {
 		index := sort.Search(len(sorted), func(i int) bool {
-			return sorted[i].LastRecord.After(build.LastRecord)
+			return sorted[i].StartedAt.After(record.StartedAt)
 		})
-		copy(sorted[index+1:], sorted[index:])
-		sorted[index] = build
+
+		if index < len(sorted) {
+			copy(sorted[index+1:], sorted[index:])
+			sorted[index] = record
+		} else {
+			sorted = append(sorted, record)
+		}
 	}
 
 	return sorted
 }
 
-func sortImageBuilds(images map[string][]domain.Build) []domain.Build {
+func sortImageBuilds(images map[string]domain.Build) []domain.Build {
 	sorted := make([]domain.Build, 0, len(images))
-	for _, imgBuilds := range images {
+	for _, imgBuild := range images {
 		index := sort.Search(len(sorted), func(i int) bool {
-			return sorted[i].LastRecord.After(imgBuilds[0].LastRecord)
+			return sorted[i].LastRecord.After(imgBuild.LastRecord)
 		})
-		copy(sorted[index+1:], sorted[index:])
-		sorted[index] = imgBuilds[0]
+
+		if index < len(sorted) {
+			copy(sorted[index+1:], sorted[index:])
+			sorted[index] = imgBuild
+		} else {
+			sorted = append(sorted, imgBuild)
+		}
 	}
 
 	return sorted
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-
-	return b
 }

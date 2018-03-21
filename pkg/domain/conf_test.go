@@ -73,6 +73,7 @@ func TestConfig_SetByEnv(t *testing.T) {
 		"PULLR_APISRV_PORT=9090",
 		"PULLR_STORAGE_DRIVER=dummy",
 		"PULLR_JOBQ_OPTIONS_NEWKEY=newval",
+		"PULLR_OAUTH_GITHUB_CLIENTID=randomid",
 		"JOBQ_OPTIONS_IGNORE=ignored",
 	}
 
@@ -81,6 +82,7 @@ func TestConfig_SetByEnv(t *testing.T) {
 	assertEq(t, "apisrv.http", conf.ApiSrv.Port, 9090)
 	assertEq(t, "storage.driver", conf.Storage.Driver, "dummy")
 	assertEq(t, "jobq.options.newkey", conf.JobQ.Options["newkey"], "newval")
+	assertEq(t, "oauth.github.clientid", conf.OAuth["github"].ClientID, "randomid")
 	_, ok := conf.JobQ.Options["ignore"]
 	assert(t, !ok, "env variables without matching prefix should be ignored")
 }

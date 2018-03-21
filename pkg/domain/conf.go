@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
 )
 
@@ -64,8 +65,8 @@ type ApiSrvConfig struct {
 
 // OAuthProviderConfig is configuration for authenticating with oauth providers
 type OAuthProviderConfig struct {
-	ClientID     string `yaml:"client_id"`
-	ClientSecret string `yaml:"client_secret"`
+	ClientID     string
+	ClientSecret string
 }
 
 // RegistryConfig contains configuration for a docker registry to push images
@@ -131,13 +132,24 @@ func (c *Config) setField(path []string, node reflect.Value, value string) error
 			}
 		}
 
-		return fmt.Errorf("Field not found: %s", path[0])
+		return fmt.Errorf("field not found: %s", path[0])
 
 	case reflect.Map:
 		for _, key := range node.MapKeys() {
 			if strings.ToLower(key.String()) == path[0] {
-				node = node.MapIndex(key)
-				return c.setField(path[1:], node, value)
+				elem := node.MapIndex(key)
+				copy := reflect.New(elem.Type()).Interface()
+				if err := copier.Copy(copy, elem.Interface()); err != nil {
+					return err
+				}
+
+				err := c.setField(path[1:], reflect.ValueOf(copy), value)
+				if err != nil {
+					return err
+				}
+
+				node.SetMapIndex(key, reflect.ValueOf(copy).Elem())
+				return nil
 			}
 		}
 

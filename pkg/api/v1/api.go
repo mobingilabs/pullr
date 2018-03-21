@@ -11,28 +11,32 @@ type Api struct {
 	Group *echo.Group
 
 	// Services
-	buildsvc *domain.BuildService
-	authsvc  *domain.AuthService
-	oauthsvc *domain.OAuthService
+	buildsvc  *domain.BuildService
+	authsvc   *domain.AuthService
+	oauthsvc  *domain.OAuthService
+	sourcesvc *domain.SourceService
 
 	// Storages
 	imageStorage domain.ImageStorage
 	userStorage  domain.UserStorage
 	buildStorage domain.BuildStorage
 	oauthStorage domain.OAuthStorage
+	authStorage  domain.AuthStorage
 }
 
 // NewApi add api v1 routes to the given routing group
-func NewApi(storage domain.StorageDriver, buildsvc *domain.BuildService, authsvc *domain.AuthService, oauthsvc *domain.OAuthService, group *echo.Group) *Api {
+func NewApi(storage domain.StorageDriver, buildsvc *domain.BuildService, authsvc *domain.AuthService, oauthsvc *domain.OAuthService, sourcesvc *domain.SourceService, group *echo.Group) *Api {
 	api := &Api{
 		group,
 		buildsvc,
 		authsvc,
 		oauthsvc,
+		sourcesvc,
 		storage.ImageStorage(),
 		storage.UserStorage(),
 		storage.BuildStorage(),
 		storage.OAuthStorage(),
+		storage.AuthStorage(),
 	}
 
 	// Authentication endpoints
@@ -59,12 +63,12 @@ func NewApi(storage domain.StorageDriver, buildsvc *domain.BuildService, authsvc
 
 	// OAuth endpoints
 	restricted.GET("/oauth/:provider/login_url", auth.Wrap(api.OAuthLogin))
-	restricted.GET("/oauth/:provider/:username/cb", api.OAuthCallback)
+	group.GET("/oauth/:provider/cb/:username", api.OAuthCallback)
 
 	// SourceClient endpoints
-	group.POST("/:provider/webhook", api.SourceWebhook)
-	restricted.GET("/:provider/organisations", auth.Wrap(api.SourceOrganisations))
-	restricted.GET("/:provider/repositories", auth.Wrap(api.SourceRepositories))
+	group.POST("/source/:provider/:username/webhook", api.SourceWebhook)
+	restricted.GET("/source/:provider/orgs", auth.Wrap(api.SourceOrganisations))
+	restricted.GET("/source/:provider/repos", auth.Wrap(api.SourceRepositories))
 
 	return api
 }

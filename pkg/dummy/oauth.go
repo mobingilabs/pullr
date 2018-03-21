@@ -16,11 +16,11 @@ func NewGithub(config domain.OAuthProviderConfig) *Github {
 	return &Github{}
 }
 
-func (g *Github) LoginUrl(secret string, cbUrl string) string {
+func (g *Github) LoginURL(secret string, cbUrl string) string {
 	return g.Url
 }
 
-func (g *Github) HandleCallback(secret string, req *http.Request) (string, error) {
+func (g *Github) FinishLogin(secret string, req *http.Request) (string, error) {
 	return g.Token, nil
 }
 
