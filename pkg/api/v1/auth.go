@@ -3,6 +3,7 @@ package v1
 import (
 	"github.com/labstack/echo"
 	"github.com/mobingilabs/pullr/pkg/api/auth"
+	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
 // AuthLogin is an handler for login requests. Authenticates the user
@@ -43,6 +44,15 @@ func (a *Api) AuthRegister(c echo.Context) error {
 
 	err := a.authsvc.Register(payload.Username, payload.Email, payload.Password)
 	if err != nil {
+		return err
+	}
+
+	err = a.userStorage.Put(domain.User{
+		Username: payload.Username,
+		Email:    payload.Email,
+	})
+	if err != nil {
+		a.authStorage.Delete(payload.Username)
 		return err
 	}
 
