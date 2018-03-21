@@ -30,21 +30,23 @@ func ErrorMiddleware() echo.MiddlewareFunc {
 func handlePullrError(err *domain.Error) error {
 	switch err {
 	case domain.ErrNotFound:
-		return echo.NewHTTPError(http.StatusNotFound, "not found")
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	case domain.ErrStorageDriver:
-		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	case domain.ErrImageExists:
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	case domain.ErrAuthBadCredentials, domain.ErrAuthUnauthorized, domain.ErrAuthBadToken, domain.ErrAuthTokenExpired:
-		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	case domain.ErrOAuthBadToken:
-		return echo.NewHTTPError(http.StatusBadRequest, "bad token")
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case domain.ErrOAuthBadPayload:
-		return echo.NewHTTPError(http.StatusBadRequest, "bad payload")
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case domain.ErrOAuthUnsupportedProvider:
-		return echo.NewHTTPError(http.StatusNotFound, "oauth provider not supported")
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	case domain.ErrUserUsernameExist:
-		return echo.NewHTTPError(http.StatusConflict, "username is taken")
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	case domain.ErrUserEmailExist:
-		return echo.NewHTTPError(http.StatusConflict, "email address is taken")
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	}
 
 	return err
