@@ -116,7 +116,7 @@ type ImageStorage interface {
 	List(username string, options ListOptions) ([]Image, Pagination, error)
 
 	// Put inserts a new image record
-	Put(username string, image Image) error
+	Put(image Image) error
 
 	// Update updates a matching image record by username and key with given image data
 	Update(username string, key string, image Image) error

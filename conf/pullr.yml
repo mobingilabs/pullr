@@ -11,11 +11,17 @@ oauth:
     clientid: id       # override these values with tokens from Github
     clientsecret: secret
 
-buildctl:
+buildsvc:
   queue: pullr-image-build
-  maxerr: 5
+  maxerr: 1
   clonedir: ./src
   timeout: 5m
+
+builder:
+  driver: machine
+  options:
+    cpu: 1
+    ram: 2048
 
 # Configurations for services
 auth:

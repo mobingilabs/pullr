@@ -20,9 +20,10 @@ const (
 // Build represents a collection of build records for an image. First
 // element of the records slice is always the latest record.
 type Build struct {
+	Owner      string        `json:"owner" bson:"owner,owner"`
 	ImageKey   string        `json:"image_key" bson:"image_key,omitempty"`
-	LastRecord time.Time     `json:"last_status" bson:"last_status,omitempty"`
-	Records    []BuildRecord `json:"statuses" bson:"statuses,omitempty"`
+	LastRecord time.Time     `json:"last_record" bson:"last_record,omitempty"`
+	Records    []BuildRecord `json:"records" bson:"records,omitempty"`
 }
 
 // BuildRecord represents a build process and it is status
@@ -55,7 +56,9 @@ type BuildStorage interface {
 type BuildJob struct {
 	ImageOwner  string           `json:"owner"`
 	ImageKey    string           `json:"key"`
+	ImageName   string           `json:"name"`
 	ImageRepo   SourceRepository `json:"repo"`
+	Dockerfile  string           `json:"dockerfile"`
 	Tag         string           `json:"tag"`
 	CommitRef   string           `json:"ref"`
 	CommitHash  string           `json:"hash"`
@@ -94,7 +97,7 @@ func (s *BuildService) Listen() error {
 }
 
 // GetJob waits for a build job to arrive and reports the job
-func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, *JobQJob, error) {
+func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, JobQJob, error) {
 	job, err := s.listener.Get(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -104,8 +107,8 @@ func (s *BuildService) GetJob(ctx context.Context) (*BuildJob, *JobQJob, error) 
 
 	var buildJob BuildJob
 	if err := json.Unmarshal(body, &buildJob); err != nil {
-		return nil, &job, ErrBuildBadJob
+		return nil, job, ErrBuildBadJob
 	}
 
-	return &buildJob, &job, nil
+	return &buildJob, job, nil
 }

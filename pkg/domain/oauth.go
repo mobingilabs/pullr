@@ -11,7 +11,6 @@ type OAuthToken struct {
 	Provider string `json:"provider"`
 	Token    string `json:"token"`
 	Identity string `json:"identity"`
-	Redirect string `json:"redir"`
 }
 
 // OAuthStorage handles storing and querying oauth related data
@@ -20,9 +19,10 @@ type OAuthStorage interface {
 	// incoming oauth callback requests are really made by the provider
 	PutSecret(username, secret, cburi string) error
 
-	// PopSecret returns secret associated callback url, if the given
-	// secret is not found it returns notfound error.
-	PopSecret(username, secret string) (string, error)
+	// PopRedirectURL returns secret associated callback url, if the given
+	// secret is not found it returns notfound error. Secret record will
+	// be deleted after success.
+	PopRedirectURL(username, secret string) (string, error)
 
 	// GetTokens finds matching oauth tokens for given user
 	GetTokens(username string) (map[string]OAuthToken, error)
@@ -90,34 +90,33 @@ func (s *OAuthService) LoginURL(provider string, username string, cbUrl, redir s
 
 // FinishLogin processes received callback request from the oauth provider
 // and finalizes authentication by getting a token from the provider
-func (s *OAuthService) FinishLogin(provider string, reqUsername string, callackReq *http.Request) (OAuthToken, error) {
+func (s *OAuthService) FinishLogin(provider string, reqUsername string, callackReq *http.Request) (OAuthToken, string, error) {
 	p, ok := s.providers[provider]
 	if !ok {
-		return OAuthToken{}, ErrOAuthUnsupportedProvider
+		return OAuthToken{}, "", ErrOAuthUnsupportedProvider
 	}
 
 	secret := p.GetSecret(callackReq)
-	redir, err := s.storage.PopSecret(reqUsername, secret)
+	redir, err := s.storage.PopRedirectURL(reqUsername, secret)
 	if err != nil {
-		return OAuthToken{}, err
+		return OAuthToken{}, "", err
 	}
 
 	token, err := p.FinishLogin(secret, callackReq)
 	if err != nil {
-		return OAuthToken{}, err
+		return OAuthToken{}, redir, err
 	}
 
 	identity, err := p.Identity(token)
 	if err != nil {
-		return OAuthToken{}, err
+		return OAuthToken{}, redir, err
 	}
 
 	err = s.storage.PutToken(reqUsername, identity, provider, token)
 	oauthToken := OAuthToken{
 		Provider: provider,
 		Token:    token,
-		Redirect: redir,
 		Identity: identity,
 	}
-	return oauthToken, err
+	return oauthToken, redir, err
 }

@@ -1,0 +1,51 @@
+# Buildctl Deployment ==========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullr-buildsvc
+  labels:
+    app: pullr
+    tier: backend
+    impl: buildsvc
+spec:
+  selector:
+    matchLabels:
+      app: pullr
+      tier: backend
+      impl: buildsvc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pullr
+        tier: backend
+        impl: buildsvc
+    spec:
+      containers:
+        - name: buildctl
+          image: mobingilabs/pullr-buildsvc:localdev
+          args: ['-c', '/conf/pullr.yml']
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PULLR_REGISTRY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: reguser
+            - name: PULLR_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pullr
+                  key: regpass
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+
+      volumes:
+        - name: docker-storage
+          emptyDir: {}
+        - name: conf
+          configMap:
+            name: pullr
+

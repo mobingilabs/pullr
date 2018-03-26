@@ -52,7 +52,7 @@ func (a *Api) ImageCreate(secrets domain.AuthSecrets, c echo.Context) error {
 		return domain.ErrImageExists
 	}
 
-	err = a.imageStorage.Put(secrets.Username, img)
+	err = a.imageStorage.Put(img)
 	if err != nil {
 		return err
 	}

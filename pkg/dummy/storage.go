@@ -81,7 +81,7 @@ type authStorage struct {
 	d *storage
 }
 
-func (s *authStorage) Get(username string) (string, error) {
+func (s *authStorage) GetPassword(username string) (string, error) {
 	c, ok := s.d.authcredentials[username]
 	if !ok {
 		return "", domain.ErrNotFound
@@ -90,7 +90,7 @@ func (s *authStorage) Get(username string) (string, error) {
 	return c.password, nil
 }
 
-func (s *authStorage) GetByEmail(email string) (string, error) {
+func (s *authStorage) GetPasswordByEmail(email string) (string, error) {
 	for _, c := range s.d.authcredentials {
 		if c.email == email {
 			return c.password, nil
@@ -109,8 +109,8 @@ func (s *authStorage) GetRefreshToken(tokenID string) (string, error) {
 	return token, nil
 }
 
-func (s *authStorage) PutRefreshToken(username string, tokenID string) error {
-	s.d.authtokens[tokenID] = tokenID
+func (s *authStorage) PutRefreshToken(username string, tokenID string, token string) error {
+	s.d.authtokens[tokenID] = token
 	return nil
 }
 
@@ -143,7 +143,7 @@ func (s *oauthStorage) PutSecret(username, secret, cburi string) error {
 	return nil
 }
 
-func (s *oauthStorage) PopSecret(username, secret string) (string, error) {
+func (s *oauthStorage) PopRedirectURL(username, secret string) (string, error) {
 	sec, ok := s.d.oauthsecrets[secret]
 	if !ok || sec.username != username {
 		return "", domain.ErrNotFound
@@ -283,11 +283,11 @@ func (s *imageStorage) List(username string, opts domain.ListOptions) ([]domain.
 	return sortedImages[skip:limit], pagination, nil
 }
 
-func (s *imageStorage) Put(username string, image domain.Image) error {
-	usrImages, ok := s.d.images[username]
+func (s *imageStorage) Put(image domain.Image) error {
+	usrImages, ok := s.d.images[image.Owner]
 	if !ok {
-		s.d.images[username] = make(map[tId]domain.Image)
-		usrImages = s.d.images[username]
+		s.d.images[image.Owner] = make(map[tId]domain.Image)
+		usrImages = s.d.images[image.Owner]
 	}
 
 	usrImages[domain.ImageKey(image.Repository)] = image

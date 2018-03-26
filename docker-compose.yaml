@@ -117,62 +117,11 @@ services:
       - traefik.port=8080
       - traefik.passHostHeader=true
     environment:
-      - PULLR_OAUTH_CLIENTS_GITHUB_ID=$GITHUBID
-      - PULLR_OAUTH_CLIENTS_GITHUB_SECRET=$GITHUBSECRET
+      - PULLR_OAUTH_GITHUB_CLIENTID=$GITHUBID
+      - PULLR_OAUTH_GITHUB_CLIENTSECRET=$GITHUBSECRET
     depends_on:
       - pullr-mongodb
       - pullr-rabbitmq
-
-  pullr-trackersvc:
-    container_name: pullr-trackersvc
-    image: mobingilabs/pullr-trackersvc:localdev
-    command: ["listen"]
-    networks:
-      pullr:
-    labels:
-      - traefik.enable = false
-    depends_on:
-      - pullr-mongodb
-      - pullr-rabbitmq
-
-  pullr-buildctl:
-    container_name: pullr-buildctl
-    image: mobingilabs/pullr-buildctl:localdev
-    command: ["listen"]
-    networks:
-      pullr:
-    labels:
-      - traefik.enable=false
-    environment:
-      - PULLR_BUILD_CLONEDIR=/data/buildctl
-      - PULLR_REGISTRY_USERNAME=admin
-      - PULLR_REGISTRY_PASSWORD=admin
-      - PULLR_REGISTRY_URL=docker-registry:5050
-      - DOCKER_HOST=tcp://pullr-dind:2375
-    volumes:
-      - "./tmp/buildctl:/data/buildctl:rw"
-    depends_on:
-      - pullr-mongodb
-      - pullr-rabbitmq
-      - pullr-dind
-      - docker-registry-internal
-      - docker-registry-tokensrv
-
-  pullr-dind:
-    container_name: pullr-dind
-    image: docker:17.12.0-dind
-    networks:
-      pullr:
-    labels:
-      - traefik.enable=false
-    depends_on:
-      - docker-registry-internal
-    command:
-      - "--insecure-registry"
-      - "docker-registry:5050"
-    volumes:
-      - "./tmp/dind:/var/lib/docker:rw"
-    privileged: true
 
   pullr-proxy:
     image: traefik:v1.5.2-alpine

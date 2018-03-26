@@ -22,10 +22,10 @@ var noSecrets AuthSecrets
 
 // AuthStorage stores authentication data such as tokens or credentials
 type AuthStorage interface {
-	Get(username string) (string, error)
-	GetByEmail(email string) (string, error)
+	GetPassword(username string) (string, error)
+	GetPasswordByEmail(email string) (string, error)
 	GetRefreshToken(tokenID string) (string, error)
-	PutRefreshToken(username string, tokenID string) error
+	PutRefreshToken(username string, tokenID string, token string) error
 	DeleteRefreshToken(tokenID string) error
 	PutCredentials(username string, email string, hashedPassword string) error
 	Delete(username string) error
@@ -129,7 +129,7 @@ func (s *AuthService) Grant(refreshToken, authToken string) (AuthSecrets, error)
 // Login authenticates a user if given username and password matches the authentication
 // records
 func (s *AuthService) Login(username, password string) (AuthSecrets, error) {
-	pass, err := s.storage.Get(username)
+	pass, err := s.storage.GetPassword(username)
 	if err != nil {
 		return AuthSecrets{}, ErrAuthBadCredentials
 	}
@@ -161,7 +161,7 @@ func (s *AuthService) Login(username, password string) (AuthSecrets, error) {
 // Register, registers a new user with given credentials. It is not meant
 // to save any profile related information. Only credentials are saved.
 func (s *AuthService) Register(username, email, password string) error {
-	_, err := s.storage.Get(username)
+	_, err := s.storage.GetPassword(username)
 
 	// If username is already exists do not continue
 	if err == nil {
@@ -170,7 +170,7 @@ func (s *AuthService) Register(username, email, password string) error {
 		return err
 	}
 
-	_, err = s.storage.GetByEmail(email)
+	_, err = s.storage.GetPasswordByEmail(email)
 
 	// If email is already exists do not continue
 	if err == nil {
@@ -200,11 +200,6 @@ func (s *AuthService) createRefreshToken(username string) (string, error) {
 		return "", err
 	}
 
-	err = s.storage.PutRefreshToken(username, jti)
-	if err != nil {
-		return "", err
-	}
-
 	tokenExp := time.Now().Add(refreshTokenValidDuration).Unix()
 
 	claims := &jwt.StandardClaims{
@@ -214,7 +209,13 @@ func (s *AuthService) createRefreshToken(username string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(signingMethod, claims)
-	return s.signToken(token)
+	signedToken, err := s.signToken(token)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.storage.PutRefreshToken(username, jti, signedToken)
+	return signedToken, err
 }
 
 func (s *AuthService) updateRefreshToken(oldToken *jwt.Token) (string, error) {

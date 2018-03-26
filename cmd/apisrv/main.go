@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/mobingilabs/pullr/pkg/api"
 	"github.com/mobingilabs/pullr/pkg/domain"
-	"github.com/mobingilabs/pullr/pkg/dummy"
 	"github.com/mobingilabs/pullr/pkg/github"
+	"github.com/mobingilabs/pullr/pkg/mongodb"
+	"github.com/mobingilabs/pullr/pkg/rabbitmq"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,7 +20,7 @@ var (
 	version     = "?"
 	showHelp    = false
 	showVersion = false
-	confPath    = "conf/pullr.yml"
+	confPath    = "pullr.yml"
 	port        = 8080
 )
 
@@ -55,20 +58,42 @@ func main() {
 
 	conf.SetByEnv("PULLR", os.Environ())
 
+	logger := logrus.New()
+	logger.Formatter = &logrus.TextFormatter{}
+
 	// Create storage driver
+	connCtx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 	var storage domain.StorageDriver
 	switch conf.Storage.Driver {
-	case "dummy":
-		storage = dummy.NewStorageDriver(conf.Storage.Options)
+	case "mongodb":
+		mongoConfig, err := mongodb.ConfigFromMap(conf.Storage.Options)
+		if err != nil {
+			fatal(err)
+		}
+
+		storage, err = mongodb.Dial(connCtx, logger, mongoConfig)
+		if err != nil {
+			fatal(err)
+		}
 	default:
 		fatal(fmt.Errorf("storage driver: %s: not implemented yet", conf.Storage.Driver))
 	}
+	cancel()
 
 	// Create jobq driver
+	connCtx, cancel = context.WithTimeout(context.Background(), time.Minute*5)
 	var jobq domain.JobQDriver
 	switch conf.JobQ.Driver {
-	case "dummy":
-		jobq = dummy.NewJobQ(conf.JobQ.Options)
+	case "rabbitmq":
+		rabbitmqConfig, err := rabbitmq.ConfigFromMap(conf.JobQ.Options)
+		if err != nil {
+			fatal(err)
+		}
+
+		jobq, err = rabbitmq.Dial(connCtx, logger, rabbitmqConfig)
+		if err != nil {
+			fatal(err)
+		}
 	default:
 		fatal(fmt.Errorf("jobq driver: %s: not implemented yet", conf.JobQ.Driver))
 	}
@@ -86,15 +111,12 @@ func main() {
 		}
 	}
 
-	logger := logrus.New()
-	logger.Formatter = &logrus.TextFormatter{}
-
 	authsvc, err := domain.NewAuthService(storage.AuthStorage(), storage.UserStorage(), logger, conf.Auth)
 	if err != nil {
 		fatal(fmt.Errorf("authsvc init: %v", err))
 	}
 
-	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildCtl.Queue)
+	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildSvc.Queue)
 	oauthsvc := domain.NewOAuthService(storage.OAuthStorage(), oauthProviders)
 	sourcesvc := domain.NewSourceService(storage.OAuthStorage(), sourceClients)
 

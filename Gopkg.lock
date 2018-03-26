@@ -2,10 +2,69 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/Azure/go-ansiterm"
+  packages = [
+    ".",
+    "winterm"
+  ]
+  revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
+
+[[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  revision = "dbeaa9332f19a944acb5736b4456cfcc02140e29"
-  version = "v3.1.0"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/docker/docker"
+  packages = [
+    "pkg/term",
+    "pkg/term/windows"
+  ]
+  revision = "5f17312653c3e4dc5474f86692b09f06262a1ebd"
+
+[[projects]]
+  name = "github.com/docker/go-units"
+  packages = ["."]
+  revision = "0dadbb0345b35ec7ef35e228dabb8de89a65bf52"
+  version = "v0.3.2"
+
+[[projects]]
+  name = "github.com/docker/machine"
+  packages = [
+    "commands/mcndirs",
+    "drivers/errdriver",
+    "drivers/none",
+    "drivers/virtualbox",
+    "libmachine",
+    "libmachine/auth",
+    "libmachine/cert",
+    "libmachine/check",
+    "libmachine/drivers",
+    "libmachine/drivers/plugin/localbinary",
+    "libmachine/drivers/rpc",
+    "libmachine/engine",
+    "libmachine/host",
+    "libmachine/log",
+    "libmachine/mcndockerclient",
+    "libmachine/mcnerror",
+    "libmachine/mcnflag",
+    "libmachine/mcnutils",
+    "libmachine/persist",
+    "libmachine/provision",
+    "libmachine/provision/pkgaction",
+    "libmachine/provision/serviceaction",
+    "libmachine/ssh",
+    "libmachine/state",
+    "libmachine/swarm",
+    "libmachine/version",
+    "libmachine/versioncmp",
+    "version"
+  ]
+  revision = "89b833253d9412716a0291cbdccc94454c33d1b5"
+  version = "v0.14.0"
 
 [[projects]]
   branch = "master"
@@ -14,7 +73,6 @@
   revision = "600d898af40aa09a7a93ecb9265d87b0504b6f03"
 
 [[projects]]
-  branch = "master"
   name = "github.com/facebookgo/grace"
   packages = [
     "gracehttp",
@@ -42,8 +100,8 @@
 [[projects]]
   name = "github.com/labstack/echo"
   packages = ["."]
-  revision = "b338075a0fc6e1a0683dbf03d09b4957a289e26f"
-  version = "3.2.6"
+  revision = "a5d81b8d4a627f3f49dcb3164ef2bb5239682227"
+  version = "3.3.4"
 
 [[projects]]
   name = "github.com/labstack/gommon"
@@ -51,8 +109,8 @@
     "color",
     "log"
   ]
-  revision = "57409ada9da0f2afad6664c49502f8c50fbd8476"
-  version = "0.2.3"
+  revision = "6fe1405d73ec4bd4cd8a4ac8e2a2b2bf95d03954"
+  version = "0.2.4"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -67,10 +125,27 @@
   version = "v0.0.3"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/samalba/dockerclient"
+  packages = ["."]
+  revision = "a3036261847103270e9f732509f43b5f98710ace"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
-  version = "v1.0.4"
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
+  name = "github.com/streadway/amqp"
+  packages = ["."]
+  revision = "8e4aba63da9fc5571e01c6a45dc809a58cbc5a68"
 
 [[projects]]
   branch = "master"
@@ -92,18 +167,37 @@
     "acme/autocert",
     "bcrypt",
     "blowfish",
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "poly1305",
+    "ssh",
     "ssh/terminal"
   ]
-  revision = "d585fd2cc9195196078f516b69daff6744ef5e84"
+  revision = "88942b9c40a4c9d203b82b3731787b672d6e809b"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
+    "windows/registry"
   ]
-  revision = "83801418e1b59fb1880e363299581ee543af32ca"
+  revision = "c488ab1dd8481ef762f96a79a9577c27825be697"
+
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/mgo.v2"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
+  revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -114,6 +208,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2c512b55c1bef2fe2a96784b1301ac4e31c4fd9a41b2a7d24536c46cb63fcadc"
+  inputs-digest = "73434458fa9e1bc58ba11df97c9b2666e4d37d616877d9f007d6316cebeda77f"
   solver-name = "gps-cdcl"
   solver-version = 1

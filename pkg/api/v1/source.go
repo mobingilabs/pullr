@@ -43,6 +43,8 @@ func (a *Api) SourceWebhook(c echo.Context) error {
 
 	job := domain.BuildJob{
 		ImageKey:    imgKey,
+		ImageName:   img.Name,
+		Dockerfile:  img.DockerfilePath,
 		Tag:         tag.Tag(commit),
 		ImageRepo:   img.Repository,
 		CommitHash:  commit.Hash,

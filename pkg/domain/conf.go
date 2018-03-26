@@ -17,11 +17,12 @@ import (
 type Config struct {
 	Storage DriverConfig
 	JobQ    DriverConfig
+	Builder DriverConfig
 
 	Auth AuthConfig
 	Log  LogConfig `valid:"-"`
 
-	BuildCtl BuildCtlConfig
+	BuildSvc BuildSvcConfig
 	ApiSrv   ApiSrvConfig
 
 	OAuth map[string]OAuthProviderConfig
@@ -29,11 +30,11 @@ type Config struct {
 	Registry RegistryConfig
 }
 
-// DriverConfig is a pair of an implementation name and a configuration for that
-// implementation for the services
+// DriverConfig is a pair of driver name and options for that
+// driver for the services
 type DriverConfig struct {
 	Driver  string
-	Options map[string]interface{}
+	Options map[string]string
 }
 
 // AuthConfig contains configuration options for authentication service
@@ -48,8 +49,8 @@ type LogConfig struct {
 	Formatter string `valid:"in(text|json)"`
 }
 
-// BuildCtlConfig contains configuration for buildctl service
-type BuildCtlConfig struct {
+// BuildSvcConfig contains configuration for buildctl service
+type BuildSvcConfig struct {
 	Queue    string
 	MaxErr   int
 	CloneDir string

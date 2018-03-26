@@ -3,7 +3,7 @@ DOCKER_TAG_PREFIX:=mobingilabs/pullr-
 DOCKER_REGISTRY:=DOCKER_REGISTRY
 VERSION:=localdev
 
-CMDS:=apisrv buildctl trackersvc
+CMDS:=apisrv buildsvc
 LINUX_CMDS:=$(addsuffix -linux,$(CMDS))
 DOCKER_CMDS:=$(addsuffix -docker,$(CMDS))
 PUSH_CMDS:=$(addsuffix -push,$(CMDS)) ui-push
@@ -25,7 +25,6 @@ show:
 	@echo
 	@echo Tasks:
 	@echo ============================================================
-	@echo "helm               Prepares helm package"
 	@echo "build              Build all services"
 	@echo "build-linux        Build all services for linux"
 	@echo "dev                Run pullr for development"

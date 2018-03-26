@@ -16,8 +16,7 @@ type UserToken struct {
 // UserStorage is the interface that handles persistence of authentication data
 type UserStorage interface {
 	Get(username string) (User, error)
-	GetByEmail(username string) (User, error)
+	GetByEmail(email string) (User, error)
 	Put(user User) error
-	List(opts ListOptions) ([]User, Pagination, error)
 	Delete(username string) error
 }

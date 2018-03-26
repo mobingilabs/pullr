@@ -24,17 +24,32 @@
 
 [[constraint]]
   name = "github.com/dgrijalva/jwt-go"
-  version = "3.1.0"
+  version = "3.2.0"
 
 [[constraint]]
   name = "github.com/labstack/echo"
-  version = "3.2.5"
+  version = "3.3.3"
 
 [[constraint]]
-  branch = "v2"
   name = "gopkg.in/mgo.v2"
+  branch = "v2"
+
+[[constraint]]
+  name = "github.com/streadway/amqp"
+  revision = "8e4aba63da9fc5571e01c6a45dc809a58cbc5a68"
 
 [[constraint]]
   name = "gopkg.in/yaml.v2"
   version = "2.1.1"
 
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.0.5"
+
+[[constraint]]
+  name = "github.com/facebookgo/grace"
+  revision = "4afe952a37a495ae4ac0c1d4ce5f66e91058d149"
+
+[[constraint]]
+  name = "github.com/docker/machine"
+  version = "0.14.0"

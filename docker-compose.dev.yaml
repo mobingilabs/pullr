@@ -11,21 +11,10 @@ services:
     ports:
       - 5671:5671
       - 5672:5672
-  pullr-dind:
-    ports:
-      - 9999:2375
   pullr-apisrv:
     build:
       context: .
       dockerfile: cmd/apisrv/Dockerfile
-  pullr-buildctl:
-    build:
-      context: .
-      dockerfile: cmd/buildctl/Dockerfile
-  pullr-trackersvc:
-    build:
-      context: .
-      dockerfile: cmd/trackersvc/Dockerfile
   pullr-ui:
     build:
       context: .

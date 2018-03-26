@@ -16,7 +16,7 @@ var expectedConf = Config{
 	Log:      LogConfig{"info", "text"},
 	OAuth:    map[string]OAuthProviderConfig{"github": {"id", "secret"}},
 	ApiSrv:   ApiSrvConfig{false, []string{"*"}, 8080},
-	BuildCtl: BuildCtlConfig{"pullr-image-build", 5, "./src", time.Minute * 5},
+	BuildSvc: BuildSvcConfig{"pullr-image-build", 5, "./src", time.Minute * 5},
 	Storage: DriverConfig{
 		Driver: "mongodb",
 		Options: map[string]interface{}{
@@ -101,7 +101,7 @@ func assertConf(t *testing.T, conf *Config) {
 		assertEq(t, fmt.Sprintf("apisrv.alloworigins.%d", i), conf.ApiSrv.AllowOrigins[i], expected.ApiSrv.AllowOrigins[i])
 	}
 
-	assertEq(t, "buildctl", conf.BuildCtl, expected.BuildCtl)
+	assertEq(t, "buildctl", conf.BuildSvc, expected.BuildSvc)
 
 	assertEq(t, "oauth.github", conf.OAuth["github"], expected.OAuth["github"])
 
