@@ -120,6 +120,7 @@ func main() {
 	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildSvc.Queue)
 
 	pipelineConfig := domain.PipelineConfig{
+		CloneDir:         conf.BuildSvc.CloneDir,
 		RegistryURL:      conf.Registry.URL,
 		RegistryUser:     conf.Registry.Username,
 		RegistryPassword: conf.Registry.Password,
