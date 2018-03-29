@@ -98,6 +98,6 @@ func toStorageErr(err error) error {
 	case mgo.ErrNotFound:
 		return domain.ErrNotFound
 	default:
-		return domain.ErrStorageDriver
+		return domain.ErrStorageDriver.WithDetails(err.Error())
 	}
 }

@@ -20,7 +20,7 @@ func NewApiServer(storage domain.StorageDriver, buildsvc *domain.BuildService, a
 	srv := echo.New()
 	srv.Logger.SetOutput(ioutil.Discard)
 	srv.Use(LoggerMiddleware(logger))
-	srv.Use(ErrorMiddleware())
+	srv.Use(ErrorMiddleware(logger))
 
 	api := srv.Group("/api")
 	_ = v1.NewApi(storage, buildsvc, authsvc, oauthsvc, sourcesvc, api.Group("/v1"))

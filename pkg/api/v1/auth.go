@@ -42,17 +42,27 @@ func (a *Api) AuthRegister(c echo.Context) error {
 		return err
 	}
 
-	err := a.authsvc.Register(payload.Username, payload.Email, payload.Password)
-	if err != nil {
-		return err
+	usr, _ := a.userStorage.Get(payload.Username)
+	if usr.Username == payload.Username {
+		return domain.ErrUserUsernameExist
 	}
 
-	err = a.userStorage.Put(domain.User{
+	usr, _ = a.userStorage.GetByEmail(payload.Email)
+	if usr.Email == payload.Email {
+		return domain.ErrUserEmailExist
+	}
+
+	err := a.userStorage.Put(domain.User{
 		Username: payload.Username,
 		Email:    payload.Email,
 	})
 	if err != nil {
 		a.authStorage.Delete(payload.Username)
+		return err
+	}
+
+	err = a.authsvc.Register(payload.Username, payload.Email, payload.Password)
+	if err != nil {
 		return err
 	}
 

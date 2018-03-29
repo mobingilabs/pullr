@@ -12,7 +12,7 @@ func TestErrorMiddleware(t *testing.T) {
 	tests := map[error]int{
 		domain.ErrNotFound:                 http.StatusNotFound,
 		domain.ErrStorageDriver:            http.StatusInternalServerError,
-		domain.ErrImageExists:              http.StatusConflict,
+		domain.ErrImageAlreayExists:        http.StatusConflict,
 		domain.ErrAuthBadCredentials:       http.StatusUnauthorized,
 		domain.ErrAuthUnauthorized:         http.StatusUnauthorized,
 		domain.ErrAuthBadToken:             http.StatusUnauthorized,

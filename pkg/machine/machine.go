@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -68,6 +69,7 @@ func New(config *Config) (*Machine, error) {
 
 // Create, creates a new image builder by provisioning a new docker-machine
 func (m *Machine) Create() (domain.ImageBuilder, error) {
+	start := time.Now()
 	hostname := fmt.Sprintf("builder%d", rand.NewSource(time.Now().UnixNano()).Int63()%10000)
 	if !host.ValidateHostName(hostname) {
 		return nil, fmt.Errorf("invalid hostname: %s", hostname)
@@ -94,6 +96,8 @@ func (m *Machine) Create() (domain.ImageBuilder, error) {
 	if err := m.client.Save(machineHost); err != nil {
 		return nil, err
 	}
+
+	fmt.Fprintf(os.Stderr, "Provisioning took: %v", time.Since(start))
 
 	dockerHost, err := machineHost.URL()
 	if err != nil {

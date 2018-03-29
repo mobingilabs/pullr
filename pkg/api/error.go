@@ -9,46 +9,44 @@ import (
 )
 
 // ErrorMiddleware turns Pullr errors to corresponding http errors
-func ErrorMiddleware() echo.MiddlewareFunc {
+func ErrorMiddleware(logger domain.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			err := next(c)
-
-			if pullrErr, ok := err.(*domain.Error); ok {
-				return handlePullrError(pullrErr)
+			if err == nil {
+				return nil
 			}
 
+			if pullrErr, ok := err.(*domain.Error); ok {
+				return handlePullrError(logger, c, pullrErr)
+			}
 			if validationErrs, ok := err.(gova.ValidationErrors); ok {
 				return handleValidationErrors(validationErrs)
 			}
 
+			logger.Errorf("unexpected error: %v", err)
 			return err
 		}
 	}
 }
 
-func handlePullrError(err *domain.Error) error {
-	switch err {
-	case domain.ErrNotFound:
-		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case domain.ErrStorageDriver:
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	case domain.ErrImageExists:
-		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case domain.ErrAuthBadCredentials, domain.ErrAuthUnauthorized, domain.ErrAuthBadToken, domain.ErrAuthTokenExpired:
-		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-	case domain.ErrOAuthBadToken:
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case domain.ErrOAuthBadPayload:
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case domain.ErrOAuthUnsupportedProvider:
-		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case domain.ErrUserUsernameExist:
-		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case domain.ErrUserEmailExist:
-		return echo.NewHTTPError(http.StatusConflict, err.Error())
+func handlePullrError(logger domain.Logger, c echo.Context, err *domain.Error) error {
+	switch err.Kind {
+	case domain.ErrKindNotFound:
+		return echo.ErrNotFound
+		return c.JSON(http.StatusNotFound, err)
+	case domain.ErrKindUnexpected:
+		logger.Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	case domain.ErrKindConflict:
+		return c.JSON(http.StatusConflict, err)
+	case domain.ErrKindUnauthorized:
+		return c.JSON(http.StatusUnauthorized, err)
+	case domain.ErrKindBadRequest:
+		return c.JSON(http.StatusBadRequest, err)
 	}
 
+	logger.Errorf("pullr: %v", err)
 	return err
 }
 

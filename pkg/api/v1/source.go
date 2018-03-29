@@ -16,7 +16,9 @@ func (a *Api) SourceWebhook(c echo.Context) error {
 	}
 
 	commit, err := a.sourcesvc.ParseWebhookPayload(c.Param("provider"), c.Request())
-	if err != nil {
+	if err == domain.ErrSourceIrrelevantEvent {
+		return c.NoContent(http.StatusOK)
+	} else if err != nil {
 		return err
 	}
 
