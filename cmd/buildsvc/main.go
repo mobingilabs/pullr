@@ -164,7 +164,7 @@ func main() {
 		if err := pipeline.Run(pipelineCtx, os.Stderr, buildjob); err != nil {
 			cancel()
 			nerrs++
-			logger.Errorf("pipeline: %v", err)
+			logger.Error(err)
 			fmt.Fprintf(os.Stderr, "%s", pipelineOutput.String())
 			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, domain.BuildRecord{
 				Status:     domain.BuildFailed,
