@@ -42,7 +42,7 @@ services:
     depends_on:
       - pullr-mongodb
     labels:
-      - traefik.frontend.rule=Host:reg.pullr.io;PathPrefixStrip:/tokensrv
+      - traefik.frontend.rule=Host:reg.pullr.dev;PathPrefixStrip:/tokensrv
       - traefik.protocol=https
       - traefik.port=5001
       - traefik.passHostHeader=true
@@ -76,11 +76,11 @@ services:
       - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
       - "./tmp/registry:/var/lib/registry:rw"
     environment:
-      - REGISTRY_AUTH_TOKEN_REALM='https://reg.pullr.io/tokensrv/auth'
+      - REGISTRY_AUTH_TOKEN_REALM='https://reg.pullr.dev/tokensrv/auth'
     depends_on:
       - docker-registry-tokensrv
     labels:
-      - traefik.frontend.rule=Host:reg.pullr.io,reg.pullr.dev
+      - traefik.frontend.rule=Host:reg.pullr.dev
       - traefik.port=5000
       - traefik.protocol=https
       - traefik.passHostHeader=true
@@ -95,7 +95,7 @@ services:
       pullr:
       proxy:
     labels:
-      - traefik.frontend.rule=Host:pullr.io,pullr.dev
+      - traefik.frontend.rule=Host:pullr.dev
       - traefik.port=80
       - traefik.passHostHeader=true
 
@@ -112,7 +112,7 @@ services:
       - 8080
     labels:
       - traefik.backend=pullr-apisrv
-      - traefik.frontend.rule=Host:pullr.io,pullr.dev;PathPrefix:/api
+      - traefik.frontend.rule=Host:pullr.dev;PathPrefix:/api
       - traefik.docker.network=pullr
       - traefik.port=8080
       - traefik.passHostHeader=true

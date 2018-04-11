@@ -1,0 +1,57 @@
+@import "./variables";
+@import "~iview/src/styles/mixins/index";
+@import "~iview/src/styles/common/index";
+@import "~iview/src/styles/animation/index";
+@import "~iview/src/styles/components/index";
+
+@import "./modal";
+
+body {
+  background: #f5f7f9;
+}
+
+.ivu-menu-item {
+  font-weight: 500;
+}
+
+.ivu-btn {
+  font-weight: 600;
+}
+
+.ivu-form-item-label {
+  font-weight: bold;
+}
+
+.search .ivu-input {
+  background: #F1F1F1;
+  border: 1px solid #d6d6d6;
+  border-radius: 16px;
+  padding-left: 14px;
+}
+
+.v-divider {
+  display: inline-block;
+  height: 50%;
+  vertical-align: middle;
+  width: 1px;
+  border-left: 1px solid #eee;
+  margin: 0 20px;
+}
+
+.app-content {
+  margin-top: @header-height;
+  padding: 20px @layout-header-h-padding 0;
+  @media (min-width: @screen-lg) {
+    padding: 20px 205px 0;
+  }
+}
+
+.divider {
+  height: 1px;
+  margin: 20px 0;
+  border-top: 1px solid #ddd;
+}
+
+.grow {
+  flex-grow: 1;
+}

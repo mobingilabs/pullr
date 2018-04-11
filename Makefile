@@ -85,7 +85,7 @@ $(DOCKER_CMDS): % : $$(dockerdep)
 .PHONY: ui ui-docker
 ui:
 	- mkdir -p ui/dist
-	cd ui/dist; parcel build -d . ../src/index.html
+	cd ui/dist; yarn build
 ui-docker: ui
 	docker build -t $(DOCKER_TAG_PREFIX)ui:$(VERSION) -f ui/Dockerfile .
 

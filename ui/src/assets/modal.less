@@ -1,0 +1,38 @@
+@import "./variables";
+
+.ivu-modal-content {
+  box-shadow: 0 15px 30px 0 rgba(0, 0, 0, 0.18), 0 2px 4px 0 rgba(0, 0, 0, 0.25);
+
+  .ivu-modal-close {
+    top: 11px;
+    right: 26px;
+    .ivu-icon-ios-close-empty {
+      color: #fff;
+    }
+  }
+
+  .ivu-modal-body {
+    font-size: @font-size-base;
+    padding: 17px 26px;
+  }
+
+  .ivu-modal-footer {
+    padding: 17px 26px;
+    border-top: 0;
+  }
+
+  .ivu-modal-header {
+    border: 0;
+    border-radius: 6px 6px 0 0;
+    background: @primary-color;
+    padding: 17px 26px;
+
+    .ivu-modal-header-inner {
+      font-size: @font-size-base+2;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 400;
+    }
+  }
+}
