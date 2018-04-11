@@ -1,6 +1,8 @@
 package mongodb
 
 import (
+	"time"
+
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -41,6 +43,26 @@ func (s *BuildStorage) GetLast(username string, imgKey string) (domain.BuildReco
 	return build.Records[0], nil
 }
 
+// GetLastBy retrieves last build records for matching image keys
+func (s *BuildStorage) GetLastBy(username string, imgKeys []string) (map[string]domain.BuildRecord, error) {
+	var builds []domain.Build
+	query := bson.M{"owner": username, "image_key": bson.M{"$in": imgKeys}, "records.0": bson.M{"$exists": true}}
+	err := s.col().Find(query).Select(bson.M{"records": bson.M{"$slice": 1}}).All(&builds)
+	if err != nil {
+		return nil, toStorageErr(err)
+	}
+
+	records := make(map[string]domain.BuildRecord, len(builds))
+	for _, b := range builds {
+		if len(b.Records) == 0 {
+			continue
+		}
+		records[b.ImageKey] = b.Records[0]
+	}
+
+	return records, nil
+}
+
 // List, lists builds of a user by matching username
 func (s *BuildStorage) List(username string, opts domain.ListOptions) ([]domain.Build, domain.Pagination, error) {
 	query := bson.M{"owner": username}
@@ -54,9 +76,9 @@ func (s *BuildStorage) List(username string, opts domain.ListOptions) ([]domain.
 	pagination := opts.Paginate(nbuilds)
 
 	var builds []domain.Build
-	err = s.col().Find(bson.M{"owner": username}).
+	err = s.col().Find(bson.M{"owner": username, "$where": "this.records.length > 0"}).
 		Sort("-last_build").
-		Select(bson.M{"records.$": 1}).
+		Select(bson.M{"records": bson.M{"$slice": 1}}).
 		Skip(skip).
 		Limit(limit).
 		All(&builds)
@@ -77,5 +99,19 @@ func (s *BuildStorage) Put(username string, imgKey string, record domain.BuildRe
 	query := bson.M{"owner": username, "image_key": imgKey}
 	update := bson.M{"$push": bson.M{"records": bson.M{"$each": []domain.BuildRecord{record}, "$position": 0}}}
 	err := s.col().Update(query, update)
+
+	// If the build entry not found create one, that means this is the first
+	// build for the image
+	if err == mgo.ErrNotFound {
+		now := time.Now()
+		build := domain.Build{
+			ImageKey:   imgKey,
+			Owner:      username,
+			LastRecord: now,
+			Records:    []domain.BuildRecord{record},
+		}
+		err = s.col().Insert(build)
+	}
+
 	return toStorageErr(err)
 }

@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -13,8 +15,9 @@ import (
 // for pagination
 func (a *Api) ImageList(secrets domain.AuthSecrets, c echo.Context) error {
 	type responsePayload struct {
-		Images     []domain.Image    `json:"images"`
-		Pagination domain.Pagination `json:"pagination"`
+		Images     []domain.Image                `json:"images"`
+		Builds     map[string]domain.BuildRecord `json:"builds"`
+		Pagination domain.Pagination             `json:"pagination"`
 	}
 
 	listOpts := domain.DefaultListOptions
@@ -25,7 +28,17 @@ func (a *Api) ImageList(secrets domain.AuthSecrets, c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, responsePayload{imgs, pagination})
+	imgKeys := make([]string, len(imgs))
+	for i, img := range imgs {
+		imgKeys[i] = img.Key
+	}
+
+	builds, err := a.buildStorage.GetLastBy(secrets.Username, imgKeys)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, responsePayload{imgs, builds, pagination})
 }
 
 // ImageCreates accepts domain.Image as it is body and stores accepted image
@@ -54,6 +67,13 @@ func (a *Api) ImageCreate(secrets domain.AuthSecrets, c echo.Context) error {
 
 	err = a.imageStorage.Put(img)
 	if err != nil {
+		return err
+	}
+
+	webhookURL := fmt.Sprintf("https://%s/api/v1/source/%s/%s/webhook", c.Request().Host, img.Repository.Provider, secrets.Username)
+	err = a.sourcesvc.RegisterWebhook(context.Background(), webhookURL, secrets.Username, img.Repository)
+	if err != nil {
+		_ = a.imageStorage.Delete(secrets.Username, img.Key)
 		return err
 	}
 

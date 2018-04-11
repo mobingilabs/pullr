@@ -22,7 +22,7 @@ func (a *Api) BuildList(secrets domain.AuthSecrets, c echo.Context) error {
 		Images: make(map[string]domain.Image),
 	}
 
-	listOpts := domain.ListOptions{}
+	listOpts := domain.DefaultListOptions
 	_ = c.Bind(&listOpts)
 
 	builds, pagination, err := a.buildStorage.List(secrets.Username, listOpts)

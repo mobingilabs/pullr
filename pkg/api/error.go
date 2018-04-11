@@ -36,7 +36,7 @@ func handlePullrError(logger domain.Logger, c echo.Context, err *domain.Error) e
 		return echo.ErrNotFound
 		return c.JSON(http.StatusNotFound, err)
 	case domain.ErrKindUnexpected:
-		logger.Error(err)
+		logger.Errorf("%v: %s", err, err.Details)
 		return c.JSON(http.StatusInternalServerError, err)
 	case domain.ErrKindConflict:
 		return c.JSON(http.StatusConflict, err)

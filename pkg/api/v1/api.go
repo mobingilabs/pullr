@@ -48,7 +48,7 @@ func NewApi(storage domain.StorageDriver, buildsvc *domain.BuildService, authsvc
 
 	// User endpoints
 	restricted.GET("/user/profile", auth.Wrap(api.UserProfile))
-	restricted.GET("/user/profile", auth.Wrap(api.UserProfileUpdate))
+	restricted.POST("/user/profile", auth.Wrap(api.UserProfileUpdate))
 
 	// Image endpoints
 	restricted.GET("/images", auth.Wrap(api.ImageList))

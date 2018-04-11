@@ -20,7 +20,7 @@ const (
 // Build represents a collection of build records for an image. First
 // element of the records slice is always the latest record.
 type Build struct {
-	Owner      string        `json:"owner" bson:"owner,owner"`
+	Owner      string        `json:"owner" bson:"owner,omitempty"`
 	ImageKey   string        `json:"image_key" bson:"image_key,omitempty"`
 	LastRecord time.Time     `json:"last_record" bson:"last_record,omitempty"`
 	Records    []BuildRecord `json:"records" bson:"records,omitempty"`
@@ -31,7 +31,26 @@ type BuildRecord struct {
 	StartedAt  time.Time   `json:"started_at,omitempty" bson:"started_at,omitempty"`
 	FinishedAt time.Time   `json:"finished_at,omitempty" bson:"finished_at,omitempty"`
 	Status     BuildStatus `json:"status,omitempty" bson:"status,omitempty"`
+	Tag        string      `json:"tag" bson:"tag"`
 	Logs       string      `json:"logs,omitempty" bson:"logs,omitempty"`
+}
+
+// WithStatus returns a build record with updated status
+func (r BuildRecord) WithStatus(status BuildStatus) BuildRecord {
+	if status == BuildSucceed || status == BuildFailed {
+		r.Status = status
+		r.FinishedAt = time.Now()
+		return r
+	}
+
+	r.Status = status
+	return r
+}
+
+// WithLogs returns a build record with given logs
+func (r BuildRecord) WithLogs(logs string) BuildRecord {
+	r.Logs = logs
+	return r
 }
 
 // BuildStorage is an interface wraps database operations for build data
@@ -41,6 +60,9 @@ type BuildStorage interface {
 
 	// GetLast retrieves last build record of matching image
 	GetLast(username string, imgKey string) (BuildRecord, error)
+
+	// GetLastBy retrieves last build records for matching image keys
+	GetLastBy(username string, imgKeys []string) (map[string]BuildRecord, error)
 
 	// List retrieves list of build records of matching user ordered by time
 	List(username string, opts ListOptions) ([]Build, Pagination, error)

@@ -20,6 +20,9 @@ type SourceClient interface {
 	// ParseWebhookPayload extracts CommitInfo from source provider's webhook request
 	ParseWebhookPayload(req *http.Request) (*CommitInfo, error)
 
+	// RegisterWebhook registers pullr to source provider's webhooks
+	RegisterWebhook(ctx context.Context, token string, webhookURL string, repo SourceRepository) error
+
 	// Organisations reports back a list of organisations of the authenticated source
 	// provider user
 	Organisations(ctx context.Context, identity string, token string) ([]string, error)
@@ -75,6 +78,26 @@ func (s *SourceService) ParseWebhookPayload(provider string, req *http.Request) 
 	}
 
 	return c.ParseWebhookPayload(req)
+}
+
+// RegisterWebhook registers pullr to source provider's webhooks
+func (s *SourceService) RegisterWebhook(ctx context.Context, webhookURL, username string, repo SourceRepository) error {
+	c, ok := s.clients[repo.Provider]
+	if !ok {
+		return ErrSourceUnsupportedProvider
+	}
+
+	tokens, err := s.storage.GetTokens(username)
+	if err != nil {
+		return err
+	}
+
+	ptoken, ok := tokens[repo.Provider]
+	if !ok {
+		return ErrAuthUnauthorized
+	}
+
+	return c.RegisterWebhook(ctx, ptoken.Token, webhookURL, repo)
 }
 
 // Organisations find organisations which user has membership

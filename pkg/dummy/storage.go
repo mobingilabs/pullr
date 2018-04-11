@@ -358,6 +358,20 @@ func (s *buildStorage) GetLast(username string, imgKey string) (domain.BuildReco
 	return imgBuild.Records[0], nil
 }
 
+func (s *buildStorage) GetLastBy(username string, imgKeys []string) (map[string]domain.BuildRecord, error) {
+	builds := make(map[string]domain.BuildRecord, len(imgKeys))
+	for _, imgKey := range imgKeys {
+		build, ok := s.d.builds[username][imgKey]
+		if !ok || len(build.Records) == 0 {
+			continue
+		}
+
+		builds[imgKey] = build.Records[0]
+	}
+
+	return builds, nil
+}
+
 func (s *buildStorage) List(username string, opts domain.ListOptions) ([]domain.Build, domain.Pagination, error) {
 	builds, ok := s.d.builds[username]
 	if !ok {

@@ -1,6 +1,7 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -48,6 +49,47 @@ func (*Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte, e
 	}
 
 	return res.StatusCode, body, nil
+}
+
+// RegisterWebhook registers pullr to source provider's webhooks
+func (c *Client) RegisterWebhook(ctx context.Context, token string, webhookURL string, repo domain.SourceRepository) error {
+	type registerConfig struct {
+		Url         string `json:"url"`
+		ContentType string `json:"content_type"`
+	}
+	type registerBody struct {
+		Name   string         `json:"name"`
+		Config registerConfig `json:"config"`
+	}
+
+	body := registerBody{
+		Name: "web",
+		Config: registerConfig{
+			Url:         webhookURL,
+			ContentType: "json",
+		},
+	}
+	var bodyJson bytes.Buffer
+	err := json.NewEncoder(&bodyJson).Encode(body)
+	if err != nil {
+		return err
+	}
+
+	req := apiRequest{
+		body:        &bodyJson,
+		accessToken: token,
+		method:      http.MethodPost,
+		path:        fmt.Sprintf("/repos/%s/%s/hooks", repo.Owner, repo.Name),
+	}
+	code, resBody, err := c.doRequest(ctx, req)
+	if err != nil {
+		return err
+	}
+	if code != http.StatusCreated {
+		return errors.New(string(resBody))
+	}
+
+	return nil
 }
 
 // ParseWebhookPayload parses github's webhook request and extracts commit info out of it

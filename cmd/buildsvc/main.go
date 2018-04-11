@@ -153,10 +153,12 @@ func main() {
 			continue
 		}
 
-		buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, domain.BuildRecord{
+		jobRecord := domain.BuildRecord{
 			StartedAt: time.Now(),
 			Status:    domain.BuildInProgress,
-		})
+			Tag:       buildjob.Tag,
+		}
+		buildStorage.Put(buildjob.ImageOwner, buildjob.ImageKey, jobRecord)
 		logger.Infof("got job: %v", buildjob)
 
 		var pipelineOutput bytes.Buffer
@@ -166,16 +168,15 @@ func main() {
 			nerrs++
 			logger.Error(err)
 			fmt.Fprintf(os.Stderr, "%s", pipelineOutput.String())
-			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, domain.BuildRecord{
-				Status:     domain.BuildFailed,
-				FinishedAt: time.Now(),
-			})
+			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildFailed))
 			if err := job.Reject(true); err != nil {
 				logger.Errorf("jobq reject: %v", err)
 			}
 			continue
 		}
 		cancel()
+
+		buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildSucceed))
 
 		if err := job.Finish(); err != nil {
 			logger.Errorf("jobq finish: %v", err)

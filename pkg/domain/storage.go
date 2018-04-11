@@ -1,6 +1,8 @@
 package domain
 
-import "io"
+import (
+	"io"
+)
 
 // Directions
 const (
@@ -35,7 +37,11 @@ type ListOptions struct {
 
 // Paginate creates a pagination info from list options
 func (o ListOptions) Paginate(nitems int) Pagination {
-	last := nitems/o.PerPage - 1
+	if o.PerPage == 0 {
+		o.PerPage = 1
+	}
+
+	last := nitems / o.PerPage
 	if last < 0 {
 		last = 0
 	}

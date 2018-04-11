@@ -51,6 +51,8 @@ func Dial(ctx context.Context, logger domain.Logger, conf *Config) (*Driver, err
 		return nil, err
 	}
 
+	sess.SetSafe(&mgo.Safe{})
+
 	mongodb := Driver{
 		session: sess,
 		db:      sess.DB("pullr"),
