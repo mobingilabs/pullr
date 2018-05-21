@@ -1,8 +1,5 @@
-cmd
-pkg
 k8s
 tmp
-ui
-!ui/dist
+bin
+ui/dist
 ui/dist/.cache
-vendor

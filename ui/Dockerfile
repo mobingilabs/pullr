@@ -1,3 +1,11 @@
+FROM node:9
+WORKDIR /home/node/app
+ENV NODE_ENV production
+COPY ui/package.json .
+RUN npm install
+COPY ui .
+RUN yarn build
+
 FROM nginx:1.12.2-alpine
 COPY ./conf/nginx-ui.conf /etc/nginx/conf.d/default.conf
-COPY ./ui/dist /www
+COPY --from=0  /home/node/app/dist /www
