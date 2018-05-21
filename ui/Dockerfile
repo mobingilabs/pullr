@@ -4,7 +4,7 @@ ENV NODE_ENV production
 COPY ui/package.json .
 RUN npm install
 COPY ui .
-RUN yarn build
+RUN npm run build
 
 FROM nginx:1.12.2-alpine
 COPY ./conf/nginx-ui.conf /etc/nginx/conf.d/default.conf
