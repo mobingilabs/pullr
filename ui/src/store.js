@@ -43,6 +43,8 @@ const initialState = {
   auth: {
     authenticating: true,
     authenticateErr: null,
+    registering: false,
+    registerErr: null,
     profile: {
       loading: false,
       loadErr: null,
@@ -107,6 +109,17 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
     },
     logout (state) {
       state.auth = {...initialState.auth}
+    },
+    registerRequest (state) {
+      state.auth.registering = true
+    },
+    registerSuccess (state) {
+      state.auth.registering = false
+      state.auth.registerErr = false
+    },
+    registerFailure (state, err) {
+      state.auth.registerErr = err
+      state.auth.registering = false
     },
     loadImagesRequest (state) {
       state.images.loading = true
@@ -242,6 +255,16 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
         commit('authenticateSuccess')
       } catch (err) {
         commit('authenticateFailure', err)
+        throw err
+      }
+    },
+    async register ({commit, dispatch}, {username, email, password}) {
+      commit('registerRequest')
+      try {
+        await authService.register(username, email, password)
+        commit('registerSuccess')
+      } catch (err) {
+        commit('registerFailure', err)
         throw err
       }
     },

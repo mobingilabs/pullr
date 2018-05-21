@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
 
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
@@ -74,7 +75,7 @@ func (d *Docker) PushImage(ctx context.Context, out io.Writer, tag, registry, us
 		return err
 	}
 
-	remoteTag := fmt.Sprintf("%s/%s", registry, tag)
+	remoteTag := fmt.Sprintf("%s/%s", strings.TrimPrefix(registry, "https://"), tag)
 	if err := d.TagImage(ctx, out, tag, remoteTag); err != nil {
 		return err
 	}

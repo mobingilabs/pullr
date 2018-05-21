@@ -16,7 +16,7 @@
       </FormItem>
     </i-form>
     <div class="actions">
-      <Button :loading="inProgress" type="primary" @click="register">REGISTER</Button>
+      <Button :loading="inProgress" type="primary" @click="handleRegister">REGISTER</Button>
       <div v-if="serverError" class="server-error"><Icon type="alert-circled"/> {{serverError}}</div>
     </div>
     <div class="divider"></div>
@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex'
 import * as errors from '../services/errors'
 
 export default {
@@ -59,7 +60,8 @@ export default {
     }
   },
   methods: {
-    async register () {
+    ...mapActions(['register']),
+    async handleRegister () {
       const valid = await this.$refs.form.validate()
       if (!valid) {
         return this.$Notice.error({
@@ -68,13 +70,9 @@ export default {
         })
       }
 
-      this.inProgress = true
-      this.serverError = null
-      const auth = this.$root.$data.auth
       try {
-        await auth.register(this.form.username, this.form.email, this.form.password)
-        await auth.profile()
-        this.$router.push({name: 'images'})
+        await this.register({username: this.form.username, email: this.form.email, password: this.form.password})
+        this.$router.push('/')
       } catch (err) {
         this._onError(err)
       } finally {
@@ -90,6 +88,8 @@ export default {
         } else {
           desc = 'Email is already registered'
         }
+      } else {
+        console.error(err)
       }
 
       this.serverError = desc
