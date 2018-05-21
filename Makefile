@@ -78,14 +78,13 @@ $(LINUX_CMDS):
 	GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build -o $(DIST)/$(linuxcmd) ./cmd/$(linuxcmd)
 
 dockercmd=$(patsubst %-docker,%,$@)
-dockerdep=$(patsubst %-docker,%-linux,$@)
-$(DOCKER_CMDS): % : $$(dockerdep)
+$(DOCKER_CMDS):
 	docker build -t $(DOCKER_TAG_PREFIX)$(dockercmd):$(VERSION) -f cmd/$(dockercmd)/Dockerfile .
 
 .PHONY: ui ui-docker
 ui:
 	- mkdir -p ui/dist
 	cd ui/dist; yarn build
-ui-docker: ui
+ui-docker:
 	docker build -t $(DOCKER_TAG_PREFIX)ui:$(VERSION) -f ui/Dockerfile .
 

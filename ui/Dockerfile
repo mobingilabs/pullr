@@ -1,8 +1,8 @@
 FROM node:9
 WORKDIR /home/node/app
-ENV NODE_ENV production
 COPY ui/package.json .
 RUN npm install
+ENV NODE_ENV production
 COPY ui .
 RUN npm run build
 
