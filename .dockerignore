@@ -3,3 +3,4 @@ tmp
 bin
 ui/dist
 ui/dist/.cache
+ui/node_modules
