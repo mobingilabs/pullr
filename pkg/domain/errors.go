@@ -40,7 +40,7 @@ var (
 	ErrImageExists = &Error{ErrKindConflict, "image exists", ""}
 )
 
-// AuthService errors
+// DefaultAuthService errors
 var (
 	ErrAuthBadCredentials = &Error{ErrKindUnauthorized, "bad credentials", ""}
 	ErrAuthUnauthorized   = &Error{ErrKindUnauthorized, "unauthenticated", ""}

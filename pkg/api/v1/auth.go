@@ -2,7 +2,6 @@ package v1
 
 import (
 	"github.com/labstack/echo"
-	"github.com/mobingilabs/pullr/pkg/api/auth"
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
@@ -24,7 +23,7 @@ func (a *Api) AuthLogin(c echo.Context) error {
 		return err
 	}
 
-	auth.SendSecrets(c, secrets)
+	a.Authenticator.SendSecrets(c, secrets)
 	return nil
 }
 
@@ -71,6 +70,6 @@ func (a *Api) AuthRegister(c echo.Context) error {
 		return err
 	}
 
-	auth.SendSecrets(c, secrets)
+	a.Authenticator.SendSecrets(c, secrets)
 	return nil
 }

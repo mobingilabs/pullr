@@ -13,7 +13,7 @@ var (
 	expiredRefreshToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MjA2MjI0NTgsImp0aSI6InZBWTJJM0s0cjB6VENjQmlkSFNsb25UdlJOcFpObWItV3luVzIyejkwbUU9Iiwic3ViIjoidGVzdCJ9.vtnxFzzt_AE3MheTwa5xsd2uboDRJfQVmbZaLFb97MsVOcp6s_i2KTLpCwRgJIfEOPx47NtgRICBILdiHjjqJQexLsK9EWaEY7wV5Q9gpEAlmWA8MoBIL0EijgdjtCTrBtCAU8j7oyU6B2fcPXVCvVlWXaRjjtpLoBPFyW7ZcwMc5OdYt3cjpJ73NPirpzm27KWZvb_Qv5W-Km8I49vc6iASFQcSMqj3TDOnHPIZfVH8cm0yOjc0XFnigJ8DmROcBv_IRiFHfB_Dpeay5YsMOzD1k6BTivZ2cY9FaBlDW1xPOsrFBCQiOSHJ0mnJPjW5bJUO_QrPpKa7DtG7tW021Q"
 )
 
-func newAuthService(t *testing.T, storage StorageDriver) *AuthService {
+func newAuthService(t *testing.T, storage StorageDriver) *DefaultAuthService {
 	authsvc, err := NewAuthService(storage.AuthStorage(), storage.UserStorage(), &TestLogger{}, AuthConfig{
 		Key: "../../certs/auth.key",
 		Crt: "../../certs/auth.crt",

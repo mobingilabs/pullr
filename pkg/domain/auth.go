@@ -38,8 +38,8 @@ type AuthSecrets struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// AuthService authenticates and grants users
-type AuthService struct {
+// DefaultAuthService authenticates and grants users
+type DefaultAuthService struct {
 	storage   AuthStorage
 	users     UserStorage
 	log       Logger
@@ -47,11 +47,11 @@ type AuthService struct {
 	verifyKey *rsa.PublicKey
 }
 
-// NewAuthService creates a NewAuthService instance. Auth service is responsible for
+// NewAuthService creates a default authentication service. Auth service is responsible for
 // registering, logging in users and providing secrets for them. Auth service itself
 // is not responsible for storing the user information, it keeps only credentials
 // data for the users. Persistence backend can be configured by the storage parameter.
-func NewAuthService(storage AuthStorage, users UserStorage, logger Logger, conf AuthConfig) (*AuthService, error) {
+func NewAuthService(storage AuthStorage, users UserStorage, logger Logger, conf AuthConfig) (*DefaultAuthService, error) {
 	privateKeyBytes, err := ioutil.ReadFile(conf.Key)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func NewAuthService(storage AuthStorage, users UserStorage, logger Logger, conf 
 		return nil, err
 	}
 
-	service := &AuthService{
+	service := &DefaultAuthService{
 		storage:   storage,
 		log:       logger,
 		users:     users,
@@ -85,7 +85,7 @@ func NewAuthService(storage AuthStorage, users UserStorage, logger Logger, conf 
 
 // Grant, validates the secrets given by the previously authenticated user and grants
 // access for the requested resources with updated secrets
-func (s *AuthService) Grant(refreshToken, authToken string) (AuthSecrets, error) {
+func (s *DefaultAuthService) Grant(refreshToken, authToken string) (AuthSecrets, error) {
 	if refreshToken == "" || authToken == "" {
 		return noSecrets, ErrAuthUnauthorized
 	}
@@ -128,7 +128,7 @@ func (s *AuthService) Grant(refreshToken, authToken string) (AuthSecrets, error)
 
 // Login authenticates a user if given username and password matches the authentication
 // records
-func (s *AuthService) Login(username, password string) (AuthSecrets, error) {
+func (s *DefaultAuthService) Login(username, password string) (AuthSecrets, error) {
 	pass, err := s.storage.GetPassword(username)
 	if err != nil {
 		return AuthSecrets{}, ErrAuthBadCredentials
@@ -160,7 +160,7 @@ func (s *AuthService) Login(username, password string) (AuthSecrets, error) {
 
 // Register, registers a new user with given credentials. It is not meant
 // to save any profile related information. Only credentials are saved.
-func (s *AuthService) Register(username, email, password string) error {
+func (s *DefaultAuthService) Register(username, email, password string) error {
 	_, err := s.storage.GetPassword(username)
 
 	// If username is already exists do not continue
@@ -186,15 +186,15 @@ func (s *AuthService) Register(username, email, password string) error {
 	return s.storage.PutCredentials(username, email, string(hashedPassword))
 }
 
-func (s *AuthService) signToken(token *jwt.Token) (string, error) {
+func (s *DefaultAuthService) signToken(token *jwt.Token) (string, error) {
 	return token.SignedString(s.signKey)
 }
 
-func (s *AuthService) keyFunc(token *jwt.Token) (interface{}, error) {
+func (s *DefaultAuthService) keyFunc(token *jwt.Token) (interface{}, error) {
 	return s.verifyKey, nil
 }
 
-func (s *AuthService) createRefreshToken(username string) (string, error) {
+func (s *DefaultAuthService) createRefreshToken(username string) (string, error) {
 	jti, err := randomString(32)
 	if err != nil {
 		return "", err
@@ -218,7 +218,7 @@ func (s *AuthService) createRefreshToken(username string) (string, error) {
 	return signedToken, err
 }
 
-func (s *AuthService) updateRefreshToken(oldToken *jwt.Token) (string, error) {
+func (s *DefaultAuthService) updateRefreshToken(oldToken *jwt.Token) (string, error) {
 	oldClaims, ok := oldToken.Claims.(*jwt.StandardClaims)
 	if !ok {
 		return "", ErrAuthBadToken
@@ -235,7 +235,7 @@ func (s *AuthService) updateRefreshToken(oldToken *jwt.Token) (string, error) {
 	return s.signToken(token)
 }
 
-func (s *AuthService) createAuthToken(username string) (string, error) {
+func (s *DefaultAuthService) createAuthToken(username string) (string, error) {
 	tokenExp := time.Now().Add(authTokenValidDuration).Unix()
 	claims := &jwt.StandardClaims{
 		Subject:   username,
@@ -246,7 +246,7 @@ func (s *AuthService) createAuthToken(username string) (string, error) {
 	return s.signToken(token)
 }
 
-func (s *AuthService) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt.Token) (string, error) {
+func (s *DefaultAuthService) updateAuthToken(refreshToken *jwt.Token, oldAuthToken *jwt.Token) (string, error) {
 	refreshTokenClaims, ok := refreshToken.Claims.(*jwt.StandardClaims)
 	if !ok {
 		return "", ErrAuthBadToken

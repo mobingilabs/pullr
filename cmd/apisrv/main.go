@@ -9,6 +9,8 @@ import (
 
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/mobingilabs/pullr/pkg/api"
+	"github.com/mobingilabs/pullr/pkg/api/auth"
+	"github.com/mobingilabs/pullr/pkg/api/v1"
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/github"
 	"github.com/mobingilabs/pullr/pkg/mongodb"
@@ -119,8 +121,14 @@ func main() {
 	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildSvc.Queue)
 	oauthsvc := domain.NewOAuthService(storage.OAuthStorage(), oauthProviders)
 	sourcesvc := domain.NewSourceService(storage.OAuthStorage(), sourceClients)
+	apiconfig := v1.NewConfig()
+	apiconfig.Storage = storage
+	apiconfig.SourceService = sourcesvc
+	apiconfig.OAuthService = oauthsvc
+	apiconfig.AuthService = authsvc
+	apiconfig.BuildService = buildsvc
 
-	apisrv := api.NewApiServer(storage, buildsvc, authsvc, oauthsvc, sourcesvc, logger)
+	apisrv := api.NewApiServer(apiconfig, auth.NewDefaultAuthenticator(authsvc), logger)
 
 	httpSrv := apisrv.HTTPServer()
 	httpSrv.Addr = fmt.Sprintf(":%d", port)
