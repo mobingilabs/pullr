@@ -1,7 +1,5 @@
 version: '3'
 networks:
-  proxy:
-    external: true
   pullr:
     external: false
 
@@ -13,7 +11,7 @@ services:
     environment:
       - MONGO_DATA_DIR=/data/db
     volumes:
-      - "./tmp/mongodb:/data/db"
+      - "./data/mongodb:/data/db"
     labels:
       - traefik.enable=false
     networks:
@@ -23,7 +21,7 @@ services:
     container_name: pullr-rabitmq
     image: rabbitmq:3.7.3-alpine
     volumes:
-      - "./tmp/rabbbitmq:/var/lib/rabbitmq"
+      - "./data/rabbbitmq:/var/lib/rabbitmq"
     networks:
       pullr:
     labels:
@@ -56,7 +54,7 @@ services:
     volumes:
       - "./certs:/certs:ro"
       - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
-      - "./tmp/registry:/var/lib/registry:rw"
+      - "./data/registry:/var/lib/registry:rw"
     expose:
       - 5050
     depends_on:
@@ -74,7 +72,7 @@ services:
     volumes:
       - "./certs:/certs:ro"
       - "./conf/docker_registry.yml:/etc/docker/registry/config.yml:ro"
-      - "./tmp/registry:/var/lib/registry:rw"
+      - "./data/registry:/var/lib/registry:rw"
     environment:
       - REGISTRY_AUTH_TOKEN_REALM='https://reg.pullr.dev/tokensrv/auth'
     depends_on:
