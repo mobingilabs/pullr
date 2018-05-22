@@ -3,10 +3,10 @@ DOCKER_TAG_PREFIX:=mobingilabs/pullr-
 DOCKER_REGISTRY:=DOCKER_REGISTRY
 VERSION:=localdev
 
-CMDS:=apisrv
+CMDS:=apisrv buildsvc
 LINUX_CMDS:=$(addsuffix -linux,$(CMDS))
-DOCKER_CMDS:=$(addsuffix -docker,$(CMDS))
-PUSH_CMDS:=$(addsuffix -push,$(CMDS)) ui-push
+DOCKER_CMDS:=apisrv-docker
+PUSH_CMDS:=apisrv-push ui-push
 
 .SECONDEXPANSION:
 
@@ -21,7 +21,7 @@ show:
 	@echo
 	@echo Services:
 	@echo ============================================================
-	@echo apisrv, buildctl, ui
+	@echo apisrv, buildsvc, ui
 	@echo
 	@echo Tasks:
 	@echo ============================================================
