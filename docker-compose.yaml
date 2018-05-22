@@ -4,6 +4,12 @@ networks:
     external: true
   pullr:
     external: false
+  rabbitmq:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 127.0.0.0/8
+          gateway: 127.0.0.1
 
 services:
   pullr-mongodb:
@@ -26,6 +32,8 @@ services:
       - "./data/rabbbitmq:/var/lib/rabbitmq"
     networks:
       pullr:
+      rabbitmq:
+        - ipv4_address: 127.0.0.3
     labels:
       - traefik.enable=false
 
