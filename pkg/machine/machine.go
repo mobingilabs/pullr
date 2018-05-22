@@ -78,6 +78,7 @@ func (m *Machine) Create() (domain.ImageBuilder, error) {
 	driver := virtualbox.NewDriver(hostname, storePath)
 	driver.CPU = m.config.CPU
 	driver.Memory = m.config.Ram
+	driver.NoVTXCheck = true
 	data, err := json.Marshal(driver)
 	if err != nil {
 		return nil, err
