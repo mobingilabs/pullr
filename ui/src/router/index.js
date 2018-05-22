@@ -79,7 +79,7 @@ export default (authService) => {
   })
 
   router.beforeEach((to, from, next) => {
-    authService.ready.catch(() => {}).finally(() => {
+    authService.ready.catch(() => {}).then(() => {
       if (to.name === 'login' && authService.authenticated) {
         return next({name: 'images'})
       }

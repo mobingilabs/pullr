@@ -21,7 +21,7 @@ export default class ImagesService {
     }
 
     this._imagesPromise = this.http.get('/images').then(res => res.data)
-    this._imagesPromise.finally(() => { this._imagesPromise = null })
+    this._imagesPromise.catch(() => {}).then(() => { this._imagesPromise = null })
     return this._imagesPromise
   }
 
