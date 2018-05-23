@@ -111,6 +111,7 @@ func main() {
 		fatal(fmt.Errorf("build service listen: %v", err))
 	}
 	logger.Info("Waiting for build jobs...")
+	// FIXME: concurrent increment
 	nerrs := 0
 	for {
 		if nerrs >= conf.BuildSvc.MaxErr {

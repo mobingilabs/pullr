@@ -80,6 +80,9 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 		},
 		SourceVersion: aws.String(job.CommitHash),
 	})
+	if err != nil {
+		return err
+	}
 
 	numGetErr := 0
 	var logs *codebuild.LogsLocation = nil
