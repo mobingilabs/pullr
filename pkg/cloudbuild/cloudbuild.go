@@ -2,6 +2,7 @@ package cloudbuild
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/mobingilabs/pullr/pkg/domain"
-	"github.com/pkg/errors"
 )
 
 const buildScript = `
