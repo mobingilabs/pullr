@@ -164,8 +164,9 @@ func (p *Pipeline) createProject(job *domain.BuildJob) error {
 			PrivilegedMode: aws.Bool(true),
 			ComputeType:    aws.String(codebuild.ComputeTypeBuildGeneral1Small),
 		},
-		Artifacts: &codebuild.ProjectArtifacts{Type: aws.String(codebuild.ArtifactsTypeNoArtifacts)},
-		Cache:     &codebuild.ProjectCache{Type: aws.String(codebuild.CacheTypeNoCache)},
+		Artifacts:   &codebuild.ProjectArtifacts{Type: aws.String(codebuild.ArtifactsTypeNoArtifacts)},
+		Cache:       &codebuild.ProjectCache{Type: aws.String(codebuild.CacheTypeNoCache)},
+		ServiceRole: aws.String(os.Getenv("PULLR_CLOUDBUILD_SERVICE_ROLE")),
 	})
 	return err
 }
