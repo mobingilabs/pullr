@@ -114,21 +114,22 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 		}
 	}
 
-	// Allocate the buffer for at least one page of cloudwatch logs (1MB)
-	logsInput := cloudwatchlogs.GetLogEventsInput{
-		LogGroupName:  logs.GroupName,
-		LogStreamName: logs.StreamName,
-	}
-	timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*10)
-	p.logs.GetLogEventsPagesWithContext(timeoutCtx, &logsInput, func(output *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
-		for _, ev := range output.Events {
-			if _, err := io.WriteString(logOut, *ev.Message); err != nil {
-				return false
-			}
+	if logs != nil {
+		logsInput := cloudwatchlogs.GetLogEventsInput{
+			LogGroupName:  logs.GroupName,
+			LogStreamName: logs.StreamName,
 		}
-		return true
-	})
-	cancel()
+		timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*10)
+		p.logs.GetLogEventsPagesWithContext(timeoutCtx, &logsInput, func(output *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
+			for _, ev := range output.Events {
+				if _, err := io.WriteString(logOut, *ev.Message); err != nil {
+					return false
+				}
+			}
+			return true
+		})
+		cancel()
+	}
 
 	return nil
 }
