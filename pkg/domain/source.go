@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // SourceRefType can be either 'branch' or 'tag'
@@ -67,7 +65,7 @@ func (r SourceRepository) URL() (string, error) {
 	case "github":
 		return fmt.Sprintf("https://github.com/%s/%s", r.Owner, r.Name), nil
 	default:
-		return "", errors.Errorf("unsupported source repository provider: %s", r.Provider)
+		return "", fmt.Errorf("unsupported source repository provider: %s", r.Provider)
 	}
 }
 
