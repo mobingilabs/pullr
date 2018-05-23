@@ -56,13 +56,20 @@ func NewPipeline(registry string) (*Pipeline, error) {
 // Run starts an aws cloudbuild build operation
 func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJob) error {
 	projectName := aws.String(cbProject(job))
-	_, err := p.cb.BatchGetProjects(&codebuild.BatchGetProjectsInput{
+	projRes, err := p.cb.BatchGetProjects(&codebuild.BatchGetProjectsInput{
 		Names: []*string{projectName},
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == codebuild.ErrCodeResourceNotFoundException {
-			p.createProject(job)
+			if err := p.createProject(job); err != nil {
+				return err
+			}
 		} else {
+			return err
+		}
+	}
+	if len(projRes.Projects) == 0 {
+		if err := p.createProject(job); err != nil {
 			return err
 		}
 	}
