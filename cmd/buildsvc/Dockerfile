@@ -9,6 +9,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/buildsvc ./cmd/buildsvc
 FROM alpine:3.7
 RUN apk --no-cache add ca-certificates
 WORKDIR /buildsvc/
-COPY --from=0  /go/src/github.com/mobingilabs/pullr/bin/apisrv .
+COPY --from=0  /go/src/github.com/mobingilabs/pullr/bin/buildsvc .
 ADD conf/pullr.yml .
 ENTRYPOINT ["/buildsvc/buildsvc"]
