@@ -44,8 +44,12 @@ type ImageBuilder interface {
 	PushImage(ctx context.Context, out io.Writer, tag, registry, username, password string) error
 }
 
-// Pipeline is the image build pipeline
-type Pipeline struct {
+type Pipeline interface {
+	Run(ctx context.Context, logOut io.Writer, job *BuildJob) error
+}
+
+// HostedPipeline is the image build pipeline
+type HostedPipeline struct {
 	config         PipelineConfig
 	logger         Logger
 	cloners        map[string]RepositoryCloner
@@ -54,13 +58,13 @@ type Pipeline struct {
 }
 
 // NewPipeline creates a build pipeline for given job
-func NewPipeline(config PipelineConfig, logger Logger, cloners map[string]RepositoryCloner, builderFactory ImageBuilderFactory) *Pipeline {
+func NewPipeline(config PipelineConfig, logger Logger, cloners map[string]RepositoryCloner, builderFactory ImageBuilderFactory) *HostedPipeline {
 	randSource := rand.NewSource(time.Now().UnixNano())
-	return &Pipeline{config, logger, cloners, builderFactory, randSource}
+	return &HostedPipeline{config, logger, cloners, builderFactory, randSource}
 }
 
 // Run, runs the build pipeline against the given job
-func (p *Pipeline) Run(ctx context.Context, out io.Writer, job *BuildJob) (err error) {
+func (p *HostedPipeline) Run(ctx context.Context, out io.Writer, job *BuildJob) (err error) {
 	cloner, ok := p.cloners[job.ImageRepo.Provider]
 	if !ok {
 		return ErrSourceUnsupportedProvider

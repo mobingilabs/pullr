@@ -99,6 +99,17 @@ services:
       - traefik.port=80
       - traefik.passHostHeader=true
 
+  pullr-buildsvc:
+    container_name: pullr-buildsvc
+    image: mobingilabs/pullr-buildsvc:localdev
+    networks:
+      pullr:
+    depends_on:
+      - pullr-mongodb
+      - pullr-rabbitmq
+    labels:
+      - traefik.enabled=false
+
   pullr-apisrv:
     container_name: pullr-apisrv
     image: mobingilabs/pullr-apisrv:localdev

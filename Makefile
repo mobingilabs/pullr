@@ -1,12 +1,12 @@
 DIST:=bin
 DOCKER_TAG_PREFIX:=mobingilabs/pullr-
-DOCKER_REGISTRY:=DOCKER_REGISTRY
+DOCKER_REGISTRY:=reg.pullr.io
 VERSION:=localdev
 
 CMDS:=apisrv buildsvc
 LINUX_CMDS:=$(addsuffix -linux,$(CMDS))
-DOCKER_CMDS:=apisrv-docker
-PUSH_CMDS:=apisrv-push ui-push
+DOCKER_CMDS:=$(addsuffix -docker,$(CMDS))
+PUSH_CMDS:=$(addsuffix -push,$(CMDS)) ui-push
 
 .SECONDEXPANSION:
 

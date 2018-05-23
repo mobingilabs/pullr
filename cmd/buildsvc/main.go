@@ -9,10 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/mobingilabs/pullr/pkg/docker"
+	"github.com/mobingilabs/pullr/pkg/cloudbuild"
 	"github.com/mobingilabs/pullr/pkg/domain"
-	"github.com/mobingilabs/pullr/pkg/github"
-	"github.com/mobingilabs/pullr/pkg/machine"
 	"github.com/mobingilabs/pullr/pkg/mongodb"
 	"github.com/mobingilabs/pullr/pkg/rabbitmq"
 	"github.com/mobingilabs/pullr/pkg/run"
@@ -99,37 +97,13 @@ func main() {
 	}
 	cancel()
 
-	var builderFactory domain.ImageBuilderFactory
-	switch conf.Builder.Driver {
-	case "machine":
-		machineConfig, err := machine.ConfigFromMap(conf.Builder.Options)
-		if err != nil {
-			fatal(fmt.Errorf("builder driver: %s: %v", conf.Builder.Driver, err))
-		}
-
-		builderFactory, err = machine.New(machineConfig)
-		if err != nil {
-			fatal(fmt.Errorf("builder driver: %s: %v", conf.Builder.Driver, err))
-		}
-	case "docker":
-		builderFactory = docker.NewFactory("", "")
-	default:
-		fatal(fmt.Errorf("builder driver: %s: not supported", conf.Builder.Driver))
-	}
-
 	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildSvc.Queue)
 
-	pipelineConfig := domain.PipelineConfig{
-		CloneDir:         conf.BuildSvc.CloneDir,
-		RegistryURL:      conf.Registry.URL,
-		RegistryUser:     conf.Registry.Username,
-		RegistryPassword: conf.Registry.Password,
-	}
-	cloners := map[string]domain.RepositoryCloner{
-		"github": &github.Cloner{},
+	pipeline, err := cloudbuild.NewPipeline(conf.Registry.URL)
+	if err != nil {
+		fatal(err)
 	}
 
-	pipeline := domain.NewPipeline(pipelineConfig, logger, cloners, builderFactory)
 	buildStorage := storage.BuildStorage()
 	sigCtx, cancel := run.ContextWithSig(context.Background(), os.Interrupt, os.Kill)
 
@@ -153,33 +127,35 @@ func main() {
 			continue
 		}
 
-		jobRecord := domain.BuildRecord{
-			StartedAt: time.Now(),
-			Status:    domain.BuildInProgress,
-			Tag:       buildjob.Tag,
-		}
-		buildStorage.Put(buildjob.ImageOwner, buildjob.ImageKey, jobRecord)
-		logger.Infof("got job: %v", buildjob)
-
-		var pipelineOutput bytes.Buffer
-		pipelineCtx, cancel := context.WithTimeout(sigCtx, conf.BuildSvc.Timeout)
-		if err := pipeline.Run(pipelineCtx, os.Stderr, buildjob); err != nil {
-			cancel()
-			nerrs++
-			logger.Error(err)
-			fmt.Fprintf(os.Stderr, "%s", pipelineOutput.String())
-			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildFailed))
-			if err := job.Reject(true); err != nil {
-				logger.Errorf("jobq reject: %v", err)
+		go func() {
+			jobRecord := domain.BuildRecord{
+				StartedAt: time.Now(),
+				Status:    domain.BuildInProgress,
+				Tag:       buildjob.Tag,
 			}
-			continue
-		}
-		cancel()
+			buildStorage.Put(buildjob.ImageOwner, buildjob.ImageKey, jobRecord)
+			logger.Infof("got job: %v", buildjob)
 
-		buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildSucceed))
+			var pipelineOutput bytes.Buffer
+			pipelineCtx, cancel := context.WithTimeout(sigCtx, conf.BuildSvc.Timeout)
+			if err := pipeline.Run(pipelineCtx, os.Stderr, buildjob); err != nil {
+				cancel()
+				nerrs++
+				logger.Error(err)
+				fmt.Fprintf(os.Stderr, "%s", pipelineOutput.String())
+				buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildFailed))
+				if err := job.Reject(true); err != nil {
+					logger.Errorf("jobq reject: %v", err)
+				}
+				return
+			}
+			cancel()
 
-		if err := job.Finish(); err != nil {
-			logger.Errorf("jobq finish: %v", err)
-		}
+			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildSucceed))
+
+			if err := job.Finish(); err != nil {
+				logger.Errorf("jobq finish: %v", err)
+			}
+		}()
 	}
 }

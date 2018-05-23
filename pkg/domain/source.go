@@ -2,8 +2,11 @@ package domain
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // SourceRefType can be either 'branch' or 'tag'
@@ -56,6 +59,16 @@ type SourceRepository struct {
 	Provider string `json:"provider" bson:"provider"`
 	Owner    string `json:"owner" bson:"owner"`
 	Name     string `json:"name" bson:"name"`
+}
+
+// URL reports back repository url
+func (r SourceRepository) URL() (string, error) {
+	switch r.Provider {
+	case "github":
+		return fmt.Sprintf("https://github.com/%s/%s", r.Owner, r.Name), nil
+	default:
+		return "", errors.Errorf("unsupported source repository provider: %s", r.Provider)
+	}
 }
 
 // SourceService wraps different vcs client implementations
