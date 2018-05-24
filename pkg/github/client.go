@@ -271,7 +271,7 @@ type apiRequest struct {
 
 func (r apiRequest) String() string {
 	r.accessToken = "<access-token>"
-	j, err := json.Marshal(&r)
+	j, err := json.Marshal(r)
 	if err != nil {
 		return ""
 	}
