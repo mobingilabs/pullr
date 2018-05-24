@@ -47,12 +47,12 @@ func (c *Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte,
 	res, err := http.DefaultClient.Do(req)
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		c.logger.Errorf("github: failed request: %v", apiReq)
+		c.logger.Errorf("github: failed request: %s", apiReq.String())
 		return 0, nil, err
 	}
 
 	if res.StatusCode >= 300 {
-		c.logger.Errorf("github: unsuccessful request: %v", apiReq)
+		c.logger.Errorf("github: unsuccessful request: %s", apiReq.String())
 	}
 
 	return res.StatusCode, body, nil
