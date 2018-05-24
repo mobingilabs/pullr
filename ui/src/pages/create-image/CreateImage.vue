@@ -6,7 +6,7 @@
         <Button type="ghost" icon="edit" @click="gotoStep(s.name)"/>
       </template>
       <template slot="content">
-        <component :is="s.component" :image="image" v-on:update:image="updateImage" v-on:update:organisation="updateOrganisation" :next="s.next" @cancel="cancel"/>
+        <component :is="s.component" :image="image" v-on:update:image="updateImage" v-on:update:organisation="updateOrganisation" :next="s.next" v-on:cancel="cancel"/>
       </template>
     </MPanel>
   </MCollapse>

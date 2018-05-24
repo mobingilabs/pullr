@@ -1,5 +1,5 @@
 <template>
-  <ImageEditor :image="image" v-on:update:image="$emit('update:image', $event)" :save-inprogress="saveInProgress" @save="next()" />
+  <ImageEditor :image="image" v-on:update:image="$emit('update:image', $event)" @cancel="$emit('cancel')" :save-inprogress="saveInProgress" @save="next()" />
 </template>
 
 <script type="text/jsx">

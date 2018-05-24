@@ -138,8 +138,19 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
     },
     resetNewImage (state) {
       state.newImage.data = newImage()
-      state.newImage.organisations = []
-      state.newImage.repositories = {}
+      state.newImage.organisation = null
+      state.newImage.saving = false
+      state.newImage.saveErr = null
+      state.newImage.organisations = {
+        data: [],
+        loading: false,
+        loadErr: null
+      }
+      state.newImage.repositories = {
+        data: {},
+        loading: false,
+        loadErr: false
+      }
     },
     updateNewImage (state, image) {
       state.newImage.data = image
@@ -163,7 +174,6 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
     },
     loadNewImageOrganisationsSuccess (state, organisations) {
       state.newImage.organisations.data = organisations
-      state.newImage.organisation = organisations[0]
       state.newImage.organisations.loading = false
     },
     loadNewImageOrganisationsFailure (state, err) {
@@ -304,6 +314,18 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
     },
     async updateNewImage ({commit, state, dispatch}, image) {
       const previousProvider = state.newImage.data.repository.provider
+      const previousRepository = state.newImage.data.repository.name
+
+      if (previousRepository !== image.repository.name) {
+        if (image.name === '') {
+          image.name = image.repository.name
+        }
+
+        if (image.tags[0].ref_test === '' && image.tags[0].name === '') {
+          image.tags[0].ref_test = 'master'
+          image.tags[0].name = 'latest'
+        }
+      }
 
       commit('updateNewImage', image)
 
@@ -321,11 +343,15 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
         throw err
       }
     },
-    async loadNewImageOrganisations ({commit, state}) {
+    async loadNewImageOrganisations ({commit, dispatch, state}) {
       commit('loadNewImageOrganisationsRequest')
       try {
-        const owners = await sourceService.organisations(state.newImage.data.repository.provider)
-        commit('loadNewImageOrganisationsSuccess', owners)
+        const organisations = await sourceService.organisations(state.newImage.data.repository.provider)
+        commit('loadNewImageOrganisationsSuccess', organisations)
+
+        if (state.newImage.organisation === null) {
+          dispatch('updateNewImageOrganisation', {organisation: organisations[0]})
+        }
       } catch (err) {
         commit('loadNewImageOrganisationsFailure', err)
         throw err

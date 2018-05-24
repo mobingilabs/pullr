@@ -21,7 +21,7 @@
         </div>
       </div>
       <div class="repository-list">
-        <div class="repository-item" v-for="repo in filteredRepositories" :key="repo" @click="selectRepository(repo)">
+        <div class="repository-item" v-for="repo in filteredRepositories" :key="repo.owner + '/' + repo.name" @click="selectRepository(repo)">
           <span class="repository-name">{{repo.owner}}/{{repo.name}}</span>
           <Button class="select-button" size="small" type="text">SELECT</Button>
         </div>
