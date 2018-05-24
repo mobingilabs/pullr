@@ -37,7 +37,7 @@ export default {
       this.load(this.currentPage)
     },
     onPageChanged (page) {
-      this.load(page)
+      this.load(page - 1)
     },
     async load (page) {
       this.loading = true
