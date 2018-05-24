@@ -135,6 +135,6 @@ func (b *Builder) PushImage(ctx context.Context, out io.Writer, tag, registry, u
 }
 
 // BuildImage builds a docker image from given context and dockerfile
-func (b *Builder) BuildImage(ctx context.Context, out io.Writer, ctxPath, dockerfile, tag string) error {
+func (b *Builder) BuildImage(ctx context.Context, out io.Writer, ctxPath, dockerfile, tag string) (domain.BuildStatus, error) {
 	return b.d.BuildImage(ctx, out, ctxPath, dockerfile, tag)
 }

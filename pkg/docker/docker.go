@@ -89,12 +89,16 @@ func (d *Docker) PushImage(ctx context.Context, out io.Writer, tag, registry, us
 
 // BuildImage builds a container image from a Dockerfile located at ctxPath.
 // ctxPath is also used as build context
-func (d *Docker) BuildImage(ctx context.Context, out io.Writer, ctxPath, dockerfile, tag string) error {
+func (d *Docker) BuildImage(ctx context.Context, out io.Writer, ctxPath, dockerfile, tag string) (domain.BuildStatus, error) {
 	cmd := exec.Command("docker", "build", "-t", tag, "-f", dockerfile, ".")
 	cmd.Dir = ctxPath
 	cmd.Env = d.env
 	cmd.Stderr = out
 	cmd.Stdout = out
 
-	return cmd.Run()
+	err := cmd.Run()
+	if _, ok := err.(*exec.ExitError); ok {
+		return domain.BuildFailed, nil
+	}
+	return domain.BuildFailed, err
 }

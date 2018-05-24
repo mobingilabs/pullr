@@ -38,7 +38,7 @@ type ImageBuilder interface {
 	io.Closer
 	// BuildImage builds a container image from a Dockerfile located at ctxPath.
 	// ctxPath is also used as build context
-	BuildImage(ctx context.Context, out io.Writer, ctxPath, dockerfile, tag string) error
+	BuildImage(ctx context.Context, out io.Writer, ctxPath, dockerfile, tag string) (BuildStatus, error)
 
 	// PushImage pushes a container image to the given registry
 	PushImage(ctx context.Context, out io.Writer, tag, registry, username, password string) error
@@ -64,10 +64,10 @@ func NewPipeline(config PipelineConfig, logger Logger, cloners map[string]Reposi
 }
 
 // Run, runs the build pipeline against the given job
-func (p *HostedPipeline) Run(ctx context.Context, out io.Writer, job *BuildJob) (err error) {
+func (p *HostedPipeline) Run(ctx context.Context, out io.Writer, job *BuildJob) (status BuildStatus, err error) {
 	cloner, ok := p.cloners[job.ImageRepo.Provider]
 	if !ok {
-		return ErrSourceUnsupportedProvider
+		return BuildFailed, ErrSourceUnsupportedProvider
 	}
 
 	dirname := fmt.Sprintf("%s_%d", job.ImageRepo.Name, p.randSource.Int63())
@@ -76,27 +76,27 @@ func (p *HostedPipeline) Run(ctx context.Context, out io.Writer, job *BuildJob) 
 
 	err = cloner.CloneRepository(ctx, out, dir, job.ImageRepo, job.VcsUsername, job.VcsToken)
 	if err != nil {
-		return fmt.Errorf("pipeline: clone: %v", err)
+		return BuildFailed, fmt.Errorf("pipeline: clone: %v", err)
 	}
 
 	builder, err := p.builderFactory.Create()
 	if err != nil {
-		return err
+		return BuildFailed, err
 	}
 	defer builder.Close()
 	tag := fmt.Sprintf("%s/%s:%s", job.ImageOwner, job.ImageName, job.Tag)
-	err = builder.BuildImage(ctx, out, dir, job.Dockerfile, tag)
+	status, err = builder.BuildImage(ctx, out, dir, job.Dockerfile, tag)
 	if err != nil {
-		return fmt.Errorf("pipeline: build: %v", err)
+		return BuildFailed, fmt.Errorf("pipeline: build: %v", err)
 	}
 
 	err = builder.PushImage(ctx, out, tag, p.config.RegistryURL, p.config.RegistryUser, p.config.RegistryPassword)
 	if err != nil {
-		return fmt.Errorf("pipeline: push: %v", err)
+		return BuildFailed, fmt.Errorf("pipeline: push: %v", err)
 	}
 	if err := os.RemoveAll(dir); err != nil {
 		p.logger.Errorf("pipeline: remove repo dir: %v", err)
 	}
 
-	return nil
+	return status, nil
 }

@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/mobingilabs/pullr/pkg/cloudbuild"
+	"github.com/mobingilabs/pullr/pkg/codebuild"
 	"github.com/mobingilabs/pullr/pkg/domain"
 	"github.com/mobingilabs/pullr/pkg/mongodb"
 	"github.com/mobingilabs/pullr/pkg/rabbitmq"
@@ -99,7 +99,7 @@ func main() {
 
 	buildsvc := domain.NewBuildService(jobq, storage.BuildStorage(), conf.BuildSvc.Queue)
 
-	pipeline, err := cloudbuild.NewPipeline(conf.Registry.URL)
+	pipeline, err := codebuild.NewPipeline(conf.Registry.URL)
 	if err != nil {
 		fatal(err)
 	}
@@ -139,20 +139,18 @@ func main() {
 
 			var pipelineOutput bytes.Buffer
 			pipelineCtx, cancel := context.WithTimeout(sigCtx, conf.BuildSvc.Timeout)
-			if err := pipeline.Run(pipelineCtx, os.Stderr, buildjob); err != nil {
+			status, err := pipeline.Run(pipelineCtx, os.Stderr, buildjob)
+			if err != nil {
 				cancel()
 				nerrs++
 				logger.Error(err)
-				fmt.Fprintf(os.Stderr, "%s", pipelineOutput.String())
-				buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildFailed))
-				if err := job.Reject(true); err != nil {
-					logger.Errorf("jobq reject: %v", err)
-				}
+				job.Reject(true)
 				return
 			}
 			cancel()
 
-			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord.WithStatus(domain.BuildSucceed))
+			jobRecord = jobRecord.WithStatus(status).WithLogs(pipelineOutput.String())
+			buildStorage.UpdateLast(buildjob.ImageOwner, buildjob.ImageKey, jobRecord)
 
 			if err := job.Finish(); err != nil {
 				logger.Errorf("jobq finish: %v", err)

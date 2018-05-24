@@ -1,4 +1,4 @@
-package cloudbuild
+package codebuild
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
-	"github.com/aws/aws-sdk-go/service/codebuild"
+	awscb "github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/mobingilabs/pullr/pkg/domain"
 )
 
@@ -32,9 +32,9 @@ phases:
       - sh -c "%s"
 `
 
-// Pipeline builds and pushes docker images to registries by using aws cloudbuild service
+// Pipeline builds and pushes docker images to registries by using aws codebuild service
 type Pipeline struct {
-	cb       *codebuild.CodeBuild
+	cb       *awscb.CodeBuild
 	logs     *cloudwatchlogs.CloudWatchLogs
 	registry string
 }
@@ -50,33 +50,33 @@ func NewPipeline(registry string) (*Pipeline, error) {
 		return nil, err
 	}
 
-	return &Pipeline{codebuild.New(sess), cloudwatchlogs.New(sess), registry}, nil
+	return &Pipeline{awscb.New(sess), cloudwatchlogs.New(sess), registry}, nil
 }
 
-// Run starts an aws cloudbuild build operation
-func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJob) error {
+// Run starts an aws codebuild build operation
+func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJob) (domain.BuildStatus, error) {
 	projectName := aws.String(cbProject(job))
-	projRes, err := p.cb.BatchGetProjects(&codebuild.BatchGetProjectsInput{
+	projRes, err := p.cb.BatchGetProjects(&awscb.BatchGetProjectsInput{
 		Names: []*string{projectName},
 	})
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == codebuild.ErrCodeResourceNotFoundException {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == awscb.ErrCodeResourceNotFoundException {
 			if err := p.createProject(job); err != nil {
-				return err
+				return domain.BuildFailed, err
 			}
 		} else {
-			return err
+			return domain.BuildFailed, err
 		}
 	}
 	if len(projRes.Projects) == 0 {
 		if err := p.createProject(job); err != nil {
-			return err
+			return domain.BuildFailed, err
 		}
 	}
 
-	res, err := p.cb.StartBuild(&codebuild.StartBuildInput{
+	res, err := p.cb.StartBuild(&awscb.StartBuildInput{
 		ProjectName: projectName,
-		EnvironmentVariablesOverride: []*codebuild.EnvironmentVariable{
+		EnvironmentVariablesOverride: []*awscb.EnvironmentVariable{
 			cbEnv("PULLR_REGISTRY", p.registry),
 			cbEnv("PULLR_TAG", job.Tag),
 			cbEnv("PULLR_OWNER", job.ImageOwner),
@@ -88,30 +88,40 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 		SourceVersion: aws.String(job.CommitHash),
 	})
 	if err != nil {
-		return err
+		return domain.BuildFailed, err
 	}
 
 	numGetErr := 0
-	success := false
-	var logs *codebuild.LogsLocation = nil
+	status := domain.BuildInProgress
+	var logs *awscb.LogsLocation = nil
 	for {
-		res2, err := p.cb.BatchGetBuilds(&codebuild.BatchGetBuildsInput{Ids: []*string{res.Build.Id}})
+		res2, err := p.cb.BatchGetBuilds(&awscb.BatchGetBuildsInput{Ids: []*string{res.Build.Id}})
 		if err != nil {
 			numGetErr++
 			if numGetErr > 5 {
-				return err
+				return domain.BuildFailed, err
 			}
 
 			time.Sleep(time.Second * 10)
 			continue
 		} else if len(res2.Builds) != 1 {
-			return errors.New("started build could not found in cloudbuild")
+			return domain.BuildFailed, errors.New("started build could not found in codebuild")
 		}
 
 		build := res2.Builds[0]
 		if *build.BuildComplete {
 			logs = build.Logs
-			success = *build.BuildStatus == codebuild.StatusTypeSucceeded
+			switch *build.BuildStatus {
+			case awscb.StatusTypeSucceeded:
+				status = domain.BuildSucceed
+			case awscb.StatusTypeFailed:
+				status = domain.BuildFailed
+			case awscb.StatusTypeTimedOut:
+				status = domain.BuildTimeout
+			default:
+				// TODO: should we mark it as in progress if we don't know the status
+				status = domain.BuildInProgress
+			}
 			break
 		}
 	}
@@ -133,10 +143,7 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 		cancel()
 	}
 
-	if !success {
-		return errors.New("build failed")
-	}
-	return nil
+	return status, nil
 }
 
 func (p *Pipeline) createProject(job *domain.BuildJob) error {
@@ -157,39 +164,39 @@ func (p *Pipeline) createProject(job *domain.BuildJob) error {
 	buildScriptOneLine := strings.Replace(buildScript, "\n", "", -1)
 	buildSpec := fmt.Sprintf(buildSpecTemplate, buildScriptOneLine)
 
-	_, err = p.cb.CreateProject(&codebuild.CreateProjectInput{
+	_, err = p.cb.CreateProject(&awscb.CreateProjectInput{
 		Name: aws.String(name),
-		Source: &codebuild.ProjectSource{
+		Source: &awscb.ProjectSource{
 			Location:  aws.String(repoURL),
 			Type:      sourceType,
 			Buildspec: aws.String(buildSpec),
 		},
-		Environment: &codebuild.ProjectEnvironment{
-			Type:           aws.String(codebuild.EnvironmentTypeLinuxContainer),
+		Environment: &awscb.ProjectEnvironment{
+			Type:           aws.String(awscb.EnvironmentTypeLinuxContainer),
 			Image:          aws.String("aws/codebuild/docker:17.09.0"),
 			PrivilegedMode: aws.Bool(true),
-			ComputeType:    aws.String(codebuild.ComputeTypeBuildGeneral1Small),
+			ComputeType:    aws.String(awscb.ComputeTypeBuildGeneral1Small),
 		},
-		Artifacts:   &codebuild.ProjectArtifacts{Type: aws.String(codebuild.ArtifactsTypeNoArtifacts)},
-		Cache:       &codebuild.ProjectCache{Type: aws.String(codebuild.CacheTypeNoCache)},
-		ServiceRole: aws.String(os.Getenv("PULLR_CLOUDBUILD_SERVICE_ROLE")),
+		Artifacts:   &awscb.ProjectArtifacts{Type: aws.String(awscb.ArtifactsTypeNoArtifacts)},
+		Cache:       &awscb.ProjectCache{Type: aws.String(awscb.CacheTypeNoCache)},
+		ServiceRole: aws.String(os.Getenv("PULLR_codebuild_SERVICE_ROLE")),
 	})
 	return err
 }
 
-func cbEnv(key, value string) *codebuild.EnvironmentVariable {
-	return &codebuild.EnvironmentVariable{
+func cbEnv(key, value string) *awscb.EnvironmentVariable {
+	return &awscb.EnvironmentVariable{
 		Name:  aws.String(key),
 		Value: aws.String(value),
-		Type:  aws.String(codebuild.EnvironmentVariableTypePlaintext),
+		Type:  aws.String(awscb.EnvironmentVariableTypePlaintext),
 	}
 }
 
-func cbEnvSecret(key string) *codebuild.EnvironmentVariable {
-	return &codebuild.EnvironmentVariable{
+func cbEnvSecret(key string) *awscb.EnvironmentVariable {
+	return &awscb.EnvironmentVariable{
 		Name:  aws.String(key),
 		Value: aws.String(fmt.Sprintf("/CodeBuild/%s", key)),
-		Type:  aws.String(codebuild.EnvironmentVariableTypeParameterStore),
+		Type:  aws.String(awscb.EnvironmentVariableTypeParameterStore),
 	}
 }
 

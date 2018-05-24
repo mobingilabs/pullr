@@ -15,6 +15,7 @@ const (
 	BuildInProgress BuildStatus = "in_progress"
 	BuildSucceed    BuildStatus = "succeed"
 	BuildFailed     BuildStatus = "failed"
+	BuildTimeout    BuildStatus = "timeout"
 )
 
 // Build represents a collection of build records for an image. First
