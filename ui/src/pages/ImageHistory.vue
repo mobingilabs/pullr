@@ -45,7 +45,7 @@ export default {
         const data = await this.$store.dispatch('loadImageBuilds', {key: this.$route.params.key, page: this.currentPage, perPage: this.perPage})
         this.records = data.build_records
         this.pagination = data.pagination
-        if (page >= this.pagination.last) {
+        if (page > this.pagination.last) {
           this.currentPage = page - 1
         } else {
           this.currentPage = page
