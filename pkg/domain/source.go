@@ -33,7 +33,7 @@ type SourceClient interface {
 	//
 	// To get repositories owned by the user pass authenticated source provider
 	// user name as the organisation.
-	Repositories(ctx context.Context, identity string, organisation string, token string) ([]string, error)
+	Repositories(ctx context.Context, identity string, organisation string, token string) ([]SourceRepository, error)
 }
 
 // CommitInfo has information about a commit
@@ -132,7 +132,7 @@ func (s *SourceService) Organisations(ctx context.Context, provider, username st
 }
 
 // Repositories finds repositories belongs to organisation
-func (s *SourceService) Repositories(ctx context.Context, provider, username, organisation string) ([]string, error) {
+func (s *SourceService) Repositories(ctx context.Context, provider, username, organisation string) ([]SourceRepository, error) {
 	c, ok := s.clients[provider]
 	if !ok {
 		return nil, ErrSourceUnsupportedProvider

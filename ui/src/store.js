@@ -29,7 +29,8 @@ const initialState = {
     data: newImage(),
     saving: false,
     saveErr: null,
-    owners: {
+    organisation: null,
+    organisations: {
       data: [],
       loading: false,
       loadErr: null
@@ -79,6 +80,7 @@ const initialState = {
  * @param {OAuthService} oauthService
  * @param {SourceService} sourceService
  * @param {ImagesService} imagesService
+ * @param {BuildService} buildService
  * @returns {Store}
  */
 export default (authService, oauthService, sourceService, imagesService, buildService) => new Vuex.Store({
@@ -136,11 +138,14 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
     },
     resetNewImage (state) {
       state.newImage.data = newImage()
-      state.newImage.owners = []
+      state.newImage.organisations = []
       state.newImage.repositories = {}
     },
     updateNewImage (state, image) {
       state.newImage.data = image
+    },
+    updateNewImageOrganisation (state, {organisation}) {
+      state.newImage.organisation = organisation
     },
     saveNewImageRequest (state) {
       state.newImage.saving = true
@@ -153,23 +158,23 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
       state.newImage.saving = false
       state.newImage.saveErr = err
     },
-    loadNewImageOwnersRequest (state) {
-      state.newImage.owners.loading = true
+    loadNewImageOrganisationsRequest (state) {
+      state.newImage.organisations.loading = true
     },
-    loadNewImageOwnersSuccess (state, owners) {
-      state.newImage.owners.data = owners
-      state.newImage.data.repository.owner = owners[0]
-      state.newImage.owners.loading = false
+    loadNewImageOrganisationsSuccess (state, organisations) {
+      state.newImage.organisations.data = organisations
+      state.newImage.organisation = organisations[0]
+      state.newImage.organisations.loading = false
     },
-    loadNewImageOwnersFailure (state, err) {
-      state.newImage.owners.loadErr = err
-      state.newImage.owners.loading = false
+    loadNewImageOrganisationsFailure (state, err) {
+      state.newImage.organisations.loadErr = err
+      state.newImage.organisations.loading = false
     },
     loadNewImageRepositoriesRequest (state) {
       state.newImage.repositories.loading = true
     },
-    loadNewImageRepositoriesSuccess (state, {owner, repositories}) {
-      Vue.set(state.newImage.repositories.data, owner, repositories)
+    loadNewImageRepositoriesSuccess (state, {organisation, repositories}) {
+      Vue.set(state.newImage.repositories.data, organisation, repositories)
       state.newImage.repositories.loading = false
     },
     loadNewImageRepositoriesFailure (state, err) {
@@ -293,17 +298,17 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
         throw err
       }
     },
+    async updateNewImageOrganisation ({commit, state, dispatch}, {organisation}) {
+      commit('updateNewImageOrganisation', {organisation})
+      await dispatch('loadNewImageRepositories', organisation)
+    },
     async updateNewImage ({commit, state, dispatch}, image) {
-      const previousOwner = state.newImage.data.repository.owner
       const previousProvider = state.newImage.data.repository.provider
 
       commit('updateNewImage', image)
 
       if (previousProvider !== image.repository.provider) {
-        await dispatch('loadNewImageOwners')
-      }
-      if (previousOwner !== image.repository.owner) {
-        await dispatch('loadNewImageRepositories', image.repository.owner)
+        await dispatch('loadNewImageOrganisations')
       }
     },
     async saveNewImage ({commit, state}) {
@@ -316,21 +321,21 @@ export default (authService, oauthService, sourceService, imagesService, buildSe
         throw err
       }
     },
-    async loadNewImageOwners ({commit, state}) {
-      commit('loadNewImageOwnersRequest')
+    async loadNewImageOrganisations ({commit, state}) {
+      commit('loadNewImageOrganisationsRequest')
       try {
-        const owners = await sourceService.owners(state.newImage.data.repository.provider)
-        commit('loadNewImageOwnersSuccess', owners)
+        const owners = await sourceService.organisations(state.newImage.data.repository.provider)
+        commit('loadNewImageOrganisationsSuccess', owners)
       } catch (err) {
-        commit('loadNewImageOwnersFailure', err)
+        commit('loadNewImageOrganisationsFailure', err)
         throw err
       }
     },
-    async loadNewImageRepositories ({commit, state}, owner) {
+    async loadNewImageRepositories ({commit, state}, organisation) {
       commit('loadNewImageRepositoriesRequest')
       try {
-        const repositories = await sourceService.repositories(state.newImage.data.repository.provider, owner)
-        commit('loadNewImageRepositoriesSuccess', {owner, repositories})
+        const repositories = await sourceService.repositories(state.newImage.data.repository.provider, organisation)
+        commit('loadNewImageRepositoriesSuccess', {organisation, repositories})
       } catch (err) {
         commit('loadNewImageRepositoriesFailure', err)
         throw err

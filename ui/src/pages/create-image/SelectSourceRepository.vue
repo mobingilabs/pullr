@@ -1,17 +1,17 @@
 <template>
   <Row class="repository-selector" type="flex">
-    <Col class="owners">
-      <p><strong>OWNER</strong></p>
-      <ul class="owner-list">
-        <li class="owner-item"
-            v-for="owner in owners.data"
-            :key="owner"
-            :class="{active: owner === image.repository.owner}"
-            @click="selectOwner(owner)">
-          {{owner}}
+    <Col class="organisations">
+      <p><strong>ORGANISATIONS</strong></p>
+      <ul class="organisation-list">
+        <li class="organisation-item"
+            v-for="organisation in organisations.data"
+            :key="organisation"
+            :class="{active: organisation === selectedOrganisation}"
+            @click="selectOrganisation(organisation)">
+          {{organisation}}
         </li>
       </ul>
-      <Spin fix v-if="owners.loading"/>
+      <Spin fix v-if="organisations.loading"/>
     </Col>
     <Col class="repositories">
       <div class="header">
@@ -22,7 +22,7 @@
       </div>
       <div class="repository-list">
         <div class="repository-item" v-for="repo in filteredRepositories" :key="repo" @click="selectRepository(repo)">
-          <span class="repository-name">{{repo}}</span>
+          <span class="repository-name">{{repo.owner}}/{{repo.name}}</span>
           <Button class="select-button" size="small" type="text">SELECT</Button>
         </div>
       </div>
@@ -47,25 +47,26 @@ export default {
   computed: {
     ...mapState({
       image: (state) => state.newImage.data,
-      owners: (state) => state.newImage.owners,
+      organisations: (state) => state.newImage.organisations,
+      selectedOrganisation: (state) => state.newImage.organisation,
       repositories: (state) => state.newImage.repositories
     }),
     filteredRepositories () {
-      const reposByOwner = this.repositories.data[this.image.repository.owner] || []
+      const reposByOwner = this.repositories.data[this.selectedOrganisation] || []
       if (this.repositoryFilter === '') {
         return reposByOwner
       }
 
       const nameRegExp = new RegExp(this.repositoryFilter)
-      return reposByOwner.filter(repo => nameRegExp.test(repo))
+      return reposByOwner.filter(repo => nameRegExp.test(repo.name))
     }
   },
   methods: {
-    selectOwner (owner) {
-      this.$emit('update:image', {...this.image, repository: {...this.image.repository, owner}})
+    selectOrganisation (organisation) {
+      this.$emit('update:organisation', organisation)
     },
     selectRepository (repo) {
-      this.$emit('update:image', {...this.image, repository: {...this.image.repository, name: repo}})
+      this.$emit('update:image', {...this.image, repository: {...this.image.repository, ...repo}})
       this.next()
     }
   }
@@ -84,7 +85,7 @@ export default {
     font-size: @font-size-base - 1;
   }
 
-  .owners {
+  .organisations {
     background: #fff;
     min-width: 200px;
     height: 300px;
@@ -96,13 +97,13 @@ export default {
       padding: 21px 25px 16px;
     }
 
-    .owner-list {
+    .organisation-list {
       list-style: none;
       margin: 0;
       padding: 0;
     }
 
-    .owner-item {
+    .organisation-item {
       display: block;
       padding: 13px 25px;
       font-size: @font-size-base;

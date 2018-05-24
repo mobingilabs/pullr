@@ -4,22 +4,22 @@ export default class SourceService {
   }
 
   /**
-   * owners, load source owners for given source provider
+   * organisations, load source organisations for given source provider
    * @param {string} provider
    * @returns {Promise<string[]>}
    */
-  owners (provider) {
+  organisations (provider) {
     return this.http.get(`/source/${provider}/orgs`).then(res => res.data)
   }
 
   /**
-   * repositories, load source repositories for given owner
+   * repositories, load source repositories for given organisation
    * @param {string} provider
-   * @param {string} owner
-   * @returns {Promise<string[]>}
+   * @param {string} organisation
+   * @returns {Promise<[{provider: string, organisation: string, name: string}]>}
    */
-  repositories (provider, owner) {
-    const params = {org: owner}
+  repositories (provider, organisation) {
+    const params = {org: organisation}
     return this.http.get(`/source/${provider}/repos`, {params}).then(res => res.data)
   }
 }

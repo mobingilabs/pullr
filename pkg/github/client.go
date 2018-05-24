@@ -47,12 +47,12 @@ func (c *Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte,
 	res, err := http.DefaultClient.Do(req)
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		c.logger.Errorf("github: failed request: %s", apiReq.String())
+		c.logger.Errorf("github: failed request: %+v", apiReq)
 		return 0, nil, err
 	}
 
 	if res.StatusCode >= 300 {
-		c.logger.Errorf("github: unsuccessful request: %s", apiReq.String())
+		c.logger.Errorf("github: unsuccessful request: %+v", apiReq)
 	}
 
 	return res.StatusCode, body, nil
@@ -197,7 +197,7 @@ func (c *Client) Organisations(ctx context.Context, identity string, token strin
 
 // Repositories reports back given organisation's repositories. If you want to
 // get user's own repositories pass username as organisation
-func (c *Client) Repositories(ctx context.Context, identity string, organisation string, token string) ([]string, error) {
+func (c *Client) Repositories(ctx context.Context, identity string, organisation string, token string) ([]domain.SourceRepository, error) {
 	path := "/user/repos"
 	params := url.Values{"affiliation": {"owner,collaborator"}}
 	if organisation != identity {
@@ -223,18 +223,30 @@ func (c *Client) Repositories(ctx context.Context, identity string, organisation
 	}
 
 	var repoList []struct {
-		Name string `json:"name"`
+		Name  string `json:"name"`
+		Owner struct {
+			Login string `json:"login"`
+		} `json:"owner"`
+		Permissions struct {
+			Admin bool `json:"admin"`
+		} `json:"permissions"`
 	}
 	if err := json.Unmarshal(body, &repoList); err != nil {
 		return nil, err
 	}
 
-	repoNames := make([]string, 0, len(repoList))
+	repos := make([]domain.SourceRepository, 0, len(repoList))
 	for _, repo := range repoList {
-		repoNames = append(repoNames, repo.Name)
+		if repo.Permissions.Admin {
+			repos = append(repos, domain.SourceRepository{
+				Provider: "github",
+				Name:     repo.Name,
+				Owner:    repo.Owner.Login,
+			})
+		}
 	}
 
-	return repoNames, nil
+	return repos, nil
 }
 
 func (c *Client) identity(ctx context.Context, token string) (string, error) {
@@ -267,13 +279,4 @@ type apiRequest struct {
 	accessToken string
 	params      url.Values
 	body        io.Reader
-}
-
-func (r apiRequest) String() string {
-	r.accessToken = "<access-token>"
-	j, err := json.Marshal(r)
-	if err != nil {
-		return ""
-	}
-	return string(j)
 }
