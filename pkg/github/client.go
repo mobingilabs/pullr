@@ -28,7 +28,7 @@ func NewClient(logger domain.Logger) *Client {
 	return &Client{}
 }
 
-func (*Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte, error) {
+func (c *Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte, error) {
 	if apiReq.params == nil {
 		apiReq.params = url.Values{}
 	}
@@ -47,7 +47,12 @@ func (*Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte, e
 	res, err := http.DefaultClient.Do(req)
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
+		c.logger.Errorf("github: failed request: %v", req)
 		return 0, nil, err
+	}
+
+	if res.StatusCode >= 300 {
+		c.logger.Errorf("github: unsuccessful request: %v", req)
 	}
 
 	return res.StatusCode, body, nil
