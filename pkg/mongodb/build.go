@@ -29,7 +29,7 @@ func (s *BuildStorage) GetAll(username string, imgKey string, opts domain.ListOp
 	skip, limit := opts.Cursor(nrecords)
 	pagination := opts.Paginate(nrecords)
 
-	return build.Records[skip:limit], pagination, nil
+	return build.Records[skip : skip+limit], pagination, nil
 }
 
 // GetLast, gets the latest record of a build by matching username and image key
@@ -100,9 +100,13 @@ func (s *BuildStorage) Put(username string, imgKey string, record domain.BuildRe
 	update := bson.M{"$push": bson.M{"records": bson.M{"$each": []domain.BuildRecord{record}, "$position": 0}}}
 	err := s.col().Update(query, update)
 
-	// If the build entry not found create one, that means this is the first
-	// build for the image
-	if err == mgo.ErrNotFound {
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			return err
+		}
+
+		// If the build entry not found create one, that means this is the first
+		// build for the image
 		now := time.Now()
 		build := domain.Build{
 			ImageKey:   imgKey,
