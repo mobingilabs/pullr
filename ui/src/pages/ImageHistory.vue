@@ -2,7 +2,7 @@
   <div class="image-history">
     <h1>Build History of {{image.name}}</h1>
     <Table class="records-table" :data="records" :columns="recordColumns"></Table>
-    <Page class="pagination" :total="pagination.total" :page-size="perPage" @on-page-size-change="onPerPageChanged($event)" show-sizer show-total></Page>
+    <Page class="pagination" :total="pagination.total" :page-size="perPage" @on-page-size-change="onPerPageChanged($event)" @on-change="onPageChanged" show-sizer show-total></Page>
     <Spin fix v-if="loading" />
   </div>
 </template>
@@ -35,6 +35,9 @@ export default {
     onPerPageChanged (perPage) {
       this.perPage = perPage
       this.load(this.currentPage)
+    },
+    onPageChanged (page) {
+      this.load(page)
     },
     async load (page) {
       this.loading = true
