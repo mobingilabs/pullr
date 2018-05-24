@@ -179,7 +179,7 @@ func (p *Pipeline) createProject(job *domain.BuildJob) error {
 		},
 		Artifacts:   &awscb.ProjectArtifacts{Type: aws.String(awscb.ArtifactsTypeNoArtifacts)},
 		Cache:       &awscb.ProjectCache{Type: aws.String(awscb.CacheTypeNoCache)},
-		ServiceRole: aws.String(os.Getenv("PULLR_codebuild_SERVICE_ROLE")),
+		ServiceRole: aws.String(os.Getenv("PULLR_CODEBUILD_SERVICE_ROLE")),
 	})
 	return err
 }
