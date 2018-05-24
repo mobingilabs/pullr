@@ -16,19 +16,24 @@ import (
 type OAuthProvider struct {
 	clientID     string
 	clientSecret string
+	logger       domain.Logger
 }
 
 // NewOAuthProvider creates a new github oauth provider
-func NewOAuthProvider(opts domain.OAuthProviderConfig) *OAuthProvider {
-	return &OAuthProvider{opts.ClientID, opts.ClientSecret}
+func NewOAuthProvider(logger domain.Logger, opts domain.OAuthProviderConfig) *OAuthProvider {
+	return &OAuthProvider{
+		clientID:     opts.ClientID,
+		clientSecret: opts.ClientSecret,
+		logger:       logger,
+	}
 }
 
 // LoginURL reports github login url for the user
-func (g *OAuthProvider) LoginURL(secret string, cbURL string) string {
+func (p *OAuthProvider) LoginURL(secret string, cbURL string) string {
 	scopes := []string{"admin:repo_hook", "read:org", "repo"}
 
 	params := url.Values{
-		"client_id":    {g.clientID},
+		"client_id":    {p.clientID},
 		"scope":        {strings.Join(scopes, " ")},
 		"state":        {secret},
 		"redirect_uri": {cbURL},
@@ -39,15 +44,15 @@ func (g *OAuthProvider) LoginURL(secret string, cbURL string) string {
 
 // FinishLogin extracts necessary information from given callback request made by
 // github, and finishes logging in process
-func (g *OAuthProvider) FinishLogin(secret string, req *http.Request) (string, error) {
+func (p *OAuthProvider) FinishLogin(secret string, req *http.Request) (string, error) {
 	code := req.URL.Query().Get("code")
 	if strings.TrimSpace(code) == "" {
 		return "", domain.ErrOAuthBadPayload
 	}
 
 	params := url.Values{
-		"client_id":     {g.clientID},
-		"client_secret": {g.clientSecret},
+		"client_id":     {p.clientID},
+		"client_secret": {p.clientSecret},
 		"code":          {code},
 		"state":         {secret},
 	}.Encode()
@@ -89,8 +94,8 @@ func (g *OAuthProvider) FinishLogin(secret string, req *http.Request) (string, e
 }
 
 // Identity reports back the identity of the authenticated user as known by the github
-func (*OAuthProvider) Identity(token string) (string, error) {
-	return NewClient().identity(context.Background(), token)
+func (p *OAuthProvider) Identity(token string) (string, error) {
+	return NewClient(p.logger).identity(context.Background(), token)
 }
 
 // GetSecret extracts the secret from the given request

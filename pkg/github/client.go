@@ -19,10 +19,12 @@ const apiURL = "https://api.github.com"
 
 // Client implements domain.SourceClient. Can parse webhooks, and
 // query authenticated github user's repositories
-type Client struct{}
+type Client struct {
+	logger domain.Logger
+}
 
 // NewClient creates a github client
-func NewClient() *Client {
+func NewClient(logger domain.Logger) *Client {
 	return &Client{}
 }
 
@@ -260,4 +262,13 @@ type apiRequest struct {
 	accessToken string
 	params      url.Values
 	body        io.Reader
+}
+
+func (r apiRequest) String() string {
+	r.accessToken = "<access-token>"
+	j, err := json.Marshal(&r)
+	if err != nil {
+		return ""
+	}
+	return string(j)
 }

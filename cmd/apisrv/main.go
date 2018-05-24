@@ -106,8 +106,8 @@ func main() {
 	for name, opts := range conf.OAuth {
 		switch name {
 		case "github":
-			oauthProviders[name] = github.NewOAuthProvider(opts)
-			sourceClients[name] = github.NewClient()
+			oauthProviders[name] = github.NewOAuthProvider(logger, opts)
+			sourceClients[name] = github.NewClient(logger)
 		default:
 			fatal(fmt.Errorf("oauth provider: %s: not implemented yet", name))
 		}
