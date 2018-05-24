@@ -92,6 +92,7 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 	}
 
 	numGetErr := 0
+	success := false
 	var logs *codebuild.LogsLocation = nil
 	for {
 		res2, err := p.cb.BatchGetBuilds(&codebuild.BatchGetBuildsInput{Ids: []*string{res.Build.Id}})
@@ -110,6 +111,7 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 		build := res2.Builds[0]
 		if *build.BuildComplete {
 			logs = build.Logs
+			success = *build.BuildStatus == codebuild.StatusTypeSucceeded
 			break
 		}
 	}
@@ -131,6 +133,9 @@ func (p *Pipeline) Run(ctx context.Context, logOut io.Writer, job *domain.BuildJ
 		cancel()
 	}
 
+	if !success {
+		return errors.New("build failed")
+	}
 	return nil
 }
 
