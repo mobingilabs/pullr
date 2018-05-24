@@ -42,7 +42,7 @@ export default {
     async load (page) {
       this.loading = true
       try {
-        const data = await this.$store.dispatch('loadImageBuilds', {key: this.$route.params.key, page: this.currentPage, perPage: this.perPage})
+        const data = await this.$store.dispatch('loadImageBuilds', {key: this.$route.params.key, page: page, perPage: this.perPage})
         this.records = data.build_records
         this.pagination = data.pagination
         if (page > this.pagination.last) {

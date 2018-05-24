@@ -55,7 +55,7 @@ push: $(PUSH_CMDS)
 dev:
 	docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 	@make show-dev-help
-	@sh -c "cd ui; npm install && cd dist && parcel serve --https -d . ../src/index.html"
+	@sh -c "cd ui; npm install && npm run dev"
 
 show-dev-help:
 	@echo "If this is your first run please add pullr's names"
