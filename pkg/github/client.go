@@ -25,7 +25,7 @@ type Client struct {
 
 // NewClient creates a github client
 func NewClient(logger domain.Logger) *Client {
-	return &Client{}
+	return &Client{logger}
 }
 
 func (c *Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte, error) {
@@ -47,12 +47,12 @@ func (c *Client) doRequest(ctx context.Context, apiReq apiRequest) (int, []byte,
 	res, err := http.DefaultClient.Do(req)
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		c.logger.Errorf("github: failed request: %v", req)
+		c.logger.Errorf("github: failed request: %v", apiReq)
 		return 0, nil, err
 	}
 
 	if res.StatusCode >= 300 {
-		c.logger.Errorf("github: unsuccessful request: %v", req)
+		c.logger.Errorf("github: unsuccessful request: %v", apiReq)
 	}
 
 	return res.StatusCode, body, nil
